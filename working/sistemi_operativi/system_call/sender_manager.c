@@ -14,12 +14,14 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <string.h>
+#include <time.h>
 
 #include "defines.h"
 #include "err_exit.h"
 
-void writeF8(char[],int,int,int);
-message_sending* carica_F0(char[]);
+void writeF8(int,int,int);
+void writeTraffic(char*, message_group*);
+message_group* carica_F0(char[]);
 
 int main(void) {
   pid_t pidS1,pidS2,pidS3;
@@ -30,7 +32,9 @@ int main(void) {
   if(pidS1==0){
     
     //inizializzo la struttura con la dimensione di un messaggio
-    message_sending *messagges=carica_F0(F0);
+    message_group *messages=carica_F0(F0);
+    writeTraffic(F1, messages);
+    sleep(1);
     exit(0);
   } else if(pidS1 == -1){
     ErrExit("Fork");
@@ -39,7 +43,8 @@ int main(void) {
   //genero processo S2
   pidS2=fork();
   if(pidS2==0){
-    //printf("Processo %d\n",getpid());
+    writeTraffic(F2, NULL);
+    sleep(2);
     exit(0);
   } else if(pidS2 == -1){
     ErrExit("Fork");
@@ -49,7 +54,8 @@ int main(void) {
   //genero processo S3
   pidS3=fork();
   if(pidS3==0){
-    //printf("Processo %d\n",getpid());
+    writeTraffic(F3, NULL);
+    sleep(3);
     exit(0);
   } else if(pidS3 == -1){
     ErrExit("Fork");
@@ -57,8 +63,7 @@ int main(void) {
 
 
   //genero file8.csv 
-  writeF8(F8,pidS1,pidS2,pidS3);
-
+  writeF8(pidS1,pidS2,pidS3);
 
 
   /** attendo la terminazione dei sottoprocessi prima di continuare */
@@ -70,10 +75,10 @@ int main(void) {
 
 
 //Funzione che mi genera il file F8 e scrive ogni riga
-void writeF8(char nomeFile[],int pid1,int pid2,int pid3){
+void writeF8(int pid1,int pid2,int pid3){
 
   //creo il file se è gia presente lo sovrascrivo
-  int fp = open(nomeFile,O_CREAT | O_TRUNC| O_WRONLY, S_IRUSR | S_IWUSR ); 
+  int fp = open(F8,O_CREAT | O_TRUNC| O_WRONLY, S_IRUSR | S_IWUSR ); 
   if (fp == -1)
     ErrExit("Open");
   
@@ -93,9 +98,8 @@ void writeF8(char nomeFile[],int pid1,int pid2,int pid3){
   free(buffer);
 }
 
-message_sending* carica_F0(char nomeFile[]){
+message_group* carica_F0(char nomeFile[]){
 
-  // struct message_sending* tmp=malloc(sizeof(struct message_sending));
 
   /** apro il file */
   int fp = open(nomeFile, O_RDONLY);
@@ -129,10 +133,10 @@ message_sending* carica_F0(char nomeFile[]){
       rowNumber++;
     } 
   }
-  message_sending *messagges =  malloc(sizeof(message_sending)*(rowNumber+1));
+  message_sending *messages =  malloc(sizeof(message_sending)*(rowNumber+1));
 
   counterRow = 0;
-  int messaggeNumber = 0;
+  int messageNumber = 0;
   for(int i=0; i<bufferLength; i++){
     // Prendiamo le righe
     if(buf[i] != '\n' && buf[i] != '\0' && i != bufferLength - 1){
@@ -163,35 +167,35 @@ message_sending* carica_F0(char nomeFile[]){
         }
         segment[c] = '\0';
         x++;
-        // Inizializzo il messagge
+        // Inizializzo il message
         switch (j){
           case 0:
-            messagges[messaggeNumber].id = atoi(segment);
+            messages[messageNumber].id = atoi(segment);
             break;
           case 1:
-            messagges[messaggeNumber].message = (char *)malloc(sizeof(segment));
-            strcpy(messagges[messaggeNumber].message, segment);
+            messages[messageNumber].message = (char *)malloc(sizeof(segment));
+            strcpy(messages[messageNumber].message, segment);
             break;
           case 2:
-            messagges[messaggeNumber].idSender = (char *)malloc(sizeof(segment));
-            strcpy(messagges[messaggeNumber].idSender, segment);
+            messages[messageNumber].idSender = (char *)malloc(sizeof(segment));
+            strcpy(messages[messageNumber].idSender, segment);
             break;
           case 3:
-            messagges[messaggeNumber].idReceiver = (char *)malloc(sizeof(segment));
-            strcpy(messagges[messaggeNumber].idReceiver, segment);
+            messages[messageNumber].idReceiver = (char *)malloc(sizeof(segment));
+            strcpy(messages[messageNumber].idReceiver, segment);
             break;
           case 4:
-            messagges[messaggeNumber].DelS1 = atoi(segment);
+            messages[messageNumber].DelS1 = atoi(segment);
             break;
           case 5:
-            messagges[messaggeNumber].DelS2 = atoi(segment);
+            messages[messageNumber].DelS2 = atoi(segment);
             break;
           case 6:
-            messagges[messaggeNumber].DelS3 = atoi(segment);
+            messages[messageNumber].DelS3 = atoi(segment);
             break;
           case 7:
-            messagges[messaggeNumber].Type = (char *)malloc(sizeof(segment));
-            strcpy(messagges[messaggeNumber].Type, segment);
+            messages[messageNumber].Type = (char *)malloc(sizeof(segment));
+            strcpy(messages[messageNumber].Type, segment);
             break;
           default:
             break;
@@ -199,16 +203,69 @@ message_sending* carica_F0(char nomeFile[]){
         free(segment);
         j++;
       }
-      printf("%d\t",messaggeNumber);
-      printMessage(messagges[messaggeNumber]);
+      /** printf("%d\t",messageNumber); */
+      /** printMessage(messages[messageNumber]); */
       // Resetto la riga
       strcpy(row, "");
-      messaggeNumber ++;
+      messageNumber ++;
       counterRow = 0;
     }
   }
   
-  return messagges;
+  message_group *messageG = malloc(sizeof(messageG));
+  messageG->length = messageNumber;
+  messageG->messages = messages;
+  return messageG;
+}
+
+//Funzione che mi genera il file F8 e scrive ogni riga
+void writeTraffic(char* pathName, message_group* messageG){
+
+  //creo il file se è gia presente lo sovrascrivo
+  int fp = open(pathName,O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR ); 
+  if (fp == -1)
+    ErrExit("Open");
+  
+  //calcolo il numero totale di caratteri da scrivere nel buffer
+  ssize_t bufferLength = sizeof(char)*TrafficInfoLength;
+  char* header = TrafficInfo;
+
+  if(write(fp,header,bufferLength) != bufferLength){
+    ErrExit("Write");
+  }
+  
+  if(strcmp(F1, pathName)==0){
+    // time_t is arithmetic time type
+    time_t now = time(NULL);
+
+    struct tm local = *localtime(&now);
+    
+    // Per ogni messaggio
+    for(int i = 0;i< messageG->length; i++){
+      struct tm then_tm = *localtime(&now);
+      then_tm.tm_sec += messageG->messages[i].DelS1;
+      mktime(&then_tm);
+    
+
+      bufferLength = (numcifre(messageG->messages[i].id) + sizeof(messageG->messages[i].message) + sizeof(messageG->messages[i].idSender) + sizeof(messageG->messages[i].idReceiver) + 20*sizeof(char)); 
+      char * string = malloc(bufferLength);
+
+      sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;%02d:%02d:%02d\n\0",messageG->messages[i].id, messageG->messages[i].message, messageG->messages[i].idSender[1], messageG->messages[i].idReceiver[1],local.tm_hour,local.tm_min,local.tm_sec,then_tm.tm_hour,then_tm.tm_min,then_tm.tm_sec);
+
+      if(write(fp, string, strlen(string)*sizeof(char)) != strlen(string)*sizeof(char)){
+        ErrExit("Write");
+      }
+
+
+      free(string);
+    }
+
+    // Eliminazione dei messaggi
+    free(messageG);
+  }
+  //scrivo sul file
+  close(fp);
+  return;
 }
 
 
