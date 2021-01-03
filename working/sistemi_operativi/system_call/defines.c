@@ -3,6 +3,7 @@
 ///         specifiche del progetto.
 
 #include "defines.h"
+#include <stdio.h>
 
 int numcifre(int n){
    int i=0;

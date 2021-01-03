@@ -124,7 +124,7 @@ message_group* carica_F0(char nomeFile[]) {
 	int fileSize = lseek(fp, (size_t)0, SEEK_END);
 	if (fileSize == -1) { ErrExit("Lseek"); }
 
-	// riposiziono l'offset di lettura a inizio file 
+	// posiziono l'offset alla prima riga dei messaggi (salto i titoli) 
 	if (lseek(fp, (size_t)MessageSendingHeader * sizeof(char), SEEK_SET) == -1) {
 		ErrExit("Lseek");
 	}
@@ -133,7 +133,7 @@ message_group* carica_F0(char nomeFile[]) {
 	//calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
 	int bufferLength = fileSize / sizeof(char) - MessageSendingHeader;
 	//inizializzo il buffer
-	char buf[fileSize / sizeof(char)];
+	char buf[bufferLength];
 	//leggo dal file e salvo ciò che ho letto nel buf
 	if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
 		ErrExit("Read");
@@ -180,7 +180,7 @@ message_group* carica_F0(char nomeFile[]) {
 				//inizializzo questa variabile per il calcolo della lunghezza del campo (id,..message,..)
 				int segmentLength = 0;
 				//calcolo la lunghezza del campo
-				while (row[x] != ';' && row[x] != '\n' && row[x] != '\0' && row[x] != NULL) {
+				while (row[x] != ';' && row[x] != '\n' && row[x] != '\0') {
 					segmentLength++;
 					x++;
 				}
@@ -192,7 +192,7 @@ message_group* carica_F0(char nomeFile[]) {
 
 				counter = 0;
 				// Ottengo il campo
-				while (row[x] != ';' && row[x] != '\n' && row[x] != '\0' && row[x] != NULL) {
+				while (row[x] != ';' && row[x] != '\n' && row[x] != '\0') {
 					segment[counter] = row[x];
 					counter++;
 					x++;
@@ -287,7 +287,7 @@ void writeTraffic(char* pathName, message_group* messageG) {
 			char* string = malloc(bufferLength);
 
 			//mi salvo tutta la stringa
-			sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;%02d:%02d:%02d\n\0", messageG->messages[i].id, messageG->messages[i].message, messageG->messages[i].idSender[1], messageG->messages[i].idReceiver[1], local.tm_hour, local.tm_min, local.tm_sec, then_tm.tm_hour, then_tm.tm_min, then_tm.tm_sec);
+			sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;%02d:%02d:%02d\n", messageG->messages[i].id, messageG->messages[i].message, messageG->messages[i].idSender[1], messageG->messages[i].idReceiver[1], local.tm_hour, local.tm_min, local.tm_sec, then_tm.tm_hour, then_tm.tm_min, then_tm.tm_sec);
 
 			//scrivo la stringa nel file
 			if (write(fp, string, strlen(string) * sizeof(char)) != strlen(string) * sizeof(char)) {
