@@ -1,0 +1,5 @@
+Id;Message;Id Sender;Id Receiver;Time arrival;Time dept.
+4;10;all;
+3;7;R2;SendMsg
+2;4;S2;RemoveMsg
+1;3;S1;IncreaseDelay

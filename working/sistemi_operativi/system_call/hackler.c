@@ -4,16 +4,15 @@
 #include "defines.h"
 
 action_group* carica_F7(char*);
+void writeActionReverse(char *,action_group*);
 
 int main(int argc, char * argv[]) {
 
   //inizializzo la struttura con la dimensione di un messaggio
   action_group* action_group = carica_F7(F7);
+  writeActionReverse(F7out, action_group);
 
-  for(int i=0; i<action_group.length; i++)
-    printAction(action_group.actions[i]);
-
-  //sleep(2);
+  sleep(2);
   
   return 0;
 }
@@ -141,7 +140,46 @@ action_group* carica_F7(char nomeFile[]) {
 	actionG->length = actionNumber;
 	actionG->actions = actions;
 
-  printAction(actions[0]);
-
 	return actionG;
+}
+
+
+//Funzione utilizzata per scrivere in un file le informazioni delle azioni
+void writeActionReverse(char* pathName, action_group* actionG) {
+
+	//creo il file se è gia presente lo sovrascrivo
+	int fp = open(pathName, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+	if (fp == -1)
+		ErrExit("Open");
+
+	//calcolo il numero totale di caratteri da scrivere nel buffer
+	ssize_t bufferLength = sizeof(char) * TrafficInfoLength;
+	char* header = TrafficInfo;
+
+	if (write(fp, header, bufferLength) != bufferLength) {
+		ErrExit("Write");
+	}
+
+	// Per ogni messaggio
+	for (int i = actionG->length - 1;i >= 0; i--) {
+
+    //calcolo la dimensione della riga da scrivere
+    bufferLength = (numcifre(actionG->actions[i].id) + (numcifre(actionG->actions[i].delay) +sizeof(actionG->actions[i].target) + sizeof(actionG->actions[i].action) + 8 * sizeof(char)));
+    char* string = malloc(bufferLength);
+
+    //mi salvo tutta la stringa
+    sprintf(string, "%d;%d;%s;%s\n", actionG->actions[i].id, actionG->actions[i].delay, actionG->actions[i].target, actionG->actions[i].action);
+
+    //scrivo la stringa nel file
+    if (write(fp, string, strlen(string) * sizeof(char)) != strlen(string) * sizeof(char)) {
+      ErrExit("Write");
+    }
+
+    //libero lo spazio allocato per la stringa
+    free(string);
+	}
+
+  // Eliminazione dei messaggi
+	free(actionG);
+	close(fp);
 }
