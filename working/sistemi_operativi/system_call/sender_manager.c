@@ -1,26 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/ipc.h>
-#include <sys/dir.h>
-#include <dirent.h>
-#include <sys/shm.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <sys/sem.h>
-#include <sys/msg.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <string.h>
-#include <time.h>
-
 #include "defines.h"
-#include "err_exit.h"
 
 void writeF8(int, int, int);
-void writeTraffic(char*, message_group*);
 message_group* carica_F0(char[]);
 
 int main(void) {
@@ -140,7 +120,7 @@ message_group* carica_F0(char nomeFile[]) {
 	}
 
 	//inizializzo l'array riga
-	char row[1000];
+	char row[bufferLength];
 
 	//contatore delle righe
 	int rowNumber = 0;
@@ -251,59 +231,5 @@ message_group* carica_F0(char nomeFile[]) {
 
 	return messageG;
 }
-
-//Funzione che mi genera il file F8 e scrive ogni riga
-void writeTraffic(char* pathName, message_group* messageG) {
-
-	//creo il file se è gia presente lo sovrascrivo
-	int fp = open(pathName, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (fp == -1)
-		ErrExit("Open");
-
-	//calcolo il numero totale di caratteri da scrivere nel buffer
-	ssize_t bufferLength = sizeof(char) * TrafficInfoLength;
-	char* header = TrafficInfo;
-
-	if (write(fp, header, bufferLength) != bufferLength) {
-		ErrExit("Write");
-	}
-
-	//se voglio scrivere il F1
-	if (strcmp(F1, pathName) == 0) {
-
-		//genero il tempo attuale
-		time_t now = time(NULL);
-		struct tm local = *localtime(&now);
-
-		// Per ogni messaggio
-		for (int i = 0;i < messageG->length; i++) {
-			//ogni messaggio avrà come tempo di arrivo il tempo attuale più il ritardo
-			struct tm then_tm = *localtime(&now);
-			then_tm.tm_sec += messageG->messages[i].DelS1;
-			mktime(&then_tm);
-
-			//calcolo la dimensione della riga da scrivere
-			bufferLength = (numcifre(messageG->messages[i].id) + sizeof(messageG->messages[i].message) + sizeof(messageG->messages[i].idSender) + sizeof(messageG->messages[i].idReceiver) + 20 * sizeof(char));
-			char* string = malloc(bufferLength);
-
-			//mi salvo tutta la stringa
-			sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;%02d:%02d:%02d\n", messageG->messages[i].id, messageG->messages[i].message, messageG->messages[i].idSender[1], messageG->messages[i].idReceiver[1], local.tm_hour, local.tm_min, local.tm_sec, then_tm.tm_hour, then_tm.tm_min, then_tm.tm_sec);
-
-			//scrivo la stringa nel file
-			if (write(fp, string, strlen(string) * sizeof(char)) != strlen(string) * sizeof(char)) {
-				ErrExit("Write");
-			}
-
-			//libero lo spazio allocato per la stringa
-			free(string);
-		}
-
-		// Eliminazione dei messaggi
-		free(messageG);
-	}
-	close(fp);
-}
-
-
 
 
