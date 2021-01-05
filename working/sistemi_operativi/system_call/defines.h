@@ -30,9 +30,7 @@
 #define F4 "OutputFiles/F4.csv"
 #define F5 "OutputFiles/F5.csv"
 #define F6 "OutputFiles/F6.csv"
-#define F7 "InputFiles/F7.csv"
 #define F7out "OutputFiles/F7_out.csv"
-#define F0 "InputFiles/F0.csv"
 #define TrafficInfo "Id;Message;Id Sender;Id Receiver;Time arrival;Time dept.\n"
 #define TrafficInfoLength 57
 #define MessageSendingHeader 54

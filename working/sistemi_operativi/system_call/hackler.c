@@ -3,10 +3,17 @@
 
 #include "defines.h"
 
+char* F7;
 action_group* carica_F7(char*);
 void writeActionReverse(char *,action_group*);
 
 int main(int argc, char * argv[]) {
+
+  F7 = argv[1];
+
+  if(argc < 1){
+    exit(1);
+  }
 
   //inizializzo la struttura con la dimensione di un messaggio
   action_group* action_group = carica_F7(F7);

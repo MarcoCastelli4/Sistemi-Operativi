@@ -1,11 +1,19 @@
 #include "defines.h"
 
+char* F0;
+
 void writeF8(int, int, int);
 message_group* carica_F0(char[]);
 
-int main(void) {
+int main(int argc, char * argv[]) {
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
+  
+  F0 = argv[1];
+
+  if(argc < 1){
+    exit(1);
+  }
 
 	//genero processo S1
 	pidS1 = fork();
