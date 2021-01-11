@@ -48,7 +48,8 @@ int main(int argc, char * argv[]) {
 	else if (pidR3 == -1) {
 		ErrExit("Fork");
 	}
-
+	
+	//genero file F9
 	writeF9(pidR1, pidR2, pidR3);
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
@@ -68,7 +69,7 @@ void writeF9(int pid1, int pid2, int pid3) {
 		ErrExit("Open");
 
 	//calcolo il numero totale di caratteri da scrivere nel buffer
-	int n = 27 + numcifre(pid1) + numcifre(pid2) + numcifre(pid3);
+	int n = 28 + numcifre(pid1) + numcifre(pid2) + numcifre(pid3);
 
 	//inizializzo buffer delle dimenisoni corrette
 	ssize_t bufferLength = sizeof(char) * n;

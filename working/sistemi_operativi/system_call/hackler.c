@@ -9,16 +9,23 @@ void writeActionReverse(char *,action_group*);
 
 int main(int argc, char * argv[]) {
 
+  //acquisisco parametro passato da linea di comando
   F7 = argv[1];
 
   if(argc < 1){
     exit(1);
   }
 
-  //inizializzo la struttura con la dimensione di un messaggio
+  //inizializzo la struttura leggendo i dati dal file
   action_group* action_group = carica_F7(F7);
+  
+  //scrivo i dati della struttura in ordine inverso
   writeActionReverse(F7out, action_group);
 
+  // Eliminazione della struttura dei messaggi di hackler
+  free(action_group);
+
+  //addormento il processo
   sleep(2);
   
   return 0;
@@ -111,7 +118,7 @@ action_group* carica_F7(char nomeFile[]) {
 				}
 				segment[counter] = '\0';
 				x++;
-				// Inizializzo i campi del messaggio
+				// Inizializzo i campi del messaggio hackler
 				switch (campo) {
 				case 0:
 					actions[actionNumber].id = atoi(segment);
@@ -186,7 +193,5 @@ void writeActionReverse(char* pathName, action_group* actionG) {
     free(string);
 	}
 
-  // Eliminazione dei messaggi
-	free(actionG);
 	close(fp);
 }

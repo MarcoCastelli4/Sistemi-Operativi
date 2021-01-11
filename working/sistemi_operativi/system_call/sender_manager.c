@@ -14,13 +14,15 @@ int main(int argc, char * argv[]) {
   if(argc < 1){
     exit(1);
   }
+	//la struttura messaggi inizialmente è vuota
+	message_group* messages=NULL;
 
 	//genero processo S1
 	pidS1 = fork();
 	if (pidS1 == 0) {
 
 		//inizializzo la struttura con la dimensione di un messaggio
-		message_group* messages = carica_F0(F0);
+		messages = carica_F0(F0);
 		//scrivo sul file F1
 		writeTraffic(F1, messages);
 		//addormento per 1 secondo il processo
@@ -65,6 +67,9 @@ int main(int argc, char * argv[]) {
 	//genero file8.csv 
 	writeF8(pidS1, pidS2, pidS3);
 
+	// Eliminazione dei messaggi
+	free(messages);
+
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
@@ -85,7 +90,7 @@ void writeF8(int pid1, int pid2, int pid3) {
 		ErrExit("Open");
 
 	//calcolo il numero totale di caratteri da scrivere nel buffer
-	int n = 25 + numcifre(pid1) + numcifre(pid2) + numcifre(pid3);
+	int n = 26 + numcifre(pid1) + numcifre(pid2) + numcifre(pid3);
 
 	//inizializzo buffer delle dimenisoni corrette
 	ssize_t bufferLength = sizeof(char) * n;

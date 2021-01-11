@@ -22,6 +22,7 @@
 #include <time.h>
 #include "err_exit.h"
 
+//nomi simbolici dei file su cui agisco
 #define F8 "OutputFiles/F8.csv"
 #define F9 "OutputFiles/F9.csv"
 #define F2 "OutputFiles/F2.csv"
@@ -31,11 +32,15 @@
 #define F5 "OutputFiles/F5.csv"
 #define F6 "OutputFiles/F6.csv"
 #define F7out "OutputFiles/F7_out.csv"
+
 #define TrafficInfo "Id;Message;Id Sender;Id Receiver;Time arrival;Time dept.\n"
+
+//dimensioni classiche mi servono (stringa titoli dei messaggi, stringa titoli delle sole intestazioni dei messaggi, stringa titolo delle sole intestazioni dei messaggi di header)
 #define TrafficInfoLength 57
 #define MessageSendingHeader 54
 #define ActionSendingHeader 23
 
+//struttura messaggio di hackler
 typedef struct{
      int id;
      int delay;
@@ -43,11 +48,13 @@ typedef struct{
      char* action;
 } action;
 
+//struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
 typedef struct{
      int length;
      action* actions;
 } action_group;
 
+//struttura messaggio
 typedef struct{
      int id;
      char* message;
@@ -59,6 +66,7 @@ typedef struct{
      char* Type;
 } message_sending;
 
+//struttura che contiene l'array dei messaggi e la rispettiva lunghezza
 typedef struct{
      int length;
      message_sending* messages;

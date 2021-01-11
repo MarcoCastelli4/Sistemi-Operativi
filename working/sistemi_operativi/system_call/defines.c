@@ -1,5 +1,6 @@
 #include "defines.h"
 
+//funzione che mi calcola il numero di cifre di un numero intero (serve per sapere quanti caratteri servono per il numero)
 int numcifre(int n){
    int i=0;
    
@@ -11,10 +12,11 @@ int numcifre(int n){
    return i+1;
 }
 
+//mi stampa l'i-esimo messaggio contenuto nella struttura
 void printMessage(message_sending message){
   printf("%d %s %s %s %d %d %d %s\n", message.id, message.message, message.idSender, message.idReceiver, message.DelS1, message.DelS2, message.DelS3, message.Type);
 }
-
+//mi stampa l'i-esimo messaggio di hackler contenuto nella struttura
 void printAction(action action){
   printf("%d %d %s %s\n", action.id, action.delay, action.target, action.action);
 }
@@ -64,8 +66,6 @@ void writeTraffic(char* pathName, message_group* messageG) {
 			free(string);
 		}
 
-		// Eliminazione dei messaggi
-		free(messageG);
 	}
 	close(fp);
 }
