@@ -34,6 +34,7 @@
 #define F7out "OutputFiles/F7_out.csv"
 
 #define TrafficInfo "Id;Message;Id Sender;Id Receiver;Time arrival;Time dept.\n"
+#define HacklerInfo "Id;Delay;Target;Action\n"
 
 //dimensioni classiche mi servono (stringa titoli dei messaggi, stringa titoli delle sole intestazioni dei messaggi, stringa titolo delle sole intestazioni dei messaggi di header)
 #define TrafficInfoLength 57

@@ -37,15 +37,15 @@ action_group* carica_F7(char nomeFile[]) {
 	//apro il file 
 	int fp = open(nomeFile, O_RDONLY);
 	if (fp == -1)
-		ErrExit("Open");
+		printf("Open");
 
 	// utilizzo lseek per calcolarne le dimensioni 
 	int fileSize = lseek(fp, (size_t)0, SEEK_END);
-	if (fileSize == -1) { ErrExit("Lseek"); }
+	if (fileSize == -1) { printf("Lseek"); }
 
 	// posiziono l'offset alla prima riga delle azioni (salto i titoli) 
 	if (lseek(fp, (size_t)ActionSendingHeader * sizeof(char), SEEK_SET) == -1) {
-		ErrExit("Lseek");
+		printf("Lseek");
 	}
 
 
@@ -55,16 +55,13 @@ action_group* carica_F7(char nomeFile[]) {
 	char buf[bufferLength];
 	//leggo dal file e salvo ciò che ho letto nel buf
 	if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
-		ErrExit("Read");
+		printf("Read");
 	}
-
-	//inizializzo l'array riga
-	char row[bufferLength];
 
 	//contatore delle righe
 	int rowNumber = 0;
 
-	// Contiamo il numero di righe presenti nel F7 (corrispondono al numero di messaggi presenti)
+	// Contiamo il numero di righe presenti nel F7 (corrispondono al numero di azioni hackler presenti)
 	for (int i = 0; i < bufferLength; i++) {
 		if (buf[i] == '\n' || buf[i] == '\0' || i == bufferLength - 1) {
 			rowNumber++;
@@ -73,53 +70,26 @@ action_group* carica_F7(char nomeFile[]) {
 	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
 	action* actions = malloc(sizeof(action) * (rowNumber + 1));
 
-	//contatore 
-	int counter = 0;
+	
 	//numero di action che inserisco
 	int actionNumber = 0;
 
-	//scorriamo "buf" che è ciò che abbiamo ottenuto con la lettura del file
-	for (int i = 0; i < bufferLength; i++) {
-		// Mi creo la stringa "row" contenente i dati di una singola riga
-		if (buf[i] != '\n' && buf[i] != '\0' && i != bufferLength - 1) {
-			row[counter] = buf[i];
-			//avanzo per il prossimo carattere
-			counter++;
-		}
-		else {
-			row[counter] = '\0';
-			//j ci dice a quale colonna siamo da 0..7 (id,delay,...)
-			int campo = 0;
-			//x è la posizione in cui si trova il carattere che stiamo prendendo in questione
-			int x = 0;
-			// Per ognuno dei campi
-			while (campo < 4) {
-				//posizione in cui si trova il primo carattere del campo in questione
-				int oldX = x;
-				//inizializzo questa variabile per il calcolo della lunghezza del campo (id,..delay,..)
-				int segmentLength = 0;
-				//calcolo la lunghezza del campo
-				while (row[x] != ';' && row[x] != '\n' && row[x] != '\0') {
-					segmentLength++;
-					x++;
-				}
-
-				//ritorno al caraterre iniziale del campo
-				x = oldX;
-				//alloco una stringa (che contiene il mio campo) della dimensione corretta
-				char* segment = malloc(sizeof(char) * segmentLength);
-
-				counter = 0;
-				// Ottengo il campo
-				while (row[x] != ';' && row[x] != '\n' && row[x] != '\0') {
-					segment[counter] = row[x];
-					counter++;
-					x++;
-				}
-				segment[counter] = '\0';
-				x++;
-				// Inizializzo i campi del messaggio hackler
-				switch (campo) {
+	char *end_str;
+	//prendo la riga che è delimitata dal carattere \n
+    	char *row = strtok_r(buf, "\n", &end_str);
+	//scorro finchè la riga non è finita
+   	 while (row != NULL)
+   	 {
+			
+			char *end_segment;
+       			 //prendo il singolo campo/segmento che è delimitato dal ;
+       			 char *segment = strtok_r(row, ";", &end_segment);
+			int campo=0; //0->id , 1->delay
+			//scorro finchè il campo non è finito (la casella)
+       			 while (segment!=NULL)
+       			 {
+				//memorizzo il segmento ne rispettivo campo della struttura
+       			     switch (campo) {
 				case 0:
 					actions[actionNumber].id = atoi(segment);
 					break;
@@ -137,19 +107,17 @@ action_group* carica_F7(char nomeFile[]) {
 				default:
 					break;
 				}
-				free(segment);
-				campo++;	//passo al campo successivo
-			}
+				//vado al campo successivo
+				campo++;
+       			     segment = strtok_r(NULL, ";", &end_segment);
 
-			// Resetto la riga
-			strcpy(row, "");
-			//aumento il contatore dei messaggi
+       			 }
+			//vado alla riga successiva
 			actionNumber++;
-
-			counter = 0;
-		}
+       			 row = strtok_r(NULL, "\n", &end_str);
 	}
-	//inserisco nella mia struttura l'array di messaggi e quanti messaggi sono stati inseriti
+			
+	//inserisco nella mia struttura l'array di hackler e quanti hackler sono stati inseriti
 	action_group* actionG = malloc(sizeof(actionG));
 	actionG->length = actionNumber;
 	actionG->actions = actions;
@@ -167,8 +135,8 @@ void writeActionReverse(char* pathName, action_group* actionG) {
 		ErrExit("Open");
 
 	//calcolo il numero totale di caratteri da scrivere nel buffer
-	ssize_t bufferLength = sizeof(char) * TrafficInfoLength;
-	char* header = TrafficInfo;
+	ssize_t bufferLength = sizeof(char) * ActionSendingHeader;
+	char* header = HacklerInfo;
 
 	if (write(fp, header, bufferLength) != bufferLength) {
 		ErrExit("Write");
