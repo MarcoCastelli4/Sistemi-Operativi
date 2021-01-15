@@ -85,9 +85,11 @@ action_group* carica_F7(char nomeFile[]) {
        			 //prendo il singolo campo/segmento che è delimitato dal ;
        			 char *segment = strtok_r(row, ";", &end_segment);
 			int campo=0; //0->id , 1->delay
-			//scorro finchè il campo non è finito (la casella)
-       			 while (segment!=NULL)
-       			 {
+			//scorro finchè non ho aggiunto i 4 campi
+       			 while (campo<4)
+       			 {	//se il segmento è vuoto, faccio inserire una stringa vuota
+				if(segment==NULL)
+					segment="";
 				//memorizzo il segmento ne rispettivo campo della struttura
        			     switch (campo) {
 				case 0:
