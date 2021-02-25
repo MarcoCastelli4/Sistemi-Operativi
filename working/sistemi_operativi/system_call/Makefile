@@ -38,7 +38,6 @@ clean:
 	@rm -vf receiver_manager
 	@rm -vf sender_manager
 	@rm -vf hackler
-	@rm -v  OutputFiles/*
 	@rm -rf ${OBJDIR}
 	@ipcrm -a
 	@echo "Removed object files and executables..."

@@ -25,7 +25,19 @@ int main(int argc, char * argv[]) {
 		messages = carica_F0(F0);
 		//scrivo sul file F1
 		writeTraffic(F1, messages);
-		//addormento per 1 secondo il processo
+		
+    // Eliminazione della struttura dei messaggi di hackler
+    int i = 0;
+    for(; i < messages->length - 1; i++){
+      free(messages->messages[i].message);
+      free(messages->messages[i].idSender);
+      free(messages->messages[i].Type);
+      free(messages->messages[i].idReceiver);
+    }
+    free(messages->messages);
+    free(messages);
+
+    //addormento per 1 secondo il processo
 		sleep(1);
 		exit(0);
 		//termino il processo
@@ -54,7 +66,7 @@ int main(int argc, char * argv[]) {
 	if (pidS3 == 0) {
 		//scrivo sul file F3
 		writeTraffic(F3, NULL);
-		//addormento per 2 secondo il processo
+		//addormento per 3 secondo il processo
 		sleep(3);
 		//termino il processo
 		exit(0);
@@ -67,10 +79,7 @@ int main(int argc, char * argv[]) {
 	//genero file8.csv 
 	writeF8(pidS1, pidS2, pidS3);
 
-	// Eliminazione dei messaggi
-	free(messages);
-
-
+	
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
 	while ((waitPID = wait(&stato)) > 0);
@@ -111,15 +120,15 @@ message_group* carica_F0(char nomeFile[]) {
 	//apro il file 
 	int fp = open(nomeFile, O_RDONLY);
 	if (fp == -1)
-		printf("Open");
+		ErrExit("Open");
 
 	// utilizzo lseek per calcolarne le dimensioni 
 	int fileSize = lseek(fp, (size_t)0, SEEK_END);
-	if (fileSize == -1) { printf("Lseek"); }
+	if (fileSize == -1) { ErrExit("Lseek"); }
 
 	// posiziono l'offset alla prima riga dei messaggi (salto i titoli) 
 	if (lseek(fp, (size_t)MessageSendingHeader * sizeof(char), SEEK_SET) == -1) {
-		printf("Lseek");
+		ErrExit("Lseek");
 	}
 
 
@@ -129,7 +138,7 @@ message_group* carica_F0(char nomeFile[]) {
 	char buf[bufferLength];
 	//leggo dal file e salvo ciò che ho letto nel buf
 	if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
-		printf("Read");
+		ErrExit("Read");
 	}
 
 	//contatore delle righe
