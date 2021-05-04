@@ -69,3 +69,13 @@ void writeTraffic(char* pathName, message_group* messageG) {
 	}
 	close(fp);
 }
+
+int stringLenght(message_sending message){
+	return  numcifre(message.id) + sizeof(message.message) + sizeof(message.idSender) + sizeof(message.idReceiver) + 20 * sizeof(char);
+}
+char* toString(message_sending message){
+	char* string = malloc(stringLenght(message));
+	sprintf(string, "%d %s %s %s %d %d %d %s\n", message.id, message.message, message.idSender, message.idReceiver, message.DelS1, message.DelS2, message.DelS3, message.Type);
+	return string;
+
+}

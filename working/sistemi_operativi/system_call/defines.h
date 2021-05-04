@@ -40,6 +40,10 @@
 #define TrafficInfoLength 57
 #define MessageSendingHeader 54
 #define ActionSendingHeader 23
+#define SKey 01110011
+#define QKey 01110001
+#define MKey 01101101
+#define FIFO "OutputFiles/my_fifo.txt"
 
 //struttura messaggio di hackler
 typedef struct{
@@ -73,6 +77,13 @@ typedef struct{
      message_sending* messages;
 } message_group;
 
+struct message_queue{
+     long mtype;
+     message_sending message;
+};
+
+int stringLenght(message_sending message);
+char* toString(message_sending message);
 int numcifre(int );
 void printMessage(message_sending );
 void printAction(action );
