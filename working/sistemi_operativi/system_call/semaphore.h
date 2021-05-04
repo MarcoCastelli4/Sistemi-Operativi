@@ -4,6 +4,7 @@
 
 #pragma once
 
+#define SENDER_READY 1
 #define RECEIVER_READY 0
 
 union semun

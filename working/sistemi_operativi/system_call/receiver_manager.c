@@ -1,6 +1,5 @@
 #include "defines.h"
 
-
 void writeF9(int, int, int);
 int MSQID = -1;
 int main(int argc, char *argv[])
@@ -8,15 +7,19 @@ int main(int argc, char *argv[])
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 
-	//Inizializzo il semaforo e attendo
 	int semID = create_sem_set(2);
+	if (semID > 0) {
+        //Sbloccato dal receiver
+		semOp(semID, RECEIVER_READY, -1);
+    } else{
+		ErrExit("semget failed");
+	}
 	
-	// Creo la message queue
-	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
+	//Accedo alla MessageQueue
+	int MSQID = msgget(QKey, S_IRUSR | S_IWUSR);
 	if (MSQID == -1){
 		ErrExit("Message queue failed");
 	}
-	semOp(semID, RECEIVER_READY, 1);
 
 	//genero processo R1
 	pidR1 = fork();
@@ -80,10 +83,6 @@ int main(int argc, char *argv[])
 	int stato = 0;
 	while ((waitPID = wait(&stato)) > 0);
 
-	//Chiusura della msgQueue
-	if(msgctl(MSQID,IPC_RMID,NULL)==-1){
-		ErrExit("msfctl falied");
-	}
 	//termino il processo padre
 	exit(0);
 	return (0);
