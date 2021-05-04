@@ -7,6 +7,8 @@ int main(int argc, char *argv[])
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 
+	printf("SOno receiver");
+
 	int semID = create_sem_set(2);
 	if (semID > 0) {
         //Sbloccato dal receiver
