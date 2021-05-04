@@ -1,5 +1,6 @@
 #include "defines.h"
 
+
 char *F0;
 int MSQID = -1;
 
@@ -12,9 +13,19 @@ int main(int argc, char *argv[])
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
 
-	//Accedo/creo alla MessageQueue
-	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
-	if (MSQID == -1){
+	int semID = create_sem_set(2);
+	if (semID > 0) {
+        //Sbloccato dal receiver
+		semOp(semID, RECEIVER_READY, -1);
+    } else{
+		ErrExit("semget failed");
+	}
+	
+	//Accedo alla MessageQueue
+	int MSQID = msgget(QKey, S_IRUSR | S_IWUSR);
+	
+	if (MSQID == -1)
+	{
 		ErrExit("Message queue failed");
 	}
 
@@ -33,7 +44,19 @@ int main(int argc, char *argv[])
 	{
 		//inizializzo la struttura con la dimensione di un messaggio
 		messages = carica_F0(F0);
-		sendMessage(messages, "S1");
+		
+		//sendMessage(messages, "S1");
+
+		m.mtype = 1;
+		// message contains the following string
+		char *text = "Ciao mondo!";
+		memcpy(m.mtext, text, strlen(text) + 1); // why +1 here?
+		// size of m is only the size of its mtext attribute!
+		size_t mSize = sizeof(struct mymsg) - sizeof(long);
+		// sending the message in the queue
+		if (msgsnd(MSQID, &m, mSize, 0) == -1)
+			ErrExit("msgsnd failed");
+		printf("Messaggio iniato con successo!\n");
 		//scrivo sul file F1
 		writeTraffic(F1, messages);
 
@@ -97,7 +120,7 @@ int main(int argc, char *argv[])
 	int stato = 0;
 	while ((waitPID = wait(&stato)) > 0)
 		;
-	//termino il processo padres
+	//termino il processo padre
 	exit(0);
 	return (0);
 }
@@ -252,9 +275,9 @@ void sendMessage(message_group *messageG, char processo[])
 			struct message_queue messaggio;
 			messaggio.mtype = 1;
 
-			char *dati = toString(messageG->messages[i]);
+			char *dati = "Ciao mondo";
 			printf("Invio questo messaggio: %s\n", dati);
-			if (msgsnd(MSQID, &dati, stringLenght(messaggio.message) + 1, IPC_NOWAIT) == -1)
+			if (msgsnd(MSQID, &dati,(size_t) stringLenght(messaggio.message) + 1, 0) == -1)
 				ErrExit("msgsnd failed");
 		}
 

@@ -1,33 +1,34 @@
 #include "defines.h"
 
-void writeF9(int, int, int);
 
+void writeF9(int, int, int);
+int MSQID = -1;
 int main(int argc, char *argv[])
 {
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
-	
-	//Accedo alla MessageQueue
-	sleep(5);
-	int MSQID = msgget(QKey, S_IRUSR | S_IWUSR);
 
-	if (MSQID == -1)
-	{
+	//Inizializzo il semaforo e attendo
+	int semID = create_sem_set(2);
+	
+	// Creo la message queue
+	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
+	if (MSQID == -1){
 		ErrExit("Message queue failed");
 	}
+	semOp(semID, RECEIVER_READY, 1);
 
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)
 	{
-		printf("Sono in R1");
-		struct message_queue messaggio;
-		size_t len = sizeof(struct message_queue) - sizeof(long);
-		if (msgrcv(MSQID, &messaggio, len, 0, IPC_NOWAIT) == -1)
+		struct mymsg messaggio;
+		size_t len = sizeof(struct mymsg) - sizeof(long);
+		if (msgrcv(MSQID, &messaggio, len, 0, 0) == -1)
 		{
 			ErrExit("msgrcv failed");
 		}
-		printf("Messaggio ricevuto: %s", toString(messaggio.message));
+		printf("\nMessaggio ricevuto: %s", messaggio.mtext);
 		//scrivo sul file F2
 		writeTraffic(F6, NULL);
 		//addormento per 2 secondo il processo
@@ -38,9 +39,6 @@ int main(int argc, char *argv[])
 	else if (pidR1 == -1)
 	{
 		ErrExit("Fork");
-	}
-	else{
-		printf("%d, ", pidR1);
 	}
 
 	//genero processo S2
@@ -80,9 +78,13 @@ int main(int argc, char *argv[])
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0)
-		;
-	//termino il processo padres
+	while ((waitPID = wait(&stato)) > 0);
+
+	//Chiusura della msgQueue
+	if(msgctl(MSQID,IPC_RMID,NULL)==-1){
+		ErrExit("msfctl falied");
+	}
+	//termino il processo padre
 	exit(0);
 	return (0);
 }

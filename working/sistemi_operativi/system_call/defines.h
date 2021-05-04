@@ -21,6 +21,7 @@
 #include <string.h>
 #include <time.h>
 #include "err_exit.h"
+#include "semaphore.h"
 
 //nomi simbolici dei file su cui agisco
 #define F8 "OutputFiles/F8.csv"
@@ -33,8 +34,8 @@
 #define F6 "OutputFiles/F6.csv"
 #define F7out "OutputFiles/F7_out.csv"
 
-#define TrafficInfo "Id;Message;Id Sender;Id Receiver;Time arrival;Time dept.\n"
-#define HacklerInfo "Id;Delay;Target;Action\n"
+#define TrafficInfo "ID;Message;IDSender;IDReceiver;TimeArrival;TimeDeparture\n"
+#define HacklerInfo "ID;Delay;Target;Action\n"
 
 //dimensioni classiche mi servono (stringa titoli dei messaggi, stringa titoli delle sole intestazioni dei messaggi, stringa titolo delle sole intestazioni dei messaggi di header)
 #define TrafficInfoLength 57
@@ -46,45 +47,57 @@
 #define FIFO "OutputFiles/my_fifo.txt"
 
 //struttura messaggio di hackler
-typedef struct{
+typedef struct
+{
      int id;
      int delay;
-     char* target;
-     char* action;
+     char *target;
+     char *action;
 } action;
 
 //struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
-typedef struct{
+typedef struct
+{
      int length;
-     action* actions;
+     action *actions;
 } action_group;
 
 //struttura messaggio
-typedef struct{
+typedef struct
+{
      int id;
-     char* message;
-     char* idSender;
-     char* idReceiver;
+     char *message;
+     char *idSender;
+     char *idReceiver;
      int DelS1;
      int DelS2;
      int DelS3;
-     char* Type;
+     char *Type;
 } message_sending;
 
+struct mymsg
+{
+     long mtype;
+     char mtext[100]; /* array of chars as message body */
+} m;
+
 //struttura che contiene l'array dei messaggi e la rispettiva lunghezza
-typedef struct{
+typedef struct
+{
      int length;
-     message_sending* messages;
+     message_sending *messages;
 } message_group;
 
-struct message_queue{
+struct message_queue
+{
      long mtype;
      message_sending message;
 };
 
 int stringLenght(message_sending message);
-char* toString(message_sending message);
-int numcifre(int );
-void printMessage(message_sending );
-void printAction(action );
-void writeTraffic(char*, message_group*);
+char *toString(message_sending message);
+
+int numcifre(int);
+void printMessage(message_sending);
+void printAction(action);
+void writeTraffic(char *, message_group *);
