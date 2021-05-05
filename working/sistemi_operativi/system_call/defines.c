@@ -79,3 +79,6 @@ char* toString(message_sending message){
 	return string;
 
 }
+ssize_t dimensioneOfMessage(message_sending message){
+	return 4*sizeof(int) + sizeof(message.idReceiver)+sizeof(message.idSender)+sizeof(message.Type)+sizeof(message.message);
+}

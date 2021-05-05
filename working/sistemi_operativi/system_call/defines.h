@@ -66,15 +66,18 @@ typedef struct
 typedef struct
 {
      int id;
-     char *message;
-     char *idSender;
-     char *idReceiver;
+     char message[50];
+     char idSender[3];
+     char idReceiver[3];
      int DelS1;
      int DelS2;
      int DelS3;
-     char *Type;
+     char Type[5];
 } message_sending;
 
+
+
+//eliminare
 struct mymsg
 {
      long mtype;
@@ -101,3 +104,4 @@ int numcifre(int);
 void printMessage(message_sending);
 void printAction(action);
 void writeTraffic(char *, message_group *);
+ssize_t dimensioneOfMessage(message_sending message);

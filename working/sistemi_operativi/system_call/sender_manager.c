@@ -5,6 +5,7 @@ int MSQID = -1;
 
 void writeF8(int, int, int);
 message_group *carica_F0(char[]);
+
 void sendMessage(message_group *messageG, char processo[]);
 
 int main(int argc, char *argv[])
@@ -13,15 +14,16 @@ int main(int argc, char *argv[])
 	pid_t waitPID;
 
 	//Inizializzo il semaforo e attendo
+	
 	int semID = create_sem_set(2);
 	
-	semOp(semID, SENDER_READY, -1);
 	// Creo la message queue
 	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
 	if (MSQID == -1){
 		ErrExit("Message queue failed");
 	}
-	semOp(semID, RECEIVER_READY, 1);
+	//ho creato puoi usarle
+	semOp(semID, CREATION, 1);
 
 	F0 = argv[1];
 
@@ -37,26 +39,18 @@ int main(int argc, char *argv[])
 	if (pidS1 == 0)
 	{
 		//inizializzo la struttura con la dimensione di un messaggio
-		messages = carica_F0(F0);
 		
-		//sendMessage(messages, "S1");
+		messages = carica_F0(F0);
+	
+		
+		sendMessage(messages, "S1");
 
-		m.mtype = 1;
-		// message contains the following string
-		char *text = "Ciao mondo!";
-		memcpy(m.mtext, text, strlen(text) + 1); // why +1 here?
-		// size of m is only the size of its mtext attribute!
-		size_t mSize = sizeof(struct mymsg) - sizeof(long);
-		// sending the message in the queue
-		if (msgsnd(MSQID, &m, mSize, 0) == -1)
-			ErrExit("msgsnd failed");
-		printf("Messaggio iniato con successo!\n");
-		//scrivo sul file F1
 		writeTraffic(F1, messages);
 
+		/*
 		// Eliminazione della struttura dei messaggi di hackler
 		int i = 0;
-		for (; i < messages->length - 1; i++)
+		for (i=0; i < messages->length - 1; i++)
 		{
 			free(messages->messages[i].message);
 			free(messages->messages[i].idSender);
@@ -65,7 +59,7 @@ int main(int argc, char *argv[])
 		}
 		free(messages->messages);
 		free(messages);
-
+	*/
 		//addormento per 1 secondo il processo
 		sleep(1);
 		exit(0);
@@ -112,11 +106,18 @@ int main(int argc, char *argv[])
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0)
-		;
+	while ((waitPID = wait(&stato)) > 0);
+
+
+	//aspetto che il receiver finisca di usare le IPC
+	semOp(semID, ELIMINATION, -1);
+
 	//Chiusura della msgQueue
 	if(msgctl(MSQID,IPC_RMID,NULL)==-1){
-		ErrExit("msfctl falied");
+		ErrExit("msgrmv failed");
+	}
+	if(semctl(semID,0,IPC_RMID,0)==-1){
+		ErrExit("semrmv failed");
 	}
 	//termino il processo padre
 	exit(0);
@@ -164,13 +165,13 @@ message_group *carica_F0(char nomeFile[])
 	}
 
 	// posiziono l'offset alla prima riga dei messaggi (salto i titoli)
-	if (lseek(fp, (size_t)MessageSendingHeader * sizeof(char), SEEK_SET) == -1)
+	if (lseek(fp, (size_t)(MessageSendingHeader+1) * sizeof(char), SEEK_SET) == -1)
 	{
 		ErrExit("Lseek");
 	}
 
 	//calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
-	int bufferLength = fileSize / sizeof(char) - MessageSendingHeader;
+	int bufferLength = fileSize / sizeof(char) - MessageSendingHeader-1;
 	//inizializzo il buffer
 	char buf[bufferLength];
 	//leggo dal file e salvo ciò che ho letto nel buf
@@ -178,6 +179,8 @@ message_group *carica_F0(char nomeFile[])
 	{
 		ErrExit("Read");
 	}
+	buf[bufferLength]='\0';
+	
 
 	//contatore delle righe
 	int rowNumber = 0;
@@ -185,13 +188,14 @@ message_group *carica_F0(char nomeFile[])
 	// Contiamo il numero di righe presenti nel F0 (corrispondono al numero di messaggi presenti)
 	for (int i = 0; i < bufferLength; i++)
 	{
-		if (buf[i] == '\n' || buf[i] == '\0' || i == bufferLength - 1)
+		if (buf[i] == '\n')
 		{
 			rowNumber++;
 		}
 	}
+	
 	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
-	message_sending *messages = malloc(sizeof(message_sending) * (rowNumber + 1));
+	message_sending *messages = malloc(sizeof(message_sending) * (rowNumber));
 
 	//numero di messaggi che inserisco
 	int messageNumber = 0;
@@ -210,6 +214,7 @@ message_group *carica_F0(char nomeFile[])
 					   //scorro finchè il campo non è finito (la casella)
 		while (segment != NULL)
 		{
+			
 			//memorizzo il segmento ne rispettivo campo della struttura
 			switch (campo)
 			{
@@ -217,19 +222,18 @@ message_group *carica_F0(char nomeFile[])
 				messages[messageNumber].id = atoi(segment);
 				break;
 			case 1:
-				messages[messageNumber].message = (char *)malloc(sizeof(segment));
+				
 				strcpy(messages[messageNumber].message, segment);
 				break;
 			case 2:
-				messages[messageNumber].idSender = (char *)malloc(sizeof(segment));
 				strcpy(messages[messageNumber].idSender, segment);
 				break;
 			case 3:
-				messages[messageNumber].idReceiver = (char *)malloc(sizeof(segment));
+				
 				strcpy(messages[messageNumber].idReceiver, segment);
 				break;
 			case 4:
-				messages[messageNumber].DelS1 = atoi(segment);
+				
 				break;
 			case 5:
 				messages[messageNumber].DelS2 = atoi(segment);
@@ -238,7 +242,6 @@ message_group *carica_F0(char nomeFile[])
 				messages[messageNumber].DelS3 = atoi(segment);
 				break;
 			case 7:
-				messages[messageNumber].Type = (char *)malloc(sizeof(segment));
 				strcpy(messages[messageNumber].Type, segment);
 				break;
 			default:
@@ -260,32 +263,41 @@ message_group *carica_F0(char nomeFile[])
 
 	return messageG;
 }
+
+
 void sendMessage(message_group *messageG, char processo[])
 {
-	int i = 0;
-
+	
+	int i;
 	//scorro tutti i messaggi
-	for (i = 0; i < messageG->length - 1; i++)
+	for (i = 0; i < messageG->length; i++)
 	{
-		//se devono essere inviati tramite coda di messaggi
-		if (strcmp(messageG->messages[i].Type, "Q") == 0)
-		{
-			struct message_queue messaggio;
-			messaggio.mtype = 1;
+		struct message_queue m;
+		m.mtype = 1;
 
-			char *dati = "Ciao mondo";
-			printf("Invio questo messaggio: %s\n", dati);
-			if (msgsnd(MSQID, &dati,(size_t) stringLenght(messaggio.message) + 1, 0) == -1)
-				ErrExit("msgsnd failed");
+		memcpy(&m.message, &messageG->messages[i], sizeof messageG->messages[i]);
+		size_t mSize = sizeof(struct message_queue)-sizeof(long);
+		
+		//guardo il primo carattere perchè non so solo in type c'è un carattere in più
+		if (messageG->messages[i].Type[0]== 'Q'){
+		
+			//provo ad inviare il primo messaggio
+			
+			// sending the message in the queue
+			if (msgsnd(MSQID, &m,mSize, 0) == -1)
+			ErrExit("msgsnd failed");
+			
 		}
-
-		else if (strcmp(messageG->messages[i].Type, "SH") == 0)
-			;
-		//fai cose per SH
-		else
-		{ //stai inviando con PIPE
+		else if (messageG->messages[i].Type[0]== 'S' && messageG->messages[i].Type[1]== 'H'){
+			//...
+			
 		}
-
-		//credo che x i timer vada usato alarm facedolo partire dal max
+		else if (messageG->messages[i].Type[0]== 'F' && messageG->messages[i].Type[1]== 'I' && 
+		messageG->messages[i].Type[2]== 'F' && messageG->messages[i].Type[3]== 'O'){
+			//....
+		}
+		else printf("Metodo di invio dati non supportato!");
 	}
 }
+
+

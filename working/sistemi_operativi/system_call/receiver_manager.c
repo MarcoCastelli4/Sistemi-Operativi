@@ -7,14 +7,13 @@ int main(int argc, char *argv[])
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 
-	printf("SOno receiver");
-
+	//creo semaforo, sarà lo stesso del sender
 	int semID = create_sem_set(2);
 	if (semID > 0) {
-        //Sbloccato dal receiver
-		semOp(semID, RECEIVER_READY, -1);
+        //finchè il sender non ha creato le IPC aspetto
+		semOp(semID, CREATION, -1);
     } else{
-		ErrExit("semget failed");
+		ErrExit("semget- Receiver failed");
 	}
 	
 	//Accedo alla MessageQueue
@@ -22,18 +21,21 @@ int main(int argc, char *argv[])
 	if (MSQID == -1){
 		ErrExit("Message queue failed");
 	}
-
+	
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)
 	{
-		struct mymsg messaggio;
-		size_t len = sizeof(struct mymsg) - sizeof(long);
-		if (msgrcv(MSQID, &messaggio, len, 0, 0) == -1)
+		 
+		struct message_queue messaggio;
+		size_t mSize = sizeof(struct message_queue) - sizeof(long);
+		if (msgrcv(MSQID, &messaggio, mSize, 0, 0) == -1)
 		{
 			ErrExit("msgrcv failed");
+			
 		}
-		printf("\nMessaggio ricevuto: %s", messaggio.mtext);
+		else printf("\nMsg received: %s", toString(messaggio.message));
+		
 		//scrivo sul file F2
 		writeTraffic(F6, NULL);
 		//addormento per 2 secondo il processo
@@ -85,6 +87,8 @@ int main(int argc, char *argv[])
 	int stato = 0;
 	while ((waitPID = wait(&stato)) > 0);
 
+	//dico al sender che può eliminare le IPC
+	semOp(semID, ELIMINATION, 1);
 	//termino il processo padre
 	exit(0);
 	return (0);

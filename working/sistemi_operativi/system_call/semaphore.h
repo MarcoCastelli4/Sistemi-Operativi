@@ -4,9 +4,8 @@
 
 #pragma once
 
-#define RECEIVER_READY 0
-#define SENDER_READY 1
-// Pos0: RECEIVER_READY; POS1: SENDER_READY
+#define CREATION 0
+#define ELIMINATION 1
 
 union semun
 {
