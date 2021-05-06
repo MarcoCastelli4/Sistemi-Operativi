@@ -82,3 +82,74 @@ char* toString(message_sending message){
 ssize_t dimensioneOfMessage(message_sending message){
 	return 4*sizeof(int) + sizeof(message.idReceiver)+sizeof(message.idSender)+sizeof(message.Type)+sizeof(message.message);
 }
+
+//va chiamata all'inizio quando genero i file 
+//stampa l'intestazione del F1..F6
+void printIntestazione(char file[]){
+	//creo il file se è gia presente lo sovrascrivo
+	int fp = open(file, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+	if (fp == -1)
+		ErrExit("Open");
+
+	//scrivo intestazione#
+	//calcolo il numero totale di caratteri da scrivere nel buffer
+	ssize_t bufferLength = sizeof(char) * TrafficInfoLength;
+	char* header = TrafficInfo;
+
+	if (write(fp, header, bufferLength) != bufferLength) {
+		ErrExit("Write");
+	}
+
+	close(fp);
+}
+void printInfoMessage(message_sending message,struct tm timeArrival, char file[]){
+
+	//scrivo in append il messaggio al file già presente cosi non perdo i messaggi precedenti
+	int fp = open(file, O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
+	if (fp == -1)
+		ErrExit("Open");
+	
+	//genero il tempo attuale --> TimeDeparture
+	time_t now = time(NULL);
+	struct tm TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	ssize_t bufferLength = (numcifre(message.id) + sizeof(message.message) + sizeof(message.idSender) + sizeof(message.idReceiver) + 20 * sizeof(char));
+	char* string = malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;%02d:%02d:%02d\n", message.id, message.message, message.idSender[1], message.idReceiver[1], timeArrival.tm_hour, timeArrival.tm_min, timeArrival.tm_sec, TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	//scrivo la stringa nel file
+	if (write(fp, string, strlen(string) * sizeof(char)) != strlen(string) * sizeof(char)) {
+		ErrExit("Write");
+	}
+
+	//libero lo spazio allocato per la stringa
+	free(string);
+
+	close(fp);
+}
+
+void ordinaPerDel(message_group *messageG, char DEL[]){
+	int i;
+	int ordinato=0;
+	message_sending tmp;
+	int dim=messageG->length;
+
+	while(dim>1 && !ordinato){
+		ordinato=1;
+		for(i=0;i<dim-1;i++){
+			if(strcmp(DEL,"S1")==0){
+				if(messageG->messages[i].DelS1>messageG->messages[i+1].DelS1)
+				{
+					tmp=messageG->messages[i];
+					messageG->messages[i]=messageG->messages[i+1];
+					messageG->messages[i+1]=tmp;
+					ordinato=0;
+				}
+			}
+		}
+		dim-=1;
+	}
+}

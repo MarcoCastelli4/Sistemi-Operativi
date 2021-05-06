@@ -8,13 +8,9 @@ int main(int argc, char *argv[])
 	pid_t waitPID;
 
 	//creo semaforo, sarà lo stesso del sender
-	int semID = create_sem_set(2);
-	if (semID > 0) {
-        //finchè il sender non ha creato le IPC aspetto
-		semOp(semID, CREATION, -1);
-    } else{
-		ErrExit("semget- Receiver failed");
-	}
+	int semID = semget(SKey,2,IPC_CREAT | S_IRUSR | S_IWUSR);
+     //finchè il sender non ha creato le IPC aspetto
+	semOp(semID, CREATION, -1);
 	
 	//Accedo alla MessageQueue
 	int MSQID = msgget(QKey, S_IRUSR | S_IWUSR);
@@ -26,22 +22,32 @@ int main(int argc, char *argv[])
 	pidR1 = fork();
 	if (pidR1 == 0)
 	{
-		 
-		struct message_queue messaggio;
-		size_t mSize = sizeof(struct message_queue) - sizeof(long);
-		if (msgrcv(MSQID, &messaggio, mSize, 0, 0) == -1)
-		{
-			ErrExit("msgrcv failed");
-			
-		}
-		else printf("\nMsg received: %s", toString(messaggio.message));
+		time_t now = time(NULL);
 		
+		//stampo intestazione messaggio
+		printIntestazione(F6);
+
+		struct message_queue messaggio;
+
+		size_t mSize = sizeof(struct message_queue) - sizeof(long);
+		//continua a rimanere in ascolto 
+		 while(1){
+			 //genero tempo attuale
+			 struct tm timeArrival = *localtime(&now);
+		if (msgrcv(MSQID, &messaggio, mSize, 0, 0) == -1)
+			ErrExit("msgrcv failed");
+		else {
+			printf("\nMsg received: %s", toString(messaggio.message));
+			printInfoMessage(messaggio.message,timeArrival,F6);
+		}
+		 }
 		//scrivo sul file F2
-		writeTraffic(F6, NULL);
+		//writeTraffic(F6, NULL);
 		//addormento per 2 secondo il processo
 		sleep(1);
 		//termino il processo
 		exit(0);
+		 
 	}
 	else if (pidR1 == -1)
 	{

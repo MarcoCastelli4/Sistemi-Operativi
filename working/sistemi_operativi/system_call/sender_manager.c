@@ -42,10 +42,12 @@ int main(int argc, char *argv[])
 		
 		messages = carica_F0(F0);
 	
-		
+		//scrivo intestazione
+		printIntestazione(F1);
+		//mando tutti i messaggi
 		sendMessage(messages, "S1");
 
-		writeTraffic(F1, messages);
+		//writeTraffic(F1, messages);
 
 		/*
 		// Eliminazione della struttura dei messaggi di hackler
@@ -233,7 +235,7 @@ message_group *carica_F0(char nomeFile[])
 				strcpy(messages[messageNumber].idReceiver, segment);
 				break;
 			case 4:
-				
+				messages[messageNumber].DelS1 = atoi(segment);
 				break;
 			case 5:
 				messages[messageNumber].DelS2 = atoi(segment);
@@ -242,6 +244,7 @@ message_group *carica_F0(char nomeFile[])
 				messages[messageNumber].DelS3 = atoi(segment);
 				break;
 			case 7:
+				segment[strlen(segment)-1]='\0';	//perchè altrimenti mi rimane un carattere spazzatura in più
 				strcpy(messages[messageNumber].Type, segment);
 				break;
 			default:
@@ -267,9 +270,14 @@ message_group *carica_F0(char nomeFile[])
 
 void sendMessage(message_group *messageG, char processo[])
 {
-	
+	time_t now = time(NULL);
 	int i;
+	int sleepTotale=0;
 	//scorro tutti i messaggi
+
+	//se sono il processo 1 ordino per DELS1
+	if(strcmp(processo,"S1")==0)
+		ordinaPerDel(messageG,"S1");
 	for (i = 0; i < messageG->length; i++)
 	{
 		struct message_queue m;
@@ -278,25 +286,65 @@ void sendMessage(message_group *messageG, char processo[])
 		memcpy(&m.message, &messageG->messages[i], sizeof messageG->messages[i]);
 		size_t mSize = sizeof(struct message_queue)-sizeof(long);
 		
-		//guardo il primo carattere perchè non so solo in type c'è un carattere in più
-		if (messageG->messages[i].Type[0]== 'Q'){
+		//genero tempo attuale
+		struct tm timeArrival = *localtime(&now);
+
+		//ritardo il messaggio 
+		if(strcmp(processo,"S1")==0){
+			printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
+			sleep(messageG->messages[i].DelS1-sleepTotale);	//dormi per quanto ti manca
+			
+			//incremento lo sleep totale
+			sleepTotale+=messageG->messages[i].DelS1-sleepTotale;
+		}
+
 		
-			//provo ad inviare il primo messaggio
-			
-			// sending the message in the queue
-			if (msgsnd(MSQID, &m,mSize, 0) == -1)
-			ErrExit("msgsnd failed");
-			
+		
+		printInfoMessage(messageG->messages[i],timeArrival,F1);
+		//se sono nel processo sender corretto
+		if(strcmp(processo,messageG->messages[i].idSender)==0){
+
+			//viene inviato tramite message queue
+			if(strcmp(messageG->messages[i].Type,"Q")==0){
+				// sending the message in the queue
+				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+					ErrExit("msgsnd failed");
+			}
+			//viene inviato tramite shared memory
+			else if (strcmp(messageG->messages[i].Type,"SH")==0){
+				//ELIMINARE E' DI PROVA
+				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+					ErrExit("msgsnd failed");
+			}
+			else if((strcmp(processo,"S3")==0) && (strcmp(messageG->messages[i].Type,"FIFO")==0)){
+					//invia a R3 tramite FIFO
+
+					//ELIMINARE E' DI PROVA
+				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+					ErrExit("msgsnd failed");
+			}
 		}
-		else if (messageG->messages[i].Type[0]== 'S' && messageG->messages[i].Type[1]== 'H'){
-			//...
+		//non sono nel processo sender corretto, seguo la catena di invio
+		else{
+			//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
+
+			if(strcmp(processo,"S1")==0){
+				//invia a S2 tramite PIPE
+
+				//ELIMINARE E' DI PROVA
+				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+					ErrExit("msgsnd failed");
+			}
+			if(strcmp(processo,"S2")==0){
+				//invia a S3 tramite PIPE
+
+				//ELIMINARE E' DI PROVA
+				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+					ErrExit("msgsnd failed");
+			}
 			
-		}
-		else if (messageG->messages[i].Type[0]== 'F' && messageG->messages[i].Type[1]== 'I' && 
-		messageG->messages[i].Type[2]== 'F' && messageG->messages[i].Type[3]== 'O'){
-			//....
-		}
-		else printf("Metodo di invio dati non supportato!");
+		} 
+		
 	}
 }
 
