@@ -9,14 +9,11 @@
 #include <sys/ipc.h>
 #include <sys/dir.h>
 #include <dirent.h>
-#include <sys/shm.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <sys/sem.h>
 #include <sys/msg.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <string.h>
 #include <time.h>
@@ -41,7 +38,6 @@
 #define TrafficInfoLength 57
 #define MessageSendingHeader 54
 #define ActionSendingHeader 23
-#define SKey 01110011
 #define QKey 01110001
 #define MKey 01101101
 #define FIFO "OutputFiles/my_fifo.txt"

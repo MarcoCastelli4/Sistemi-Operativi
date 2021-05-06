@@ -6,6 +6,10 @@
 
 #define CREATION 0
 #define ELIMINATION 1
+#define SKey 01110011
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
 
 union semun
 {
