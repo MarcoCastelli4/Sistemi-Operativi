@@ -153,3 +153,46 @@ void ordinaPerDel(message_group *messageG, char DEL[]){
 		dim-=1;
 	}
 }
+void listenMSQ(int MSQID,char processo[]){
+		
+		struct message_queue messaggio;
+		time_t now = time(NULL);
+
+		size_t mSize = sizeof(struct message_queue) - sizeof(long);
+		while(1){
+			//genero tempo attuale
+			struct tm timeArrival = *localtime(&now);
+
+			//prelevo il messaggio
+			if (msgrcv(MSQID, &messaggio, mSize, 0, 0) == -1){
+				ErrExit("msgrcv failed");
+			}
+			else {
+				//sei nel processo receiver corretto?
+				if(strcmp(processo,messaggio.message.idReceiver)==0){
+				printf("\nMsg received: %s", toString(messaggio.message));
+				if(strcmp(messaggio.message.idReceiver,"R1")==0){
+					//dormi
+					sleep(messaggio.message.DelS1);
+					//stampa le info sul tuo file
+					printInfoMessage(messaggio.message,timeArrival,F6);
+				}
+					
+				else if(strcmp(messaggio.message.idReceiver,"R2")==0){
+					sleep(messaggio.message.DelS2);
+					printInfoMessage(messaggio.message,timeArrival,F5);
+				}
+					
+				else if(strcmp(messaggio.message.idReceiver,"R3")==0){
+					sleep(messaggio.message.DelS3);
+					printInfoMessage(messaggio.message,timeArrival,F4);
+				}
+					
+			}
+			//ho letto il messaggio che non è per me, quindi lo rimetto in coda
+			else if (msgsnd(MSQID, &messaggio,mSize, 0) == -1)
+				ErrExit("re-msgsnd failed");
+			}
+
+	}	
+}

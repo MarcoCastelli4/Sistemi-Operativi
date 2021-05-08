@@ -58,10 +58,11 @@ int main(int argc, char *argv[])
 			free(messages->messages[i].idSender);
 			free(messages->messages[i].Type);
 			free(messages->messages[i].idReceiver);
-		}
+		}*/
+
 		free(messages->messages);
 		free(messages);
-	*/
+	
 		//addormento per 1 secondo il processo
 		sleep(1);
 		exit(0);
@@ -291,7 +292,7 @@ void sendMessage(message_group *messageG, char processo[])
 
 		//ritardo il messaggio 
 		if(strcmp(processo,"S1")==0){
-			printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
+			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
 			sleep(messageG->messages[i].DelS1-sleepTotale);	//dormi per quanto ti manca
 			
 			//incremento lo sleep totale
@@ -299,7 +300,7 @@ void sendMessage(message_group *messageG, char processo[])
 		}
 
 		
-		
+		//stampa su file F1
 		printInfoMessage(messageG->messages[i],timeArrival,F1);
 		//se sono nel processo sender corretto
 		if(strcmp(processo,messageG->messages[i].idSender)==0){

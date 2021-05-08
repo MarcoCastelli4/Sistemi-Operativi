@@ -2,6 +2,7 @@
 
 void writeF9(int, int, int);
 int MSQID = -1;
+
 int main(int argc, char *argv[])
 {
 	pid_t pidR1, pidR2, pidR3;
@@ -22,33 +23,18 @@ int main(int argc, char *argv[])
 	pidR1 = fork();
 	if (pidR1 == 0)
 	{
-		time_t now = time(NULL);
-		
 		//stampo intestazione messaggio
 		printIntestazione(F6);
-
-		struct message_queue messaggio;
-
-		size_t mSize = sizeof(struct message_queue) - sizeof(long);
-		//continua a rimanere in ascolto 
-		 while(1){
-			 //genero tempo attuale
-			 struct tm timeArrival = *localtime(&now);
-		if (msgrcv(MSQID, &messaggio, mSize, 0, 0) == -1)
-			ErrExit("msgrcv failed");
-		else {
-			printf("\nMsg received: %s", toString(messaggio.message));
-			printInfoMessage(messaggio.message,timeArrival,F6);
-		}
-		 }
-		//scrivo sul file F2
-		//writeTraffic(F6, NULL);
+	
+		//leggo dalla coda
+		listenMSQ(MSQID,"R1");
+	
 		//addormento per 2 secondo il processo
 		sleep(1);
 		//termino il processo
 		exit(0);
-		 
-	}
+	}	 
+	
 	else if (pidR1 == -1)
 	{
 		ErrExit("Fork");
@@ -58,8 +44,13 @@ int main(int argc, char *argv[])
 	pidR2 = fork();
 	if (pidR2 == 0)
 	{
-		//scrivo sul file F2
-		writeTraffic(F5, NULL);
+		
+		//stampo intestazione messaggio
+		printIntestazione(F5);
+
+		//leggo dalla coda
+		listenMSQ(MSQID,"R2");
+		
 		//addormento per 2 secondo il processo
 		sleep(2);
 		//termino il processo
@@ -74,8 +65,13 @@ int main(int argc, char *argv[])
 	pidR3 = fork();
 	if (pidR3 == 0)
 	{
-		//scrivo sul file F2
-		writeTraffic(F4, NULL);
+		
+		//stampo intestazione messaggio
+		printIntestazione(F4);
+
+		//leggo dalla coda
+		listenMSQ(MSQID,"R3");
+
 		//addormento per 2 secondo il processo
 		sleep(3);
 		//termino il processo
@@ -124,3 +120,4 @@ void writeF9(int pid1, int pid2, int pid3)
 	close(fp);
 	free(buffer);
 }
+

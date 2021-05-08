@@ -104,3 +104,4 @@ ssize_t dimensioneOfMessage(message_sending message);
 void printInfoMessage(message_sending message, struct tm timeArrival, char file[]);
 void printIntestazione(char FILE[]);
 void ordinaPerDel(message_group *messageG,char DEL[]);
+void listenMSQ(int,char[]);
