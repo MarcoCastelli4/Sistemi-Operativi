@@ -74,6 +74,8 @@ int main(int argc, char *argv[])
 	{
 		//scrivo sul file F2
 		writeTraffic(F2, NULL);
+
+		sendMessage(messages, "S2");
 		//addormento per 2 secondo il processo
 		sleep(2);
 		//termino il processo
@@ -91,6 +93,7 @@ int main(int argc, char *argv[])
 		//scrivo sul file F3
 		writeTraffic(F3, NULL);
 		//addormento per 3 secondo il processo
+		sendMessage(messages, "S3");
 		sleep(3);
 		//termino il processo
 		exit(0);
