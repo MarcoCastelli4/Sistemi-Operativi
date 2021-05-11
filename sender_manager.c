@@ -1,4 +1,5 @@
 #include "defines.h"
+#include "shared_memory.h"
 
 char *F0;
 int MSQID = -1;
@@ -344,15 +345,17 @@ void sendMessage(message_group *messageG, char processo[])
 			{
 				//invia a S2 tramite PIPE
 				//ELIMINARE E' DI PROVA
-				if (msgsnd(MSQID, &m, mSize, 0) == -1)
-					ErrExit("msgsnd failed");
+				semOp(semID, REQUEST, 1);
+				memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+				semOp(semID, DATAREADY, -1);
 			}
 			if (strcmp(processo, "S2") == 0)
 			{
 				//invia a S3 tramite PIPE
 				//ELIMINARE E' DI PROVA
-				if (msgsnd(MSQID, &m, mSize, 0) == -1)
-					ErrExit("msgsnd failed");
+				semOp(semID, REQUEST, 1);
+				memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+				semOp(semID, DATAREADY, -1);
 			}
 		}
 	}

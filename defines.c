@@ -1,4 +1,6 @@
 #include "defines.h"
+#include "shared_memory.h"
+#include "semaphore.h"
 
 //funzione che mi calcola il numero di cifre di un numero intero (serve per sapere quanti caratteri servono per il numero)
 int numcifre(int n)
@@ -171,86 +173,4 @@ void ordinaPerDel(message_group *messageG, char DEL[])
 		dim -= 1;
 	}
 }
-void listen(int MSQID, int SHMID, int semID, char processo[])
-{
-	struct message_queue messaggio;
-	struct request_shared_memory *request_shared_memory = (struct request_shared_memory *)get_shared_memory(SHMID, 0);
-	time_t now = time(NULL);
 
-	size_t mSize = sizeof(struct message_queue) - sizeof(long);
-	while (1)
-	{
-		//genero tempo attuale
-		struct tm timeArrival = *localtime(&now);
-		//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
-		//prelevo il messaggio
-		if (msgrcv(MSQID, &messaggio, mSize, 0, 0) == -1)
-		{
-			ErrExit("msgrcv failed");
-		}
-		else
-		{
-			//sei nel processo receiver corretto?
-			if (strcmp(processo, messaggio.message.idReceiver) == 0)
-			{
-				printf("\nMsg received: %s", toString(messaggio.message));
-				if (strcmp(messaggio.message.idReceiver, "R1") == 0)
-				{
-					//dormi
-					sleep(messaggio.message.DelS1);
-					//stampa le info sul tuo file
-					printInfoMessage(messaggio.message, timeArrival, F6);
-				}
-
-				else if (strcmp(messaggio.message.idReceiver, "R2") == 0)
-				{
-					sleep(messaggio.message.DelS2);
-					printInfoMessage(messaggio.message, timeArrival, F5);
-				}
-
-				else if (strcmp(messaggio.message.idReceiver, "R3") == 0)
-				{
-					sleep(messaggio.message.DelS3);
-					printInfoMessage(messaggio.message, timeArrival, F4);
-				}
-			}
-			//ho letto il messaggio che non è per me, quindi lo rimetto in coda
-			else if (msgsnd(MSQID, &messaggio, mSize, 0) == -1)
-				ErrExit("re-msgsnd failed");
-		}
-		//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
-		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
-		
-		
-
-		semOp(semID, REQUEST, -1);
-		//printf("Shared memory message: %s\n", toString(request_shared_memory->message));
-		
-		if (strcmp(processo, request_shared_memory->message.idReceiver) == 0)
-			{
-				
-				printf("\nMsg received: %s", toString(request_shared_memory->message));
-				if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0)
-				{
-					//dormi
-					sleep(request_shared_memory->message.DelS1);
-					//stampa le info sul tuo file
-					printInfoMessage(request_shared_memory->message, timeArrival, F6);
-				}
-
-				else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0)
-				{
-					sleep(request_shared_memory->message.DelS2);
-					printInfoMessage(request_shared_memory->message, timeArrival, F5);
-				}
-
-				else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0)
-				{
-					sleep(request_shared_memory->message.DelS3);
-					printInfoMessage(request_shared_memory->message, timeArrival, F4);
-				}
-			}
-		semOp(semID, DATAREADY, 1);
-		//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
-	}
-}
