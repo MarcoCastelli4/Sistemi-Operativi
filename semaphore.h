@@ -8,6 +8,8 @@
 #define ELIMINATION 1
 #define REQUEST 2
 #define DATAREADY 3
+#define HACKLERRECEIVER 4
+#define HACKLERSENDER 5
 #define SKey 01110011
 #include <sys/sem.h>
 #include <sys/shm.h>

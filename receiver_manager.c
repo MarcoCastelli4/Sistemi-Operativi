@@ -8,60 +8,26 @@ int SHMID = -1;
 int semID = -1;
 struct request_shared_memory *request_shared_memory;
 
-void sigHandler(int sig){
-	printf("SONO ENTRATO\n");
-	if(sig == SIGINT){
-		printf("SIGINT\n");
-		//Chiusura della msgQueue
-		if (msgctl(MSQID, IPC_RMID, NULL) == -1)
-		{
-			ErrExit("msgrmv failed");
-		}
-
-		//Eliminazione semagori
-		if (semctl(semID, 0, IPC_RMID, 0) == -1)
-		{
-			ErrExit("semrmv failed");
-		}
-
-		//Eliminazione memoria condivisa
-		free_shared_memory(request_shared_memory);
-		remove_shared_memory(SHMID);
-		printf("FINITO\n");
-	}
-}
-
 int main(int argc, char *argv[])
 {
-
-	sigset_t mySet;
-
-	sigemptyset(&mySet);
-	sigaddset(&mySet, SIGINT);
-	sigprocmask(SIG_SETMASK, &mySet, NULL);
-
-	
+	signal(SIGINT, sigHandler);
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 	//creo semaforo, sarà lo stesso del sender
-	semID = semget(SKey, 4, IPC_CREAT | S_IRUSR | S_IWUSR);
+	semID = semget(SKey, 6, IPC_CREAT | S_IRUSR | S_IWUSR);
 	//finchè il sender non ha creato le IPC aspetto
 	semOp(semID, CREATION, -1);
 	//Accedo alla
 	SHMID = alloc_shared_memory(MKey, sizeof(struct request_shared_memory));
 
 	//Accedo alla MessageQueue
-	int MSQID = msgget(QKey, S_IRUSR | S_IWUSR);
+	MSQID = msgget(QKey, S_IRUSR | S_IWUSR);
 	if (MSQID == -1)
 	{
 		ErrExit("Message queue failed");
 	}
 
-	//Manager signals
-	if (signal(SIGINT, sigHandler) == SIG_ERR)
-		ErrExit("change signal handler failed");
-
-
+	request_shared_memory = get_shared_memory(SHMID, 0);
 
 	//genero processo R1
 	pidR1 = fork();
@@ -113,6 +79,7 @@ int main(int argc, char *argv[])
 		//stampo intestazione messaggio
 		printIntestazione(F4);
 
+
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R3");
 
@@ -128,6 +95,7 @@ int main(int argc, char *argv[])
 
 	//genero file F9
 	writeF9(pidR1, pidR2, pidR3);
+	semOp(semID, HACKLERRECEIVER, 1);
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
@@ -135,6 +103,25 @@ int main(int argc, char *argv[])
 
 	//dico al sender che può eliminare le IPC
 	semOp(semID, ELIMINATION, 1);
+
+	//Chiusura della msgQueue
+	if (MSQID != -1 && msgctl(MSQID, IPC_RMID, NULL) == -1)
+	{
+		ErrExit("msgrmv failed");
+	}
+
+	//Eliminazione memoria condivisa
+	if(SHMID != -1){
+		free_shared_memory(request_shared_memory);
+		remove_shared_memory(SHMID);
+	}
+
+	//Eliminazione semagori
+	if (semID != -1 && semctl(semID, 0, IPC_RMID, 0) == -1)
+	{
+		ErrExit("semrmv failed");
+	}
+
 	//termino il processo padre
 	exit(0);
 	return (0);
@@ -169,7 +156,6 @@ void writeF9(int pid1, int pid2, int pid3)
 void listen(int MSQID, int SHMID, int semID, char processo[])
 {
 	struct message_queue messaggio;
-	request_shared_memory = get_shared_memory(SHMID, 0);
 	time_t now = time(NULL);
 
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
@@ -219,32 +205,37 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		
 
 		semOp(semID, REQUEST, -1);
-		printf("Shared memory message: %s\n", toString(request_shared_memory->message));
 		
 		if (strcmp(processo, request_shared_memory->message.idReceiver) == 0)
 			{
-				
-				printf("\nMsg received: %s", toString(request_shared_memory->message));
 				if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0)
 				{
+					printf("LLLLLE1");
 					//dormi
 					sleep(request_shared_memory->message.DelS1);
 					//stampa le info sul tuo file
 					printInfoMessage(request_shared_memory->message, timeArrival, F6);
-				}
-
-				else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0)
+				} else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0)
 				{
+					printf("LLLLLE2");
 					sleep(request_shared_memory->message.DelS2);
 					printInfoMessage(request_shared_memory->message, timeArrival, F5);
-				}
-
-				else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0)
+				} else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0)
 				{
+					printf("LLLLLE3");
 					sleep(request_shared_memory->message.DelS3);
 					printInfoMessage(request_shared_memory->message, timeArrival, F4);
+				} else {
+					printf("fifjrifjifrjfr%s\n",request_shared_memory->message.idReceiver);
 				}
 			}
+		else {
+			printf("2SONOUNOSFIG%s\n",request_shared_memory->message.idReceiver);
+			semOp(semID, REQUEST, 1);
+			memcpy(request_shared_memory, &request_shared_memory->message, sizeof(request_shared_memory->message));
+			semOp(semID, DATAREADY, -1);
+		}
+
 		semOp(semID, DATAREADY, 1);
 		//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
 	}

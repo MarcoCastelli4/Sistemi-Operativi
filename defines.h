@@ -39,6 +39,8 @@
 #define TrafficInfoLength 57
 #define MessageSendingHeader 54
 #define ActionSendingHeader 23
+#define ReceiverPIDHeader 16
+#define SenderPIDHeader 13
 #define QKey 01110001
 #define MKey 01101101
 #define FIFO "OutputFiles/my_fifo.txt"
@@ -102,3 +104,4 @@ ssize_t dimensioneOfMessage(message_sending message);
 void printInfoMessage(message_sending message, struct tm timeArrival, char file[]);
 void printIntestazione(char FILE[]);
 void ordinaPerDel(message_group *messageG, char DEL[]);
+void sigHandler(int);

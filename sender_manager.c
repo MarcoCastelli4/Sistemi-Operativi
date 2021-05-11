@@ -8,8 +8,6 @@ int SHMID = -1;
 int semID;
 struct request_shared_memory *request_shared_memory;
 
-
-
 void writeF8(int, int, int);
 message_group *carica_F0(char[]);
 
@@ -17,11 +15,12 @@ void sendMessage(message_group *messageG, char processo[]);
 
 int main(int argc, char *argv[])
 {
+	signal(SIGINT, sigHandler);
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
 
 	//Inizializzo il semaforo e attendo
-	semID = create_sem_set(4);
+	semID = create_sem_set(6);
 
 	// Creo la message queue
 	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
@@ -59,24 +58,9 @@ int main(int argc, char *argv[])
 		//mando tutti i messaggi
 		sendMessage(messages, "S1");
 
-		//writeTraffic(F1, messages);
-
-		/*
-		// Eliminazione della struttura dei messaggi di hackler
-		int i = 0;
-		for (i=0; i < messages->length - 1; i++)
-		{
-			free(messages->messages[i].message);
-			free(messages->messages[i].idSender);
-			free(messages->messages[i].Type);
-			free(messages->messages[i].idReceiver);
-		}*/
-
-		free(messages->messages);
-		free(messages);
-
 		//addormento per 1 secondo il processo
 		sleep(1);
+		printf("MORTO S1\n");
 		exit(0);
 		//termino il processo
 	}
@@ -118,11 +102,11 @@ int main(int argc, char *argv[])
 
 	//genero file8.csv
 	writeF8(pidS1, pidS2, pidS3);
+	semOp(semID, HACKLERSENDER, 1);
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0)
-		;
+	while ((waitPID = wait(&stato)) > 0);
 
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
@@ -130,7 +114,6 @@ int main(int argc, char *argv[])
 	
 	//termino il processo padre
 	exit(0);
-	return (0);
 }
 
 //Funzione che mi genera il file F8 e scrive ogni riga
@@ -335,23 +318,34 @@ void sendMessage(message_group *messageG, char processo[])
 		//non sono nel processo sender corretto, seguo la catena di invio
 		else
 		{
+			semOp(semID, REQUEST, 1);
+			memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+			semOp(semID, DATAREADY, -1);
 			//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
-			if (strcmp(processo, "S1") == 0)
-			{
-				//invia a S2 tramite PIPE
-				//ELIMINARE E' DI PROVA
-				semOp(semID, REQUEST, 1);
-				memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-				semOp(semID, DATAREADY, -1);
-			}
-			if (strcmp(processo, "S2") == 0)
-			{
-				//invia a S3 tramite PIPE
-				//ELIMINARE E' DI PROVA
-				semOp(semID, REQUEST, 1);
-				memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-				semOp(semID, DATAREADY, -1);
-			}
+			/** if (strcmp(processo, "S1") == 0)
+				* {
+				*   //invia a S2 tramite PIPE
+				*   //ELIMINARE E' DI PROVA
+				*   semOp(semID, REQUEST, 1);
+				*   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+				*   semOp(semID, DATAREADY, -1);
+				* }
+				* if (strcmp(processo, "S2") == 0)
+				* {
+				*   //invia a S3 tramite PIPE
+				*   //ELIMINARE E' DI PROVA
+				*   semOp(semID, REQUEST, 1);
+				*   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+				*   semOp(semID, DATAREADY, -1);
+				* }
+				* if (strcmp(processo, "S3") == 0)
+				* {
+				*   //invia a S3 tramite PIPE
+				*   //ELIMINARE E' DI PROVA
+				*   semOp(semID, REQUEST, 1);
+				*   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+				*   semOp(semID, DATAREADY, -1);
+				* } */
 		}
 	}
 }
