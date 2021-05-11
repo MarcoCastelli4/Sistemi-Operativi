@@ -19,6 +19,7 @@
 #include <time.h>
 #include "err_exit.h"
 #include "semaphore.h"
+#include "shared_memory.h"
 
 //nomi simbolici dei file su cui agisco
 #define F8 "OutputFiles/F8.csv"
@@ -71,7 +72,11 @@ typedef struct
      char Type[5];
 } message_sending;
 
-
+struct request_shared_memory
+{
+     message_sending message;
+     key_t SHMKey;
+};
 
 //eliminare
 struct mymsg
@@ -103,5 +108,5 @@ void writeTraffic(char *, message_group *);
 ssize_t dimensioneOfMessage(message_sending message);
 void printInfoMessage(message_sending message, struct tm timeArrival, char file[]);
 void printIntestazione(char FILE[]);
-void ordinaPerDel(message_group *messageG,char DEL[]);
-void listenMSQ(int,char[]);
+void ordinaPerDel(message_group *messageG, char DEL[]);
+void listen(int, int, int, char[]);

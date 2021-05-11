@@ -2,6 +2,9 @@
 
 char *F0;
 int MSQID = -1;
+int SHMID = -1;
+int semID;
+struct request_shared_memory *request_shared_memory;
 
 void writeF8(int, int, int);
 message_group *carica_F0(char[]);
@@ -14,17 +17,22 @@ int main(int argc, char *argv[])
 	pid_t waitPID;
 
 	//Inizializzo il semaforo e attendo
-	
-	int semID = create_sem_set(2);
-	
+	semID = create_sem_set(4);
+
 	// Creo la message queue
 	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
-	if (MSQID == -1){
+	if (MSQID == -1)
+	{
 		ErrExit("Message queue failed");
 	}
+
+	//Creazione della shared memory
+	SHMID = alloc_shared_memory(MKey, sizeof(struct request_shared_memory));
+
+	request_shared_memory = (struct request_shared_memory *)get_shared_memory(SHMID, 0);
+
 	//ho creato puoi usarle
 	semOp(semID, CREATION, 1);
-
 	F0 = argv[1];
 
 	if (argc < 1)
@@ -39,9 +47,9 @@ int main(int argc, char *argv[])
 	if (pidS1 == 0)
 	{
 		//inizializzo la struttura con la dimensione di un messaggio
-		
+
 		messages = carica_F0(F0);
-	
+
 		//scrivo intestazione
 		printIntestazione(F1);
 		//mando tutti i messaggi
@@ -62,7 +70,7 @@ int main(int argc, char *argv[])
 
 		free(messages->messages);
 		free(messages);
-	
+
 		//addormento per 1 secondo il processo
 		sleep(1);
 		exit(0);
@@ -109,17 +117,19 @@ int main(int argc, char *argv[])
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0);
-
+	while ((waitPID = wait(&stato)) > 0)
+		;
 
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
 
 	//Chiusura della msgQueue
-	if(msgctl(MSQID,IPC_RMID,NULL)==-1){
+	if (msgctl(MSQID, IPC_RMID, NULL) == -1)
+	{
 		ErrExit("msgrmv failed");
 	}
-	if(semctl(semID,0,IPC_RMID,0)==-1){
+	if (semctl(semID, 0, IPC_RMID, 0) == -1)
+	{
 		ErrExit("semrmv failed");
 	}
 	//termino il processo padre
@@ -168,13 +178,13 @@ message_group *carica_F0(char nomeFile[])
 	}
 
 	// posiziono l'offset alla prima riga dei messaggi (salto i titoli)
-	if (lseek(fp, (size_t)(MessageSendingHeader+1) * sizeof(char), SEEK_SET) == -1)
+	if (lseek(fp, (size_t)(MessageSendingHeader + 1) * sizeof(char), SEEK_SET) == -1)
 	{
 		ErrExit("Lseek");
 	}
 
 	//calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
-	int bufferLength = fileSize / sizeof(char) - MessageSendingHeader-1;
+	int bufferLength = fileSize / sizeof(char) - MessageSendingHeader - 1;
 	//inizializzo il buffer
 	char buf[bufferLength];
 	//leggo dal file e salvo ciò che ho letto nel buf
@@ -182,8 +192,7 @@ message_group *carica_F0(char nomeFile[])
 	{
 		ErrExit("Read");
 	}
-	buf[bufferLength]='\0';
-	
+	buf[bufferLength] = '\0';
 
 	//contatore delle righe
 	int rowNumber = 0;
@@ -196,7 +205,7 @@ message_group *carica_F0(char nomeFile[])
 			rowNumber++;
 		}
 	}
-	
+
 	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
 	message_sending *messages = malloc(sizeof(message_sending) * (rowNumber));
 
@@ -217,7 +226,7 @@ message_group *carica_F0(char nomeFile[])
 					   //scorro finchè il campo non è finito (la casella)
 		while (segment != NULL)
 		{
-			
+
 			//memorizzo il segmento ne rispettivo campo della struttura
 			switch (campo)
 			{
@@ -225,14 +234,14 @@ message_group *carica_F0(char nomeFile[])
 				messages[messageNumber].id = atoi(segment);
 				break;
 			case 1:
-				
+
 				strcpy(messages[messageNumber].message, segment);
 				break;
 			case 2:
 				strcpy(messages[messageNumber].idSender, segment);
 				break;
 			case 3:
-				
+
 				strcpy(messages[messageNumber].idReceiver, segment);
 				break;
 			case 4:
@@ -245,7 +254,7 @@ message_group *carica_F0(char nomeFile[])
 				messages[messageNumber].DelS3 = atoi(segment);
 				break;
 			case 7:
-				segment[strlen(segment)-1]='\0';	//perchè altrimenti mi rimane un carattere spazzatura in più
+				segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
 				strcpy(messages[messageNumber].Type, segment);
 				break;
 			default:
@@ -268,85 +277,83 @@ message_group *carica_F0(char nomeFile[])
 	return messageG;
 }
 
-
 void sendMessage(message_group *messageG, char processo[])
 {
 	time_t now = time(NULL);
 	int i;
-	int sleepTotale=0;
+	int sleepTotale = 0;
 	//scorro tutti i messaggi
 
 	//se sono il processo 1 ordino per DELS1
-	if(strcmp(processo,"S1")==0)
-		ordinaPerDel(messageG,"S1");
+	if (strcmp(processo, "S1") == 0)
+		ordinaPerDel(messageG, "S1");
 	for (i = 0; i < messageG->length; i++)
 	{
 		struct message_queue m;
 		m.mtype = 1;
 
 		memcpy(&m.message, &messageG->messages[i], sizeof messageG->messages[i]);
-		size_t mSize = sizeof(struct message_queue)-sizeof(long);
-		
+		size_t mSize = sizeof(struct message_queue) - sizeof(long);
+
 		//genero tempo attuale
 		struct tm timeArrival = *localtime(&now);
 
-		//ritardo il messaggio 
-		if(strcmp(processo,"S1")==0){
+		//ritardo il messaggio
+		if (strcmp(processo, "S1") == 0)
+		{
 			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
-			sleep(messageG->messages[i].DelS1-sleepTotale);	//dormi per quanto ti manca
-			
+			sleep(messageG->messages[i].DelS1 - sleepTotale); //dormi per quanto ti manca
+
 			//incremento lo sleep totale
-			sleepTotale+=messageG->messages[i].DelS1-sleepTotale;
+			sleepTotale += messageG->messages[i].DelS1 - sleepTotale;
 		}
 
-		
 		//stampa su file F1
-		printInfoMessage(messageG->messages[i],timeArrival,F1);
-		//se sono nel processo sender corretto
-		if(strcmp(processo,messageG->messages[i].idSender)==0){
+		printInfoMessage(messageG->messages[i], timeArrival, F1);
 
+		//se sono nel processo sender corretto
+		if (strcmp(processo, messageG->messages[i].idSender) == 0)
+		{
 			//viene inviato tramite message queue
-			if(strcmp(messageG->messages[i].Type,"Q")==0){
+			if (strcmp(messageG->messages[i].Type, "Q") == 0)
+			{
 				// sending the message in the queue
-				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+				if (msgsnd(MSQID, &m, mSize, 0) == -1)
 					ErrExit("msgsnd failed");
 			}
 			//viene inviato tramite shared memory
-			else if (strcmp(messageG->messages[i].Type,"SH")==0){
-				//ELIMINARE E' DI PROVA
-				if (msgsnd(MSQID, &m,mSize, 0) == -1)
-					ErrExit("msgsnd failed");
+			else if (strcmp(messageG->messages[i].Type, "SH") == 0)
+			{
+				semOp(semID, REQUEST, 1);
+				memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+				semOp(semID, DATAREADY, -1);
 			}
-			else if((strcmp(processo,"S3")==0) && (strcmp(messageG->messages[i].Type,"FIFO")==0)){
-					//invia a R3 tramite FIFO
-
-					//ELIMINARE E' DI PROVA
-				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+			else if ((strcmp(processo, "S3") == 0) && (strcmp(messageG->messages[i].Type, "FIFO") == 0))
+			{
+				//invia a R3 tramite FIFO
+				//ELIMINARE E' DI PROVA
+				if (msgsnd(MSQID, &m, mSize, 0) == -1)
 					ErrExit("msgsnd failed");
 			}
 		}
 		//non sono nel processo sender corretto, seguo la catena di invio
-		else{
+		else
+		{
 			//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
-
-			if(strcmp(processo,"S1")==0){
+			if (strcmp(processo, "S1") == 0)
+			{
 				//invia a S2 tramite PIPE
-
 				//ELIMINARE E' DI PROVA
-				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+				if (msgsnd(MSQID, &m, mSize, 0) == -1)
 					ErrExit("msgsnd failed");
 			}
-			if(strcmp(processo,"S2")==0){
+			if (strcmp(processo, "S2") == 0)
+			{
 				//invia a S3 tramite PIPE
-
 				//ELIMINARE E' DI PROVA
-				if (msgsnd(MSQID, &m,mSize, 0) == -1)
+				if (msgsnd(MSQID, &m, mSize, 0) == -1)
 					ErrExit("msgsnd failed");
 			}
-			
-		} 
-		
+		}
 	}
 }
-
-

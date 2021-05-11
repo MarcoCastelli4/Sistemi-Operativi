@@ -2,39 +2,42 @@
 
 void writeF9(int, int, int);
 int MSQID = -1;
+int SHMID = -1;
 
 int main(int argc, char *argv[])
 {
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
-
 	//creo semaforo, sarà lo stesso del sender
-	int semID = semget(SKey,2,IPC_CREAT | S_IRUSR | S_IWUSR);
-     //finchè il sender non ha creato le IPC aspetto
+	int semID = semget(SKey, 4, IPC_CREAT | S_IRUSR | S_IWUSR);
+	//finchè il sender non ha creato le IPC aspetto
 	semOp(semID, CREATION, -1);
-	
+	//Accedo alla
+	SHMID = alloc_shared_memory(MKey, sizeof(struct request_shared_memory));
+
 	//Accedo alla MessageQueue
 	int MSQID = msgget(QKey, S_IRUSR | S_IWUSR);
-	if (MSQID == -1){
+	if (MSQID == -1)
+	{
 		ErrExit("Message queue failed");
 	}
-	
+
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)
 	{
 		//stampo intestazione messaggio
 		printIntestazione(F6);
-	
+
 		//leggo dalla coda
-		listenMSQ(MSQID,"R1");
-	
+		listen(MSQID, SHMID, semID, "R1");
+
 		//addormento per 2 secondo il processo
 		sleep(1);
 		//termino il processo
 		exit(0);
-	}	 
-	
+	}
+
 	else if (pidR1 == -1)
 	{
 		ErrExit("Fork");
@@ -44,13 +47,13 @@ int main(int argc, char *argv[])
 	pidR2 = fork();
 	if (pidR2 == 0)
 	{
-		
+
 		//stampo intestazione messaggio
 		printIntestazione(F5);
 
 		//leggo dalla coda
-		listenMSQ(MSQID,"R2");
-		
+		listen(MSQID, SHMID, semID, "R2");
+
 		//addormento per 2 secondo il processo
 		sleep(2);
 		//termino il processo
@@ -65,12 +68,12 @@ int main(int argc, char *argv[])
 	pidR3 = fork();
 	if (pidR3 == 0)
 	{
-		
+
 		//stampo intestazione messaggio
 		printIntestazione(F4);
 
 		//leggo dalla coda
-		listenMSQ(MSQID,"R3");
+		listen(MSQID, SHMID, semID, "R3");
 
 		//addormento per 2 secondo il processo
 		sleep(3);
@@ -120,4 +123,3 @@ void writeF9(int pid1, int pid2, int pid3)
 	close(fp);
 	free(buffer);
 }
-

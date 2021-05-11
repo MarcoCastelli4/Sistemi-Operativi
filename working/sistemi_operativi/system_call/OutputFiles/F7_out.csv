@@ -1,4 +1,5 @@
 ID;Delay;Target;Action
+0;0;;
 4;10;all;
 3;7;R2;SendMsg
 2;4;S2;RemoveMsg
