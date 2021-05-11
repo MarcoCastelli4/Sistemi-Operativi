@@ -19,6 +19,7 @@
 #include <time.h>
 #include "err_exit.h"
 #include "semaphore.h"
+#include <signal.h>
 
 //nomi simbolici dei file su cui agisco
 #define F8 "OutputFiles/F8.csv"

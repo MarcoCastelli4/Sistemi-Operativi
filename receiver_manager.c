@@ -5,13 +5,46 @@ void writeF9(int, int, int);
 void listen(int, int, int, char[]);
 int MSQID = -1;
 int SHMID = -1;
+int semID = -1;
+struct request_shared_memory *request_shared_memory;
+
+void sigHandler(int sig){
+	printf("SONO ENTRATO\n");
+	if(sig == SIGINT){
+		printf("SIGINT\n");
+		//Chiusura della msgQueue
+		if (msgctl(MSQID, IPC_RMID, NULL) == -1)
+		{
+			ErrExit("msgrmv failed");
+		}
+
+		//Eliminazione semagori
+		if (semctl(semID, 0, IPC_RMID, 0) == -1)
+		{
+			ErrExit("semrmv failed");
+		}
+
+		//Eliminazione memoria condivisa
+		free_shared_memory(request_shared_memory);
+		remove_shared_memory(SHMID);
+		printf("FINITO\n");
+	}
+}
 
 int main(int argc, char *argv[])
 {
+
+	sigset_t mySet;
+
+	sigemptyset(&mySet);
+	sigaddset(&mySet, SIGINT);
+	sigprocmask(SIG_SETMASK, &mySet, NULL);
+
+	
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 	//creo semaforo, sarà lo stesso del sender
-	int semID = semget(SKey, 4, IPC_CREAT | S_IRUSR | S_IWUSR);
+	semID = semget(SKey, 4, IPC_CREAT | S_IRUSR | S_IWUSR);
 	//finchè il sender non ha creato le IPC aspetto
 	semOp(semID, CREATION, -1);
 	//Accedo alla
@@ -23,6 +56,12 @@ int main(int argc, char *argv[])
 	{
 		ErrExit("Message queue failed");
 	}
+
+	//Manager signals
+	if (signal(SIGINT, sigHandler) == SIG_ERR)
+		ErrExit("change signal handler failed");
+
+
 
 	//genero processo R1
 	pidR1 = fork();
@@ -130,7 +169,7 @@ void writeF9(int pid1, int pid2, int pid3)
 void listen(int MSQID, int SHMID, int semID, char processo[])
 {
 	struct message_queue messaggio;
-	struct request_shared_memory *request_shared_memory = (struct request_shared_memory *)get_shared_memory(SHMID, 0);
+	request_shared_memory = get_shared_memory(SHMID, 0);
 	time_t now = time(NULL);
 
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);

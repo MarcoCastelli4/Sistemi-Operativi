@@ -174,3 +174,4 @@ void ordinaPerDel(message_group *messageG, char DEL[])
 	}
 }
 
+

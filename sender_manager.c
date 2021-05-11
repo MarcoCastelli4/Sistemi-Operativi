@@ -1,11 +1,14 @@
 #include "defines.h"
 #include "shared_memory.h"
+#include <signal.h>
 
 char *F0;
 int MSQID = -1;
 int SHMID = -1;
 int semID;
 struct request_shared_memory *request_shared_memory;
+
+
 
 void writeF8(int, int, int);
 message_group *carica_F0(char[]);
@@ -124,15 +127,7 @@ int main(int argc, char *argv[])
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
 
-	//Chiusura della msgQueue
-	if (msgctl(MSQID, IPC_RMID, NULL) == -1)
-	{
-		ErrExit("msgrmv failed");
-	}
-	if (semctl(semID, 0, IPC_RMID, 0) == -1)
-	{
-		ErrExit("semrmv failed");
-	}
+	
 	//termino il processo padre
 	exit(0);
 	return (0);
