@@ -177,6 +177,7 @@ void ordinaPerDel(message_group *messageG, char DEL[])
 void sigHandler(int sig){
 	if(sig == SIGINT){
 		exit(0);
+		
 	}
 }
 

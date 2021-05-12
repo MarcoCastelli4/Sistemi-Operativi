@@ -58,8 +58,7 @@ int main(int argc, char *argv[])
 		//mando tutti i messaggi
 		sendMessage(messages, "S1");
 
-		//addormento per 1 secondo il processo
-		sleep(1);
+	
 		printf("MORTO S1\n");
 		exit(0);
 		//termino il processo
@@ -76,8 +75,8 @@ int main(int argc, char *argv[])
 		writeTraffic(F2, NULL);
 
 		sendMessage(messages, "S2");
-		//addormento per 2 secondo il processo
-		sleep(2);
+		
+		printf("MORTO S2\n");
 		//termino il processo
 		exit(0);
 	}
@@ -94,8 +93,8 @@ int main(int argc, char *argv[])
 		writeTraffic(F3, NULL);
 		//addormento per 3 secondo il processo
 		sendMessage(messages, "S3");
-		sleep(3);
-		//termino il processo
+		
+		printf("MORTO S3\n");
 		exit(0);
 	}
 	else if (pidS3 == -1)
@@ -321,9 +320,15 @@ void sendMessage(message_group *messageG, char processo[])
 		//non sono nel processo sender corretto, seguo la catena di invio
 		else
 		{
+			
 			semOp(semID, REQUEST, 1);
 			memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
 			semOp(semID, DATAREADY, -1);
+	/*
+			if (msgsnd(MSQID, &m, mSize, 0) == -1)
+					ErrExit("msgsnd failed");*/
+			
+
 			//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
 			/** if (strcmp(processo, "S1") == 0)
 				* {

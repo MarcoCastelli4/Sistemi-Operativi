@@ -40,7 +40,7 @@ int main(int argc, char * argv[]) {
 
   F7 = argv[1];
 
-
+  
 
   if(argc < 1){
 
@@ -48,7 +48,7 @@ int main(int argc, char * argv[]) {
 
   }
 
-
+  printf("ciao1");
 
   //inizializzo la struttura leggendo i dati dal file
 
@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
 
   int i = 0;
 
-
+  printf("ciao");
 
    
 
