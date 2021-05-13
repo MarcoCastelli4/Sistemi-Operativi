@@ -39,6 +39,12 @@ int main(int argc, char *argv[])
 
 	request_shared_memory = (struct request_shared_memory *)get_shared_memory(SHMID, 0);
 
+	unlink(FIFO);
+	int res = mkfifo(FIFO, O_CREAT | O_TRUNC | S_IRUSR | S_IWUSR);
+	if(res == -1){
+		ErrExit("Creazione fifo errata");
+	}
+
 	//ho creato puoi usarle
 	semOp(semID, CREATION, 1);
 	F0 = argv[1];
@@ -150,8 +156,7 @@ int main(int argc, char *argv[])
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0)
-		;
+	while ((waitPID = wait(&stato)) > 0);
 
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
@@ -361,9 +366,10 @@ void messageHandler(message_sending message, char processo[]){
 		if (strcmp(message.Type, "Q") == 0)
 		{
 			// sending the message in the queue
+			semOp(semID, REQUEST, 1);
 			if (msgsnd(MSQID, &m, mSize, 0) == -1)
 				ErrExit("msgsnd failed");
-			semOp(semID, REQUEST, 1);
+			semOp(semID, DATAREADY, -1);
 		}
 		//viene inviato tramite shared memory
 		else if (strcmp(message.Type, "SH") == 0)
@@ -375,18 +381,18 @@ void messageHandler(message_sending message, char processo[]){
 		else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
 		{
 			//invia a R3 tramite FIFO
-			//ELIMINARE E' DI PROVA
-			if (msgsnd(MSQID, &m, mSize, 0) == -1)
-				ErrExit("msgsnd failed");
 			semOp(semID, REQUEST, 1);
+			int fd = open(FIFO, O_WRONLY);
+			write(fd, &message, sizeof(message));
+			close(fd);
+			semOp(semID, DATAREADY, -1);
 		}
 	}
 	//non sono nel processo sender corretto, seguo la catena di invio
 	else
 	{
 		//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
-		if (strcmp(processo, "S1") == 0)
-		{
+		if (strcmp(processo, "S1") == 0){
 			//invia a S2 tramite PIPE
 			semOp(semID, PIPE1WRITER, -1);
 			ssize_t nBys = write(pipe1[1], &message, sizeof(message));
@@ -402,9 +408,6 @@ void messageHandler(message_sending message, char processo[]){
 				ErrExit("Messaggio inviato male");
 			semOp(semID, PIPE2READER, 1);
 
-		} else if (strcmp(processo, "S3") == 0)
-		{
-			//invia a R3 tramite FIFO
-		}
+		} 
 	}
 }

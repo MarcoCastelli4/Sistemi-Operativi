@@ -124,11 +124,13 @@ int main(int argc, char *argv[])
 		remove_shared_memory(SHMID);
 	}
 
-	//Eliminazione semagori
+	//Eliminazione semafori
 	if (semID != -1 && semctl(semID, 0, IPC_RMID, 0) == -1)
 	{
 		ErrExit("semrmv failed");
 	}
+
+	unlink(FIFO);
 
 	//termino il processo padre
 	exit(0);
@@ -177,30 +179,46 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
 
 		//sei nel processo receiver corretto?
-		if(strcmp("R1", messaggio.message.idReceiver) == 0 || strcmp("R2", messaggio.message.idReceiver) == 0 || strcmp("R3", messaggio.message.idReceiver)== 0)
+		if(strcmp(processo, messaggio.message.idReceiver) == 0)
 		{
 			printf("QUEUE: %s", toString(messaggio.message));
 			if (strcmp(messaggio.message.idReceiver, "R1") == 0)
 			{
-				//dormi
-				sleep(messaggio.message.DelS1);
-				//stampa le info sul tuo file
-				printInfoMessage(messaggio.message, timeArrival, F6);
+				pid_t childS1 = fork();
+				if(childS1 == 0){
+					//dormi
+					sleep(messaggio.message.DelS1);
+					//stampa le info sul tuo file
+					printInfoMessage(messaggio.message, timeArrival, F6);
+					exit(0);
+				}
 			}
 			else if (strcmp(messaggio.message.idReceiver, "R2") == 0)
 			{
-				sleep(messaggio.message.DelS2);
-				printInfoMessage(messaggio.message, timeArrival, F5);
+				pid_t childS1 = fork();
+				if(childS1 == 0){
+					//dormi
+					sleep(messaggio.message.DelS2);
+					//stampa le info sul tuo file
+					printInfoMessage(messaggio.message, timeArrival, F5);
+					exit(0);
+				}
 			}
 			else if (strcmp(messaggio.message.idReceiver, "R3") == 0)
 			{
-				sleep(messaggio.message.DelS3);
-				printInfoMessage(messaggio.message, timeArrival, F4);
+				pid_t childS1 = fork();
+				if(childS1 == 0){
+					//dormi
+					sleep(messaggio.message.DelS3);
+					//stampa le info sul tuo file
+					printInfoMessage(messaggio.message, timeArrival, F4);
+					exit(0);
+				}		
 			}
 			semOp(semID, DATAREADY, 1);
 			continue;
 		}
-		else if(strcmp("R1", messaggio.message.idReceiver) == 0 || strcmp("R2", messaggio.message.idReceiver) == 0 || strcmp("R3", messaggio.message.idReceiver)== 0){
+		else if(strcmp("Q", messaggio.message.Type)== 0){
 			//messaggio per un altro receiver
 			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
@@ -212,31 +230,67 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 
-		//sei nel receiver corretto?
-
 		if (strcmp(processo, request_shared_memory->message.idReceiver) == 0)
 		{
-			printf("%s - %s",processo,request_shared_memory->message.idReceiver);
 
+			printf("SHARED: %s",toString(request_shared_memory->message));
 			if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0)
 			{
-				printf("SHARED: %s",toString(request_shared_memory->message));
-				//dormi
-				sleep(request_shared_memory->message.DelS1);
-				//stampa le info sul tuo file
-				printInfoMessage(request_shared_memory->message, timeArrival, F6);
+				pid_t childS1 = fork();
+				if(childS1 == 0){
+					//dormi
+					sleep(request_shared_memory->message.DelS1);
+					//stampa le info sul tuo file
+					printInfoMessage(request_shared_memory->message, timeArrival, F6);
+					exit(0);
+				}
 			} else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0)
 			{
-				printf("SHARED: %s",toString(request_shared_memory->message));
-				sleep(request_shared_memory->message.DelS2);
-				printInfoMessage(request_shared_memory->message, timeArrival, F5);
+				pid_t childS1 = fork();
+				if(childS1 == 0){
+					sleep(request_shared_memory->message.DelS2);
+					printInfoMessage(request_shared_memory->message, timeArrival, F5);
+					exit(0);
+				}
 			} else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0)
-			{
-				printf("SHARED: %s",toString(request_shared_memory->message));
-				sleep(request_shared_memory->message.DelS3);
-				printInfoMessage(request_shared_memory->message, timeArrival, F4);
-			} 
+			{pid_t childS1 = fork();
+				if(childS1 == 0){
+
+					printf("SHARED: %s",toString(request_shared_memory->message));
+					sleep(request_shared_memory->message.DelS3);
+					printInfoMessage(request_shared_memory->message, timeArrival, F4);
+					exit(0);
+				}} 
 			semOp(semID, DATAREADY, 1);
+			continue;
+		}
+
+
+		//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
+
+		//-------------------------------------------------- BLOCCO FIFO --------------------------------------------------
+
+		if (strcmp("R3", processo) == 0)
+		{
+
+			int fd = open(FIFO, O_RDONLY);
+			message_sending message;
+			ssize_t nBys = read(fd,&message, sizeof(message));
+			if(nBys < 1){
+				ErrExit("Errore uscito\n");
+			}
+
+
+			printf("FIFO s3: %s",toString(message));
+			message_group *messageGroupS2 = malloc(sizeof(messageGroupS2));
+			messageGroupS2->length = 1;
+			messageGroupS2->messages = &message;
+
+
+			// TODO invia al receiver corretto
+
+
+			semOp(semID, REQUEST, 1);
 			continue;
 		} else {
 			//non sono nel receiver corretto
@@ -244,7 +298,11 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			continue;
 		}
 
+		//-------------------------------------------------- FINE BLOCCO FIFO --------------------------------------------------
 
-		//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
+
 	}
+
+	//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
+
 }
