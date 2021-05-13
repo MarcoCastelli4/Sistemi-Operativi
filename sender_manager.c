@@ -16,6 +16,7 @@ void writeF8(int, int, int);
 message_group *carica_F0(char[]);
 
 void sendMessage(message_group *messageG, char processo[]);
+void messageHandler(message_sending message, char processo[]);
 
 int main(int argc, char *argv[])
 {
@@ -101,7 +102,6 @@ int main(int argc, char *argv[])
 			sendMessage(messageGroupS2, "S2");
 			
 			free(messageGroupS2);
-			printf("S2 In stuck\n");
 			semOp(semID, PIPE1WRITER, 1);
 		}
 		s2EndReading = 1;
@@ -304,106 +304,107 @@ void sendMessage(message_group *messageG, char processo[])
 {
 	time_t now = time(NULL);
 	int i;
-	int sleepTotale = 0;
-	//scorro tutti i messaggi
-
-	//se sono il processo 1 ordino per DELS1
-	if (strcmp(processo, "S1") == 0)
-		ordinaPerDel(messageG, "S1");
-
 	for (i = 0; i < messageG->length; i++)
 	{
-		struct message_queue m;
-		m.mtype = 1;
-
-		memcpy(&m.message, &messageG->messages[i], sizeof messageG->messages[i]);
-		size_t mSize = sizeof(struct message_queue) - sizeof(long);
-
 		//genero tempo attuale
 		struct tm timeArrival = *localtime(&now);
 
 		//ritardo il messaggio
 		if (strcmp(processo, "S1") == 0){
-			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
-			alarm(messageG->messages[i].DelS1 - sleepTotale); //dormi per quanto ti manca
 
-			//incremento lo sleep totale
-			sleepTotale += messageG->messages[i].DelS1 - sleepTotale;
+			pid_t childS1 = fork();
+			if(childS1 == 0){
+				sleep(messageG->messages[i].DelS1); //dormi per quanto ti manca
 
-			//stampa su file F1
-			printInfoMessage(messageG->messages[i], timeArrival, F1);
+				//stampa su file F1
+				printInfoMessage(messageG->messages[i], timeArrival, F1);
+				messageHandler(messageG->messages[i],"S1");
+				exit(0);
+			}
 		} else if (strcmp(processo, "S2") == 0)
 		{
-			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
-			alarm(messageG->messages[i].DelS2 - sleepTotale); //dormi per quanto ti manca
+			pid_t childS1 = fork();
+			if(childS1 == 0){
+				sleep(messageG->messages[i].DelS2); //dormi per quanto ti manca
 
-			//incremento lo sleep totale
-			sleepTotale += messageG->messages[i].DelS2 - sleepTotale;
-			//stampa su file F2
-			printInfoMessage(messageG->messages[i], timeArrival, F2);
-
+				//stampa su file F2
+				printInfoMessage(messageG->messages[i], timeArrival, F2);
+				messageHandler(messageG->messages[i],"S2");
+				exit(0);
+			}
 		} else if (strcmp(processo, "S3") == 0){
-			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
-			alarm(messageG->messages[i].DelS3 - sleepTotale); //dormi per quanto ti manca
+			pid_t childS1 = fork();
+			if(childS1 == 0){
+				sleep(messageG->messages[i].DelS3); //dormi per quanto ti manca
 
-			//incremento lo sleep totale
-			sleepTotale += messageG->messages[i].DelS3 - sleepTotale;
-			//stampa su file F3
-			printInfoMessage(messageG->messages[i], timeArrival, F3);
-		}
-
-				//se sono nel processo sender corretto
-		if (strcmp(processo, messageG->messages[i].idSender) == 0)
-		{
-			//viene inviato tramite message queue
-			if (strcmp(messageG->messages[i].Type, "Q") == 0)
-			{
-				// sending the message in the queue
-				if (msgsnd(MSQID, &m, mSize, 0) == -1)
-					ErrExit("msgsnd failed");
-				semOp(semID, REQUEST, 1);
-			}
-			//viene inviato tramite shared memory
-			else if (strcmp(messageG->messages[i].Type, "SH") == 0)
-			{
-				semOp(semID, REQUEST, 1);
-				memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-				semOp(semID, DATAREADY, -1);
-			}
-			else if ((strcmp(processo, "S3") == 0) && (strcmp(messageG->messages[i].Type, "FIFO") == 0))
-			{
-				//invia a R3 tramite FIFO
-				//ELIMINARE E' DI PROVA
-				if (msgsnd(MSQID, &m, mSize, 0) == -1)
-					ErrExit("msgsnd failed");
-				semOp(semID, REQUEST, 1);
+				//stampa su file F3
+				printInfoMessage(messageG->messages[i], timeArrival, F3);
+				messageHandler(messageG->messages[i],"S3");
+				exit(0);
 			}
 		}
-		//non sono nel processo sender corretto, seguo la catena di invio
-		else
-		{
-			//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
-			if (strcmp(processo, "S1") == 0)
-			{
-				//invia a S2 tramite PIPE
-				semOp(semID, PIPE1WRITER, -1);
-				ssize_t nBys = write(pipe1[1], &messageG->messages[i], sizeof(messageG->messages[i]));
-				if(nBys != sizeof(messageG->messages[i]))
-					ErrExit("Messaggio inviato male");
-				semOp(semID, PIPE1READER, 1);
-			} else if (strcmp(processo, "S2") == 0)
-			{
-				//invia a S3 tramite PIPE
-				semOp(semID, PIPE2WRITER, -1);
-				ssize_t nBys = write(pipe2[1], &messageG->messages[i], sizeof(messageG->messages[i]));
-				if(nBys != sizeof(messageG->messages[i]))
-					ErrExit("Messaggio inviato male");
-				semOp(semID, PIPE2READER, 1);
+	}
+}
 
-			} else if (strcmp(processo, "S3") == 0)
-			{
-				//invia a R3 tramite FIFO
-			}
+void messageHandler(message_sending message, char processo[]){
+	struct message_queue m;
+	m.mtype = 1;
+
+	memcpy(&m.message, &message, sizeof(message));
+	size_t mSize = sizeof(struct message_queue) - sizeof(long);
+
+
+	//se sono nel processo sender corretto
+	if (strcmp(processo, message.idSender) == 0)
+	{
+		//viene inviato tramite message queue
+		if (strcmp(message.Type, "Q") == 0)
+		{
+			// sending the message in the queue
+			if (msgsnd(MSQID, &m, mSize, 0) == -1)
+				ErrExit("msgsnd failed");
+			semOp(semID, REQUEST, 1);
+		}
+		//viene inviato tramite shared memory
+		else if (strcmp(message.Type, "SH") == 0)
+		{
+			semOp(semID, REQUEST, 1);
+			memcpy(request_shared_memory, &message, sizeof(message));
+			semOp(semID, DATAREADY, -1);
+		}
+		else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
+		{
+			//invia a R3 tramite FIFO
+			//ELIMINARE E' DI PROVA
+			if (msgsnd(MSQID, &m, mSize, 0) == -1)
+				ErrExit("msgsnd failed");
+			semOp(semID, REQUEST, 1);
+		}
+	}
+	//non sono nel processo sender corretto, seguo la catena di invio
+	else
+	{
+		//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
+		if (strcmp(processo, "S1") == 0)
+		{
+			//invia a S2 tramite PIPE
+			semOp(semID, PIPE1WRITER, -1);
+			ssize_t nBys = write(pipe1[1], &message, sizeof(message));
+			if(nBys != sizeof(message))
+				ErrExit("Messaggio inviato male");
+			semOp(semID, PIPE1READER, 1);
+		} else if (strcmp(processo, "S2") == 0)
+		{
+			//invia a S3 tramite PIPE
+			semOp(semID, PIPE2WRITER, -1);
+			ssize_t nBys = write(pipe2[1], &message, sizeof(message));
+			if(nBys != sizeof(message))
+				ErrExit("Messaggio inviato male");
+			semOp(semID, PIPE2READER, 1);
+
+		} else if (strcmp(processo, "S3") == 0)
+		{
+			//invia a R3 tramite FIFO
 		}
 	}
 }
