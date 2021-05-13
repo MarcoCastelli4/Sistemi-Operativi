@@ -170,13 +170,13 @@ int main(int argc, char *argv[]){
 		remove_shared_memory(SHMID);
 	}
 
+	unlink(FIFO);
+
 	//Eliminazione semafori
 	if (semID != -1 && semctl(semID, 0, IPC_RMID, 0) == -1)
 	{
 		ErrExit("semrmv failed");
 	}
-
-	unlink(FIFO);
 
 	printf("STO PER CHIUDERE\n");
 
