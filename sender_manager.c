@@ -58,7 +58,6 @@ int main(int argc, char *argv[])
 		//mando tutti i messaggi
 		sendMessage(messages, "S1");
 
-	
 		printf("MORTO S1\n");
 		exit(0);
 		//termino il processo
@@ -75,7 +74,7 @@ int main(int argc, char *argv[])
 		writeTraffic(F2, NULL);
 
 		sendMessage(messages, "S2");
-		
+
 		printf("MORTO S2\n");
 		//termino il processo
 		exit(0);
@@ -93,7 +92,7 @@ int main(int argc, char *argv[])
 		writeTraffic(F3, NULL);
 		//addormento per 3 secondo il processo
 		sendMessage(messages, "S3");
-		
+
 		printf("MORTO S3\n");
 		exit(0);
 	}
@@ -108,12 +107,12 @@ int main(int argc, char *argv[])
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0);
+	while ((waitPID = wait(&stato)) > 0)
+		;
 
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
 
-	
 	//termino il processo padre
 	exit(0);
 }
@@ -301,6 +300,7 @@ void sendMessage(message_group *messageG, char processo[])
 				// sending the message in the queue
 				if (msgsnd(MSQID, &m, mSize, 0) == -1)
 					ErrExit("msgsnd failed");
+				semOp(semID, REQUEST, 1);
 			}
 			//viene inviato tramite shared memory
 			else if (strcmp(messageG->messages[i].Type, "SH") == 0)
@@ -315,19 +315,19 @@ void sendMessage(message_group *messageG, char processo[])
 				//ELIMINARE E' DI PROVA
 				if (msgsnd(MSQID, &m, mSize, 0) == -1)
 					ErrExit("msgsnd failed");
+				semOp(semID, REQUEST, 1);
 			}
 		}
 		//non sono nel processo sender corretto, seguo la catena di invio
 		else
 		{
-			
+
 			semOp(semID, REQUEST, 1);
 			memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
 			semOp(semID, DATAREADY, -1);
-	/*
+			/*
 			if (msgsnd(MSQID, &m, mSize, 0) == -1)
 					ErrExit("msgsnd failed");*/
-			
 
 			//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
 			/** if (strcmp(processo, "S1") == 0)

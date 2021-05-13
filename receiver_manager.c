@@ -160,6 +160,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
 	while (1)
 	{
+		semOp(semID, REQUEST, -1);
 		//genero tempo attuale
 		struct tm timeArrival = *localtime(&now);
 		//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
@@ -196,9 +197,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		//semOp(semID, REQUEST, -1);
 		//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
-		
-		
-		semOp(semID, REQUEST, -1);
 		
 		//sei nel receiver corretto?
 		
