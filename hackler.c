@@ -52,7 +52,7 @@ int main(int argc, char * argv[]) {
   for(i=0; i<action_group->length; i++){
 
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
-      sleep(25);
+      sleep(55);
       kill(senderPids[0],SIGINT);
       kill(senderPids[1],SIGINT);
       kill(senderPids[2],SIGINT);

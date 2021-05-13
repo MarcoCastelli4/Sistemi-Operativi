@@ -6,10 +6,12 @@ void listen(int, int, int, char[]);
 int MSQID = -1;
 int SHMID = -1;
 int semID = -1;
+int pipe3[2];
+int pipe4[2];
 struct request_shared_memory *request_shared_memory;
+void deliverMessage(message_sending, char []);
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
 	signal(SIGINT, sigHandler);
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
@@ -29,13 +31,11 @@ int main(int argc, char *argv[])
 
 	request_shared_memory = get_shared_memory(SHMID, 0);
 
-	int pipe1[2];
-	int pipe2[2];
 	// checking if PIPE successed
-	if (pipe(pipe1) == -1)
+	if (pipe(pipe3) == -1)
 		ErrExit("PIPE");
 	// checking if PIPE successed
-	if (pipe(pipe2) == -1)
+	if (pipe(pipe4) == -1)
 		ErrExit("PIPE");
 
 	//genero processo R1
@@ -54,16 +54,17 @@ int main(int argc, char *argv[])
 		ErrExit("Fork");
 	}
 
-	//genero processo S2
+	//genero processo R2
 	pidR2 = fork();
 	if (pidR2 == 0){
 
 		//stampo intestazione messaggio
 		printIntestazione(F5);
 
+		pid_t pidPIPER2 = fork();
+		
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R2");
-
 
 		//termino il processo
 		printf("MORTO R2\n");
@@ -162,11 +163,12 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 	while (1)
 	{
 		semOp(semID, REQUEST, -1);
+
 		//genero tempo attuale
 		time_t now = time(NULL);
 		struct tm timeArrival = *localtime(&now);
 
-		printf("Time arrival in receiver: %02d:%02d:%02d\n",timeArrival.tm_hour, timeArrival.tm_min, timeArrival.tm_sec);
+		//printf("Time arrival in receiver: %02d:%02d:%02d\n",timeArrival.tm_hour, timeArrival.tm_min, timeArrival.tm_sec);
 		//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
 		//prelevo il messaggio senza aspettare
 		msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
@@ -182,6 +184,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					sleep(messaggio.message.DelS1);
 					//stampa le info sul tuo file
 					printInfoMessage(messaggio.message, timeArrival, F6);
+					deliverMessage(messaggio.message, processo);
 					exit(0);
 				}
 			}
@@ -193,6 +196,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					sleep(messaggio.message.DelS2);
 					//stampa le info sul tuo file
 					printInfoMessage(messaggio.message, timeArrival, F5);
+					deliverMessage(messaggio.message, processo);
 					exit(0);
 				}
 			}
@@ -204,6 +208,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					sleep(messaggio.message.DelS3);
 					//stampa le info sul tuo file
 					printInfoMessage(messaggio.message, timeArrival, F4);
+					deliverMessage(messaggio.message, processo);
 					exit(0);
 				}		
 			}
@@ -232,6 +237,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					sleep(request_shared_memory->message.DelS1);
 					//stampa le info sul tuo file
 					printInfoMessage(request_shared_memory->message, timeArrival, F6);
+					deliverMessage(request_shared_memory->message, processo);
 					exit(0);
 				}
 			} else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0){
@@ -239,6 +245,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				if(childS1 == 0){
 					sleep(request_shared_memory->message.DelS2);
 					printInfoMessage(request_shared_memory->message, timeArrival, F5);
+					deliverMessage(request_shared_memory->message, processo);
 					exit(0);
 				}
 			} else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0){
@@ -247,8 +254,10 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					printf("SHARED: %s",toString(request_shared_memory->message));
 					sleep(request_shared_memory->message.DelS3);
 					printInfoMessage(request_shared_memory->message, timeArrival, F4);
+					deliverMessage(request_shared_memory->message, processo);
 					exit(0);
 				}} 
+			
 			semOp(semID, DATAREADY, 1);
 			continue;
 		} 
@@ -267,30 +276,53 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			}
 		
 			printf("FIFO s3: %s",toString(message));
-			
-			sleep(message.DelS3);
-			
-			printInfoMessage(message, timeArrival, F4);
+			pid_t childFIFO = fork();
+				if(childFIFO == 0){
+					sleep(message.DelS3);
+					printInfoMessage(message, timeArrival, F4);
+					deliverMessage(message, "R3");
+					exit(0);
+			}
 
-			message_group *messageGroupS2 = malloc(sizeof(messageGroupS2));
-			messageGroupS2->length = 1;
-			messageGroupS2->messages = &message;
-		
-			// TODO invia al receiver corretto
-		
 			semOp(semID, DATAREADY, 1);
 			continue;
 		}
 
 		//-------------------------------------------------- FINE BLOCCO FIFO --------------------------------------------------
-		
+		message_sending pipeIncomingMessage;
+		semOp(semID, PIPE3READER, -1);
+		ssize_t nBys = read(pipe3[0],&pipeIncomingMessage, sizeof(pipeIncomingMessage));
+		if(nBys < 1){
+			ErrExit("Errore uscito\n");
+		}
+		else if() {
+
+		}
+
 		else {
 			//non sono nel receiver corretto
 			semOp(semID, REQUEST, 1);
 			continue;
 		}
-
+		
 	}
+}
 
-
+void deliverMessage(message_sending message, char processo[]){
+	printf("%s: SONO DELIVERMESSAGE: %s",processo, toString(message));
+	if (strcmp(processo, "R3") == 0){
+		//invia a R2 tramite PIPE
+		semOp(semID, PIPE3WRITER, -1);
+		ssize_t nBys = write(pipe3[1], &message, sizeof(message));
+		if(nBys != sizeof(message))
+			ErrExit("Messaggio inviato male");
+		semOp(semID, PIPE3READER, 1);
+	} else if (strcmp(processo, "R2") == 0){
+		//invia a R1 tramite PIPE
+		semOp(semID, PIPE4WRITER, -1);
+		ssize_t nBys = write(pipe4[1], &message, sizeof(message));
+		if(nBys != sizeof(message))
+			ErrExit("Messaggio inviato male");
+		semOp(semID, PIPE4READER, 1);
+	}
 }

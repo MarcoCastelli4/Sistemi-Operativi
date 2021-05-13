@@ -17,7 +17,7 @@
 #define PIPE3WRITER 10
 #define PIPE3READER 11
 #define PIPE4WRITER 12
-#define PIPE4READER 14
+#define PIPE4READER 13
 
 #define SEMNUMBER 14
 #define SKey 01110011
