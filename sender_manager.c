@@ -325,7 +325,7 @@ void sendMessage(message_group *messageG, char processo[])
 		//ritardo il messaggio
 		if (strcmp(processo, "S1") == 0){
 			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
-			sleep(messageG->messages[i].DelS1 - sleepTotale); //dormi per quanto ti manca
+			alarm(messageG->messages[i].DelS1 - sleepTotale); //dormi per quanto ti manca
 
 			//incremento lo sleep totale
 			sleepTotale += messageG->messages[i].DelS1 - sleepTotale;
@@ -335,7 +335,7 @@ void sendMessage(message_group *messageG, char processo[])
 		} else if (strcmp(processo, "S2") == 0)
 		{
 			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
-			sleep(messageG->messages[i].DelS2 - sleepTotale); //dormi per quanto ti manca
+			alarm(messageG->messages[i].DelS2 - sleepTotale); //dormi per quanto ti manca
 
 			//incremento lo sleep totale
 			sleepTotale += messageG->messages[i].DelS2 - sleepTotale;
@@ -344,7 +344,7 @@ void sendMessage(message_group *messageG, char processo[])
 
 		} else if (strcmp(processo, "S3") == 0){
 			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
-			sleep(messageG->messages[i].DelS3 - sleepTotale); //dormi per quanto ti manca
+			alarm(messageG->messages[i].DelS3 - sleepTotale); //dormi per quanto ti manca
 
 			//incremento lo sleep totale
 			sleepTotale += messageG->messages[i].DelS3 - sleepTotale;
