@@ -52,13 +52,14 @@ int main(int argc, char * argv[]) {
   for(i=0; i<action_group->length; i++){
 
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
-      sleep(55);
+      sleep(20);
       kill(senderPids[0],SIGINT);
       kill(senderPids[1],SIGINT);
       kill(senderPids[2],SIGINT);
       kill(receiverPids[0],SIGINT);
       kill(receiverPids[1],SIGINT);
       kill(receiverPids[2],SIGINT);
+      break;
     }
 
   }
@@ -75,16 +76,14 @@ int main(int argc, char * argv[]) {
   free(action_group->actions);
   free(action_group);
 
+  printf("HACKLER TERMINA\n");
+
   return 0;
 
 }
 
-
-
 void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
-
   //apro il file 
-
   int fp = open(nomeFile, O_RDONLY);
   if (fp == -1)
     ErrExit("Open");
@@ -120,238 +119,138 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
   //scorro finchè la riga non è finita
   while (row != NULL)
   {
-
     char *end_segment;
-
     //prendo il singolo campo/segmento che è delimitato dal ;
-
     char *segment = strtok_r(row, ";", &end_segment);
-
     int campo=0; //0->id , 1->delay
-
     //scorro finchè non ho aggiunto i 4 campi
-
     while (segment!=NULL)
-
     {	
-
       //memorizzo il segmento ne rispettivo campo della struttura
 
       switch (campo) {
-
-        case 0:
-
-          break;
-
         case 1:
-
           pids[index] = atoi(segment);
-
           break;
-
         default:
-
           break;
-
       }
 
       //vado al campo successivo
-
       campo++;
-
       segment = strtok_r(NULL, ";", &end_segment);
-
     }
 
     //vado alla riga successiva
-
     index++;
-
     row = strtok_r(NULL, "\n", &end_str);
-
   }
-
 }
 
-
-
 action_group* carica_F7(char nomeFile[]) {
-
-
-
   //apro il file 
-
   int fp = open(nomeFile, O_RDONLY);
 
   if (fp == -1)
-
     ErrExit("Open");
 
-
-
   // utilizzo lseek per calcolarne le dimensioni 
-
   int fileSize = lseek(fp, (size_t)0, SEEK_END);
-
   if (fileSize == -1) { ErrExit("Lseek"); }
 
-
-
   // posiziono l'offset alla prima riga delle azioni (salto i titoli) 
-
   if (lseek(fp, (size_t)ActionSendingHeader * sizeof(char), SEEK_SET) == -1) {
-
     ErrExit("Lseek");
-
   }
 
   //calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
-
   int bufferLength = fileSize / sizeof(char) - ActionSendingHeader;
 
   //inizializzo il buffer
-
   char buf[bufferLength];
 
   //leggo dal file e salvo ciò che ho letto nel buf
-
   if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
-
     ErrExit("Read");
-
   }
-
-
 
   //contatore delle righe
 
   int rowNumber = 0;
 
-
-
   // Contiamo il numero di righe presenti nel F7 (corrispondono al numero di azioni hackler presenti)
-
   for (int i = 0; i < bufferLength; i++) {
-
     if (buf[i] == '\n' || buf[i] == '\0' || i == bufferLength - 1) {
-
       rowNumber++;
-
     }
-
   }
 
   //allochiamo dinamicamente un array di azioni delle dimensioni opportune
 
   action* actions = malloc(sizeof(action) * (rowNumber));
 
-
-
-
-
   //numero di action che inserisco
 
   int actionNumber = 0;
-
-
-
   char *end_str;
 
   //prendo la riga che è delimitata dal carattere \n
-
   char *row = strtok_r(buf, "\n", &end_str);
 
   //scorro finchè la riga non è finita
 
   while (row != NULL)
-
   {
-
     char *end_segment;
-
     //prendo il singolo campo/segmento che è delimitato dal ;
-
     char *segment = strtok_r(row, ";", &end_segment);
-
     int campo=0; //0->id , 1->delay
-
     //scorro finchè non ho aggiunto i 4 campi
-
     while (segment!=NULL)
-
-    {	//se il segmento è vuoto, faccio inserire una stringa vuota
-
-
-
+    {	
+      //se il segmento è vuoto, faccio inserire una stringa vuota
       //memorizzo il segmento ne rispettivo campo della struttura
 
       switch (campo) {
 
         case 0:
-
           actions[actionNumber].id = atoi(segment);
-
           break;
 
         case 1:
-
           actions[actionNumber].delay = atoi(segment);
-
           break;
 
         case 2:
-
           actions[actionNumber].target = (char*)malloc(sizeof(segment));
-
           strcpy(actions[actionNumber].target, segment);
-
           break;
 
         case 3:
-
           segment[strlen(segment)-1]='\0';
-
           actions[actionNumber].action = (char*)malloc(sizeof(segment));
-
           strcpy(actions[actionNumber].action, segment);
 
           break;
-
         default:
-
           break;
-
       }
 
       //vado al campo successivo
-
       campo++;
 
       segment = strtok_r(NULL, ";", &end_segment);
-
-
-
     }
 
     //vado alla riga successiva
-
     actionNumber++;
-
     row = strtok_r(NULL, "\n", &end_str);
-
   }
 
-
-
   //inserisco nella mia struttura l'array di hackler e quanti hackler sono stati inseriti
-
   action_group* actionG = malloc(sizeof(actionG));
-
   actionG->length = actionNumber;
-
   actionG->actions = actions;
-
-
 
   return actionG;
 

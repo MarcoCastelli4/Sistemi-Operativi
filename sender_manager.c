@@ -161,6 +161,8 @@ int main(int argc, char *argv[])
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
 
+	printf("STO PER TERMInare\n");
+
 	//termino il processo padre
 	exit(0);
 }

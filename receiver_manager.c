@@ -178,9 +178,10 @@ int main(int argc, char *argv[]){
 
 	unlink(FIFO);
 
+	printf("STO PER CHIUDERE\n");
+
 	//termino il processo padre
 	exit(0);
-	return (0);
 }
 
 //Funzione che mi genera il file F9 e scrive ogni riga
