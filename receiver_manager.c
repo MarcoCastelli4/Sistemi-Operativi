@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 	//creo semaforo, sarà lo stesso del sender
-	semID = semget(SKey, 6, IPC_CREAT | S_IRUSR | S_IWUSR);
+	semID = semget(SKey, SEMNUMBER, IPC_CREAT | S_IRUSR | S_IWUSR);
 	//finchè il sender non ha creato le IPC aspetto
 	semOp(semID, CREATION, -1);
 	//Accedo alla

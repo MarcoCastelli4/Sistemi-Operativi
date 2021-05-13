@@ -10,6 +10,16 @@
 #define DATAREADY 3
 #define HACKLERRECEIVER 4
 #define HACKLERSENDER 5
+#define PIPE1WRITER 6
+#define PIPE1READER 7
+#define PIPE2WRITER 8
+#define PIPE2READER 9
+#define PIPE3WRITER 10
+#define PIPE3READER 11
+#define PIPE4WRITER 12
+#define PIPE4READER 14
+
+#define SEMNUMBER 14
 #define SKey 01110011
 #include <sys/sem.h>
 #include <sys/shm.h>

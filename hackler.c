@@ -22,19 +22,11 @@ void writeActionReverse(char *,action_group*);
 
 int main(int argc, char * argv[]) {
 
-
-
   //creo semaforo, sarà lo stesso del sender
-
-  semID = semget(SKey, 6, IPC_CREAT | S_IRUSR | S_IWUSR);
-
+  semID = semget(SKey, SEMNUMBER, IPC_CREAT | S_IRUSR | S_IWUSR);
   //finchè il sender non ha creato le IPC aspetto
-
   semOp(semID, HACKLERRECEIVER, -1);
-
   semOp(semID, HACKLERSENDER, -1);
-
-
 
   //acquisisco parametro passato da linea di comando
   F7 = argv[1];
@@ -48,47 +40,25 @@ int main(int argc, char * argv[]) {
   int i = 0;
 
 
-
   //due array che contengono il pid dei receiver e i pid dei sender
-
   int senderPids[3];
-
   int receiverPids[3];
 
-
-
-
-
   //le inizializzo sfruttando le funzioni
-
   carica_PIDS(F8,SenderPIDHeader,senderPids);
-
   carica_PIDS(F9,ReceiverPIDHeader,receiverPids);
 
-
-
-
-
   //scorro le azioni dell'hackler
-
   for(i=0; i<action_group->length; i++){
 
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
-
-      sleep(10);
-
+      sleep(25);
       kill(senderPids[0],SIGINT);
-
       kill(senderPids[1],SIGINT);
-
       kill(senderPids[2],SIGINT);
-
       kill(receiverPids[0],SIGINT);
-
       kill(receiverPids[1],SIGINT);
-
       kill(receiverPids[2],SIGINT);
-
     }
 
   }
@@ -98,20 +68,12 @@ int main(int argc, char * argv[]) {
   // Eliminazione della struttura dei messaggi di hackler
 
   for(i = 0; i < action_group->length; i++){
-
     free(action_group->actions[i].target);
-
     free(action_group->actions[i].action);
-
   }
 
   free(action_group->actions);
-
   free(action_group);
-
-
-
-
 
   return 0;
 
@@ -121,72 +83,42 @@ int main(int argc, char * argv[]) {
 
 void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
 
-
-
   //apro il file 
 
   int fp = open(nomeFile, O_RDONLY);
-
   if (fp == -1)
-
     ErrExit("Open");
 
-
-
   // utilizzo lseek per calcolarne le dimensioni 
-
   int fileSize = lseek(fp, (size_t)0, SEEK_END);
-
   if (fileSize == -1) { ErrExit("Lseek"); }
 
-
-
   // posiziono l'offset alla prima riga delle azioni (salto i titoli) 
-
   if (lseek(fp, (size_t)lunghezzaHeader * sizeof(char), SEEK_SET) == -1) {
-
     ErrExit("Lseek");
-
   }
 
-
-
-
-
   //calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
-
   int bufferLength = fileSize / sizeof(char) - lunghezzaHeader;
 
   //inizializzo il buffer
-
   char buf[bufferLength];
 
   //leggo dal file e salvo ciò che ho letto nel buf
-
   if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
-
     ErrExit("Read");
-
   }
 
-
-
   //numero di action che inserisco
-
   int index = 0;
-
-
 
   char *end_str;
 
   //prendo la riga che è delimitata dal carattere \n
-
   char *row = strtok_r(buf, "\n", &end_str);
 
   //scorro finchè la riga non è finita
-
   while (row != NULL)
-
   {
 
     char *end_segment;
@@ -272,10 +204,6 @@ action_group* carica_F7(char nomeFile[]) {
     ErrExit("Lseek");
 
   }
-
-
-
-
 
   //calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
 

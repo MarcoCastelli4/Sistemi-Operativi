@@ -2,6 +2,10 @@
 #include "shared_memory.h"
 #include <signal.h>
 
+int pipe1[2];
+int pipe2[2];
+int s1EndReading = 0;
+int s2EndReading = 0;
 char *F0;
 int MSQID = -1;
 int SHMID = -1;
@@ -20,7 +24,7 @@ int main(int argc, char *argv[])
 	pid_t waitPID;
 
 	//Inizializzo il semaforo e attendo
-	semID = create_sem_set(6);
+	semID = create_sem_set(SEMNUMBER);
 
 	// Creo la message queue
 	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
@@ -45,6 +49,14 @@ int main(int argc, char *argv[])
 	//la struttura messaggi inizialmente è vuota
 	message_group *messages = NULL;
 
+
+	// checking if PIPE successed
+	if (pipe(pipe1) == -1)
+		ErrExit("PIPE");
+	// checking if PIPE successed
+	if (pipe(pipe2) == -1)
+		ErrExit("PIPE");
+
 	//genero processo S1
 	pidS1 = fork();
 	if (pidS1 == 0)
@@ -57,6 +69,7 @@ int main(int argc, char *argv[])
 		printIntestazione(F1);
 		//mando tutti i messaggi
 		sendMessage(messages, "S1");
+		s1EndReading = 1;
 
 		printf("MORTO S1\n");
 		exit(0);
@@ -70,17 +83,33 @@ int main(int argc, char *argv[])
 	pidS2 = fork();
 	if (pidS2 == 0)
 	{
-		//scrivo sul file F2
-		writeTraffic(F2, NULL);
+		//scrivo intestazione
+		printIntestazione(F2);
 
-		sendMessage(messages, "S2");
+		while(s1EndReading == 0){
+			message_sending message;
+			semOp(semID, PIPE1READER, -1);
+			ssize_t nBys = read(pipe1[0],&message, sizeof(message));
+			if(nBys < 1){
+				ErrExit("Errore uscito\n");
+			}
 
-		printf("MORTO S2\n");
+			message_group *messageGroupS2 = malloc(sizeof(messageGroupS2));
+			messageGroupS2->length = 1;
+			messageGroupS2->messages = &message;
+
+			sendMessage(messageGroupS2, "S2");
+			
+			free(messageGroupS2);
+			printf("S2 In stuck\n");
+			semOp(semID, PIPE1WRITER, 1);
+		}
+		s2EndReading = 1;
+		
+
 		//termino il processo
 		exit(0);
-	}
-	else if (pidS2 == -1)
-	{
+	} else if (pidS2 == -1) {
 		ErrExit("Fork");
 	}
 
@@ -88,16 +117,30 @@ int main(int argc, char *argv[])
 	pidS3 = fork();
 	if (pidS3 == 0)
 	{
-		//scrivo sul file F3
-		writeTraffic(F3, NULL);
-		//addormento per 3 secondo il processo
-		sendMessage(messages, "S3");
+		//scrivo intestazione
+		printIntestazione(F3);
+
+		while(s2EndReading == 0){
+			message_sending message;
+			semOp(semID, PIPE2READER, -1);
+			ssize_t nBys = read(pipe2[0],&message, sizeof(message));
+			if(nBys < 1){
+				ErrExit("Errore uscito\n");
+			}
+
+			message_group *messageGroupS3 = malloc(sizeof(messageGroupS3));
+			messageGroupS3->length = 1;
+			messageGroupS3->messages = &message;
+
+			sendMessage(messageGroupS3, "S3");
+			
+			free(messageGroupS3);
+			semOp(semID, PIPE2WRITER, 1);
+		}
 
 		printf("MORTO S3\n");
 		exit(0);
-	}
-	else if (pidS3 == -1)
-	{
+	}	else if (pidS3 == -1) {
 		ErrExit("Fork");
 	}
 
@@ -267,6 +310,7 @@ void sendMessage(message_group *messageG, char processo[])
 	//se sono il processo 1 ordino per DELS1
 	if (strcmp(processo, "S1") == 0)
 		ordinaPerDel(messageG, "S1");
+
 	for (i = 0; i < messageG->length; i++)
 	{
 		struct message_queue m;
@@ -279,20 +323,37 @@ void sendMessage(message_group *messageG, char processo[])
 		struct tm timeArrival = *localtime(&now);
 
 		//ritardo il messaggio
-		if (strcmp(processo, "S1") == 0)
-		{
+		if (strcmp(processo, "S1") == 0){
 			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
 			sleep(messageG->messages[i].DelS1 - sleepTotale); //dormi per quanto ti manca
 
 			//incremento lo sleep totale
 			sleepTotale += messageG->messages[i].DelS1 - sleepTotale;
+
+			//stampa su file F1
+			printInfoMessage(messageG->messages[i], timeArrival, F1);
+		} else if (strcmp(processo, "S2") == 0)
+		{
+			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
+			sleep(messageG->messages[i].DelS2 - sleepTotale); //dormi per quanto ti manca
+
+			//incremento lo sleep totale
+			sleepTotale += messageG->messages[i].DelS2 - sleepTotale;
+			//stampa su file F2
+			printInfoMessage(messageG->messages[i], timeArrival, F2);
+
+		} else if (strcmp(processo, "S3") == 0){
+			//printf("Sto dormendo per %d secondi",messageG->messages[i].DelS1-sleepTotale);
+			sleep(messageG->messages[i].DelS3 - sleepTotale); //dormi per quanto ti manca
+
+			//incremento lo sleep totale
+			sleepTotale += messageG->messages[i].DelS3 - sleepTotale;
+			//stampa su file F3
+			printInfoMessage(messageG->messages[i], timeArrival, F3);
 		}
 
-		//stampa su file F1
-		printInfoMessage(messageG->messages[i], timeArrival, F1);
-
-		//se sono nel processo sender corretto
-		if (0 && strcmp(processo, messageG->messages[i].idSender) == 0)
+				//se sono nel processo sender corretto
+		if (strcmp(processo, messageG->messages[i].idSender) == 0)
 		{
 			//viene inviato tramite message queue
 			if (strcmp(messageG->messages[i].Type, "Q") == 0)
@@ -321,44 +382,28 @@ void sendMessage(message_group *messageG, char processo[])
 		//non sono nel processo sender corretto, seguo la catena di invio
 		else
 		{
-
-			if(i == 1){
-				semOp(semID, REQUEST, 1);
-				memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-				semOp(semID, DATAREADY, -1);
-			} else {
-
-				semOp(semID, REQUEST, 1);
-				if (msgsnd(MSQID, &m, mSize, 0) == -1)
-					ErrExit("msgsnd failed");
-				semOp(semID, DATAREADY, -1);
-			}
-
 			//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
-			/** if (strcmp(processo, "S1") == 0)
-			 * {
-			 *   //invia a S2 tramite PIPE
-			 *   //ELIMINARE E' DI PROVA
-			 *   semOp(semID, REQUEST, 1);
-			 *   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-			 *   semOp(semID, DATAREADY, -1);
-			 * }
-			 * if (strcmp(processo, "S2") == 0)
-			 * {
-			 *   //invia a S3 tramite PIPE
-			 *   //ELIMINARE E' DI PROVA
-			 *   semOp(semID, REQUEST, 1);
-			 *   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-			 *   semOp(semID, DATAREADY, -1);
-			 * }
-			 * if (strcmp(processo, "S3") == 0)
-			 * {
-			 *   //invia a S3 tramite PIPE
-			 *   //ELIMINARE E' DI PROVA
-			 *   semOp(semID, REQUEST, 1);
-			 *   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-			 *   semOp(semID, DATAREADY, -1);
-			 * } */
+			if (strcmp(processo, "S1") == 0)
+			{
+				//invia a S2 tramite PIPE
+				semOp(semID, PIPE1WRITER, -1);
+				ssize_t nBys = write(pipe1[1], &messageG->messages[i], sizeof(messageG->messages[i]));
+				if(nBys != sizeof(messageG->messages[i]))
+					ErrExit("Messaggio inviato male");
+				semOp(semID, PIPE1READER, 1);
+			} else if (strcmp(processo, "S2") == 0)
+			{
+				//invia a S3 tramite PIPE
+				semOp(semID, PIPE2WRITER, -1);
+				ssize_t nBys = write(pipe2[1], &messageG->messages[i], sizeof(messageG->messages[i]));
+				if(nBys != sizeof(messageG->messages[i]))
+					ErrExit("Messaggio inviato male");
+				semOp(semID, PIPE2READER, 1);
+
+			} else if (strcmp(processo, "S3") == 0)
+			{
+				//invia a R3 tramite FIFO
+			}
 		}
 	}
 }
