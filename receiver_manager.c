@@ -40,28 +40,23 @@ int main(int argc, char *argv[])
 
 	//genero processo R1
 	pidR1 = fork();
-	if (pidR1 == 0)
-	{
+	if (pidR1 == 0)	{
 		//stampo intestazione messaggio
 		printIntestazione(F6);
-
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R1");
-
 
 		printf("MORTO R1\n");
 		exit(0);
 	}
 
-	else if (pidR1 == -1)
-	{
+	else if (pidR1 == -1){
 		ErrExit("Fork");
 	}
 
 	//genero processo S2
 	pidR2 = fork();
-	if (pidR2 == 0)
-	{
+	if (pidR2 == 0){
 
 		//stampo intestazione messaggio
 		printIntestazione(F5);
@@ -81,16 +76,12 @@ int main(int argc, char *argv[])
 
 	//genero processo S3
 	pidR3 = fork();
-	if (pidR3 == 0)
-	{
+	if (pidR3 == 0)	{
 
 		//stampo intestazione messaggio
 		printIntestazione(F4);
 
-
-		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R3");
-
 
 		//termino il processo
 		printf("MORTO R3\n");
@@ -166,21 +157,22 @@ void writeF9(int pid1, int pid2, int pid3)
 void listen(int MSQID, int SHMID, int semID, char processo[])
 {
 	struct message_queue messaggio;
-	time_t now = time(NULL);
 
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
 	while (1)
 	{
 		semOp(semID, REQUEST, -1);
 		//genero tempo attuale
+		time_t now = time(NULL);
 		struct tm timeArrival = *localtime(&now);
+
+		printf("Time arrival in receiver: %02d:%02d:%02d\n",timeArrival.tm_hour, timeArrival.tm_min, timeArrival.tm_sec);
 		//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
 		//prelevo il messaggio senza aspettare
 		msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
 
 		//sei nel processo receiver corretto?
-		if(strcmp(processo, messaggio.message.idReceiver) == 0)
-		{
+		if(strcmp(processo, messaggio.message.idReceiver) == 0){
 			printf("QUEUE: %s", toString(messaggio.message));
 			if (strcmp(messaggio.message.idReceiver, "R1") == 0)
 			{
@@ -217,8 +209,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			}
 			semOp(semID, DATAREADY, 1);
 			continue;
-		}
-		else if(strcmp("Q", messaggio.message.Type)== 0){
+		}else if(strcmp("Q", messaggio.message.Type)== 0){
 			//messaggio per un altro receiver
 			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
@@ -228,14 +219,13 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			}
 		}
 		//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
+
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 
-		if (strcmp(processo, request_shared_memory->message.idReceiver) == 0)
-		{
+		else if (strcmp(processo, request_shared_memory->message.idReceiver) == 0){
 
 			printf("SHARED: %s",toString(request_shared_memory->message));
-			if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0)
-			{
+			if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0){
 				pid_t childS1 = fork();
 				if(childS1 == 0){
 					//dormi
@@ -244,18 +234,16 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					printInfoMessage(request_shared_memory->message, timeArrival, F6);
 					exit(0);
 				}
-			} else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0)
-			{
+			} else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0){
 				pid_t childS1 = fork();
 				if(childS1 == 0){
 					sleep(request_shared_memory->message.DelS2);
 					printInfoMessage(request_shared_memory->message, timeArrival, F5);
 					exit(0);
 				}
-			} else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0)
-			{pid_t childS1 = fork();
+			} else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0){
+				pid_t childS1 = fork();
 				if(childS1 == 0){
-
 					printf("SHARED: %s",toString(request_shared_memory->message));
 					sleep(request_shared_memory->message.DelS3);
 					printInfoMessage(request_shared_memory->message, timeArrival, F4);
@@ -263,46 +251,46 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				}} 
 			semOp(semID, DATAREADY, 1);
 			continue;
-		}
-
+		} 
 
 		//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
 
 		//-------------------------------------------------- BLOCCO FIFO --------------------------------------------------
 
-		if (strcmp("R3", processo) == 0)
-		{
-
+		else if (strcmp("R3", processo) == 0){
+		
 			int fd = open(FIFO, O_RDONLY);
 			message_sending message;
 			ssize_t nBys = read(fd,&message, sizeof(message));
 			if(nBys < 1){
 				ErrExit("Errore uscito\n");
 			}
-
-
+		
 			printf("FIFO s3: %s",toString(message));
+			
+			sleep(message.DelS3);
+			
+			printInfoMessage(message, timeArrival, F4);
+
 			message_group *messageGroupS2 = malloc(sizeof(messageGroupS2));
 			messageGroupS2->length = 1;
 			messageGroupS2->messages = &message;
-
-
+		
 			// TODO invia al receiver corretto
-
-
-			semOp(semID, REQUEST, 1);
+		
+			semOp(semID, DATAREADY, 1);
 			continue;
-		} else {
+		}
+
+		//-------------------------------------------------- FINE BLOCCO FIFO --------------------------------------------------
+		
+		else {
 			//non sono nel receiver corretto
 			semOp(semID, REQUEST, 1);
 			continue;
 		}
 
-		//-------------------------------------------------- FINE BLOCCO FIFO --------------------------------------------------
-
-
 	}
 
-	//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
 
 }
