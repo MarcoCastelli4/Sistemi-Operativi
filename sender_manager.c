@@ -203,42 +203,42 @@ message_group *carica_F0(char nomeFile[])
 		//prendo il singolo campo/segmento che è delimitato dal ;
 		char *segment = strtok_r(row, ";", &end_segment);
 		int campo = 0; //(0..7, id, message..)
-					   //scorro finchè il campo non è finito (la casella)
+		//scorro finchè il campo non è finito (la casella)
 		while (segment != NULL)
 		{
 
 			//memorizzo il segmento ne rispettivo campo della struttura
 			switch (campo)
 			{
-			case 0:
-				messages[messageNumber].id = atoi(segment);
-				break;
-			case 1:
+				case 0:
+					messages[messageNumber].id = atoi(segment);
+					break;
+				case 1:
 
-				strcpy(messages[messageNumber].message, segment);
-				break;
-			case 2:
-				strcpy(messages[messageNumber].idSender, segment);
-				break;
-			case 3:
+					strcpy(messages[messageNumber].message, segment);
+					break;
+				case 2:
+					strcpy(messages[messageNumber].idSender, segment);
+					break;
+				case 3:
 
-				strcpy(messages[messageNumber].idReceiver, segment);
-				break;
-			case 4:
-				messages[messageNumber].DelS1 = atoi(segment);
-				break;
-			case 5:
-				messages[messageNumber].DelS2 = atoi(segment);
-				break;
-			case 6:
-				messages[messageNumber].DelS3 = atoi(segment);
-				break;
-			case 7:
-				segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
-				strcpy(messages[messageNumber].Type, segment);
-				break;
-			default:
-				break;
+					strcpy(messages[messageNumber].idReceiver, segment);
+					break;
+				case 4:
+					messages[messageNumber].DelS1 = atoi(segment);
+					break;
+				case 5:
+					messages[messageNumber].DelS2 = atoi(segment);
+					break;
+				case 6:
+					messages[messageNumber].DelS3 = atoi(segment);
+					break;
+				case 7:
+					segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
+					strcpy(messages[messageNumber].Type, segment);
+					break;
+				default:
+					break;
 			}
 			//vado al campo successivo
 			campo++;
@@ -292,7 +292,7 @@ void sendMessage(message_group *messageG, char processo[])
 		printInfoMessage(messageG->messages[i], timeArrival, F1);
 
 		//se sono nel processo sender corretto
-		if (strcmp(processo, messageG->messages[i].idSender) == 0)
+		if (0 && strcmp(processo, messageG->messages[i].idSender) == 0)
 		{
 			//viene inviato tramite message queue
 			if (strcmp(messageG->messages[i].Type, "Q") == 0)
@@ -322,38 +322,43 @@ void sendMessage(message_group *messageG, char processo[])
 		else
 		{
 
-			semOp(semID, REQUEST, 1);
-			memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-			semOp(semID, DATAREADY, -1);
-			/*
-			if (msgsnd(MSQID, &m, mSize, 0) == -1)
-					ErrExit("msgsnd failed");*/
+			if(i == 1){
+				semOp(semID, REQUEST, 1);
+				memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+				semOp(semID, DATAREADY, -1);
+			} else {
+
+				semOp(semID, REQUEST, 1);
+				if (msgsnd(MSQID, &m, mSize, 0) == -1)
+					ErrExit("msgsnd failed");
+				semOp(semID, DATAREADY, -1);
+			}
 
 			//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
 			/** if (strcmp(processo, "S1") == 0)
-				* {
-				*   //invia a S2 tramite PIPE
-				*   //ELIMINARE E' DI PROVA
-				*   semOp(semID, REQUEST, 1);
-				*   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-				*   semOp(semID, DATAREADY, -1);
-				* }
-				* if (strcmp(processo, "S2") == 0)
-				* {
-				*   //invia a S3 tramite PIPE
-				*   //ELIMINARE E' DI PROVA
-				*   semOp(semID, REQUEST, 1);
-				*   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-				*   semOp(semID, DATAREADY, -1);
-				* }
-				* if (strcmp(processo, "S3") == 0)
-				* {
-				*   //invia a S3 tramite PIPE
-				*   //ELIMINARE E' DI PROVA
-				*   semOp(semID, REQUEST, 1);
-				*   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
-				*   semOp(semID, DATAREADY, -1);
-				* } */
+			 * {
+			 *   //invia a S2 tramite PIPE
+			 *   //ELIMINARE E' DI PROVA
+			 *   semOp(semID, REQUEST, 1);
+			 *   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+			 *   semOp(semID, DATAREADY, -1);
+			 * }
+			 * if (strcmp(processo, "S2") == 0)
+			 * {
+			 *   //invia a S3 tramite PIPE
+			 *   //ELIMINARE E' DI PROVA
+			 *   semOp(semID, REQUEST, 1);
+			 *   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+			 *   semOp(semID, DATAREADY, -1);
+			 * }
+			 * if (strcmp(processo, "S3") == 0)
+			 * {
+			 *   //invia a S3 tramite PIPE
+			 *   //ELIMINARE E' DI PROVA
+			 *   semOp(semID, REQUEST, 1);
+			 *   memcpy(request_shared_memory, &messageG->messages[i], sizeof(messageG->messages[i]));
+			 *   semOp(semID, DATAREADY, -1);
+			 * } */
 		}
 	}
 }

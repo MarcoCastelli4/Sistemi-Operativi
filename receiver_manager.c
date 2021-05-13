@@ -29,6 +29,15 @@ int main(int argc, char *argv[])
 
 	request_shared_memory = get_shared_memory(SHMID, 0);
 
+	int pipe1[2];
+	int pipe2[2];
+	// checking if PIPE successed
+	if (pipe(pipe1) == -1)
+		ErrExit("PIPE");
+	// checking if PIPE successed
+	if (pipe(pipe2) == -1)
+		ErrExit("PIPE");
+
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)
@@ -39,7 +48,7 @@ int main(int argc, char *argv[])
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R1");
 
-		
+
 		printf("MORTO R1\n");
 		exit(0);
 	}
@@ -60,7 +69,7 @@ int main(int argc, char *argv[])
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R2");
 
-		
+
 		//termino il processo
 		printf("MORTO R2\n");
 		exit(0);
@@ -82,7 +91,7 @@ int main(int argc, char *argv[])
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R3");
 
-		
+
 		//termino il processo
 		printf("MORTO R3\n");
 		exit(0);
@@ -165,73 +174,77 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		struct tm timeArrival = *localtime(&now);
 		//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
 		//prelevo il messaggio senza aspettare
-   			 msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
-		
-			//sei nel processo receiver corretto?
-			if (strcmp(processo, messaggio.message.idReceiver) == 0)
+		msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
+
+		//sei nel processo receiver corretto?
+		if(strcmp("R1", messaggio.message.idReceiver) == 0 || strcmp("R2", messaggio.message.idReceiver) == 0 || strcmp("R3", messaggio.message.idReceiver)== 0)
+		{
+			printf("QUEUE: %s", toString(messaggio.message));
+			if (strcmp(messaggio.message.idReceiver, "R1") == 0)
 			{
-				printf("\nMsg received: %s", toString(messaggio.message));
-				if (strcmp(messaggio.message.idReceiver, "R1") == 0)
-				{
-					//dormi
-					sleep(messaggio.message.DelS1);
-					//stampa le info sul tuo file
-					printInfoMessage(messaggio.message, timeArrival, F6);
-				}
-
-				else if (strcmp(messaggio.message.idReceiver, "R2") == 0)
-				{
-					sleep(messaggio.message.DelS2);
-					printInfoMessage(messaggio.message, timeArrival, F5);
-				}
-
-				else if (strcmp(messaggio.message.idReceiver, "R3") == 0)
-				{
-					sleep(messaggio.message.DelS3);
-					printInfoMessage(messaggio.message, timeArrival, F4);
-				}
+				//dormi
+				sleep(messaggio.message.DelS1);
+				//stampa le info sul tuo file
+				printInfoMessage(messaggio.message, timeArrival, F6);
 			}
-			//ho letto il messaggio che non è per me, quindi lo rimetto in coda
-			else if (msgsnd(MSQID, &messaggio, mSize, 0) == -1)
+			else if (strcmp(messaggio.message.idReceiver, "R2") == 0)
+			{
+				sleep(messaggio.message.DelS2);
+				printInfoMessage(messaggio.message, timeArrival, F5);
+			}
+			else if (strcmp(messaggio.message.idReceiver, "R3") == 0)
+			{
+				sleep(messaggio.message.DelS3);
+				printInfoMessage(messaggio.message, timeArrival, F4);
+			}
+			semOp(semID, DATAREADY, 1);
+			continue;
+		}
+		else if(strcmp("R1", messaggio.message.idReceiver) == 0 || strcmp("R2", messaggio.message.idReceiver) == 0 || strcmp("R3", messaggio.message.idReceiver)== 0){
+			//messaggio per un altro receiver
+			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
-		//semOp(semID, REQUEST, -1);
+			} else {
+				semOp(semID, REQUEST, 1);
+				continue;
+			}
+		}
 		//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
-		
+
 		//sei nel receiver corretto?
-		
+
 		if (strcmp(processo, request_shared_memory->message.idReceiver) == 0)
+		{
+			printf("%s - %s",processo,request_shared_memory->message.idReceiver);
+
+			if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0)
 			{
-				printf("%s - %s",processo,request_shared_memory->message.idReceiver);
-
-				if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0)
-				{
-					printf("R1 ricevuto: %s\n",toString(request_shared_memory->message));
-					//dormi
-					sleep(request_shared_memory->message.DelS1);
-					//stampa le info sul tuo file
-					printInfoMessage(request_shared_memory->message, timeArrival, F6);
-
-				} else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0)
-				{
-					printf("R2 ricevuto: %s\n",toString(request_shared_memory->message));
-					sleep(request_shared_memory->message.DelS2);
-					printInfoMessage(request_shared_memory->message, timeArrival, F5);
-
-				} else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0)
-				{
-					printf("R3 ricevuto: %s\n",toString(request_shared_memory->message));
-					sleep(request_shared_memory->message.DelS3);
-					printInfoMessage(request_shared_memory->message, timeArrival, F4);
-				} 
-				semOp(semID, DATAREADY, 1);
-			}
-		
-		//non sono nel receiver corretto
-		else 
+				printf("SHARED: %s",toString(request_shared_memory->message));
+				//dormi
+				sleep(request_shared_memory->message.DelS1);
+				//stampa le info sul tuo file
+				printInfoMessage(request_shared_memory->message, timeArrival, F6);
+			} else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0)
+			{
+				printf("SHARED: %s",toString(request_shared_memory->message));
+				sleep(request_shared_memory->message.DelS2);
+				printInfoMessage(request_shared_memory->message, timeArrival, F5);
+			} else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0)
+			{
+				printf("SHARED: %s",toString(request_shared_memory->message));
+				sleep(request_shared_memory->message.DelS3);
+				printInfoMessage(request_shared_memory->message, timeArrival, F4);
+			} 
+			semOp(semID, DATAREADY, 1);
+			continue;
+		} else {
+			//non sono nel receiver corretto
 			semOp(semID, REQUEST, 1);
+			continue;
+		}
 
-		
+
 		//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
 	}
 }
