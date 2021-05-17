@@ -10,6 +10,7 @@ char *F0;
 int MSQID = -1;
 int SHMID = -1;
 int semID;
+int terminated = 0;
 struct request_shared_memory *request_shared_memory;
 
 void writeF8(int, int, int);

@@ -24,6 +24,7 @@
 //nomi simbolici dei file su cui agisco
 #define F8 "OutputFiles/F8.csv"
 #define F9 "OutputFiles/F9.csv"
+#define F10 "OutputFiles/F10.csv"
 #define F2 "OutputFiles/F2.csv"
 #define F3 "OutputFiles/F3.csv"
 #define F1 "OutputFiles/F1.csv"
@@ -44,6 +45,23 @@
 #define QKey 01110001
 #define MKey 01101101
 #define FIFO "OutputFiles/my_fifo.txt"
+
+//struttura IPC history
+typedef struct
+{
+     char *ipc;
+     char *idKey;
+     char *creator;
+     char *creationTime;
+     char *destructionTime;
+} IPC_history;
+
+//struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
+typedef struct
+{
+     int length;
+     IPC_history *histories;
+} IPC_history_group;
 
 //struttura messaggio di hackler
 typedef struct
@@ -105,3 +123,4 @@ void printInfoMessage(message_sending message, struct tm timeArrival, char file[
 void printIntestazione(char FILE[]);
 void ordinaPerDel(message_group *messageG, char DEL[]);
 void sigHandler(int);
+void appendInF10(char * buffer, ssize_t bufferLength);

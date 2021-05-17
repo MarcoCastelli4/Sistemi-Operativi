@@ -179,10 +179,36 @@ int main(int argc, char *argv[]){
 	}
 
 	printf("STO PER CHIUDERE\n");
+	writeF10Header();
 
 	//termino il processo padre
 	exit(0);
 }
+
+//Funzione che mi genera il file F10 e scrive ogni riga
+void writeF10Header()
+{
+	//creo il file se è gia presente lo sovrascrivo
+	int fp = open(F10, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+	if (fp == -1)
+		ErrExit("Open");
+
+	//calcolo il numero totale di caratteri da scrivere nel buffer
+	int n = 55;
+
+	//inizializzo buffer delle dimenisoni corrette
+	ssize_t bufferLength = sizeof(char) * n;
+	char *buffer = malloc(bufferLength);
+
+	//converto i dati in stringa
+	sprintf(buffer, "IPC | IDKey | Creator | CreationTime | DestructionTime\n");
+
+	//scrivo sul file
+	write(fp, buffer, bufferLength);
+	close(fp);
+	free(buffer);
+}
+
 
 //Funzione che mi genera il file F9 e scrive ogni riga
 void writeF9(int pid1, int pid2, int pid3)
