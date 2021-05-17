@@ -18,8 +18,9 @@
 #define PIPE3READER 11
 #define PIPE4WRITER 12
 #define PIPE4READER 13
+#define F10ACCESS 14
 
-#define SEMNUMBER 14
+#define SEMNUMBER 15
 #define SKey 01110011
 #include <sys/sem.h>
 #include <sys/shm.h>

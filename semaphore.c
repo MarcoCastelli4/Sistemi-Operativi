@@ -21,7 +21,7 @@ int create_sem_set(int nSem) {
 
     // Initialize the semaphore set with semctl
     union semun arg;
-    unsigned short values[] = {0,0,0,0,0,0,1,0,1,0,1,0,1,0};
+    unsigned short values[] = {0,0,0,0,0,0,1,0,1,0,1,0,1,0,1};
     arg.array = values;
 
     // inserisci con setALL...
