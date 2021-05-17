@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
 		ErrExit("Creazione fifo errata");
 	}
 
+	printf("semsop01\n");
 	//ho creato puoi usarle
 	semOp(semID, CREATION, 1);
 	F0 = argv[1];
@@ -96,6 +97,7 @@ int main(int argc, char *argv[])
 
 		while(s1EndReading == 0){
 			message_sending message;
+			printf("semsop02\n");
 			semOp(semID, PIPE1READER, -1);
 			ssize_t nBys = read(pipe1[0],&message, sizeof(message));
 			if(nBys < 1){
@@ -107,12 +109,13 @@ int main(int argc, char *argv[])
 			messageGroupS2->messages = &message;
 
 			sendMessage(messageGroupS2, "S2");
-			
+
 			free(messageGroupS2);
+			printf("semsop03\n");
 			semOp(semID, PIPE1WRITER, 1);
 		}
 		s2EndReading = 1;
-		
+
 
 		//termino il processo
 		exit(0);
@@ -129,6 +132,7 @@ int main(int argc, char *argv[])
 
 		while(s2EndReading == 0){
 			message_sending message;
+			printf("semsop04\n");
 			semOp(semID, PIPE2READER, -1);
 			ssize_t nBys = read(pipe2[0],&message, sizeof(message));
 			if(nBys < 1){
@@ -140,8 +144,9 @@ int main(int argc, char *argv[])
 			messageGroupS3->messages = &message;
 
 			sendMessage(messageGroupS3, "S3");
-			
+
 			free(messageGroupS3);
+			printf("semsop05\n");
 			semOp(semID, PIPE2WRITER, 1);
 		}
 
@@ -153,6 +158,7 @@ int main(int argc, char *argv[])
 
 	//genero file8.csv
 	writeF8(pidS1, pidS2, pidS3);
+	printf("semsop06\n");
 	semOp(semID, HACKLERSENDER, 1);
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
@@ -160,6 +166,7 @@ int main(int argc, char *argv[])
 	while ((waitPID = wait(&stato)) > 0);
 
 	//aspetto che il receiver finisca di usare le IPC
+	printf("semsop07\n");
 	semOp(semID, ELIMINATION, -1);
 
 	printf("STO PER TERMInare\n");
@@ -369,25 +376,31 @@ void messageHandler(message_sending message, char processo[]){
 		if (strcmp(message.Type, "Q") == 0)
 		{
 			// sending the message in the queue
+			printf("semsop08\n");
 			semOp(semID, REQUEST, 1);
 			if (msgsnd(MSQID, &m, mSize, 0) == -1)
 				ErrExit("msgsnd failed");
+			printf("semsop09\n");
 			semOp(semID, DATAREADY, -1);
 		}
 		//viene inviato tramite shared memory
 		else if (strcmp(message.Type, "SH") == 0)
 		{
+			printf("semsop10\n");
 			semOp(semID, REQUEST, 1);
 			memcpy(request_shared_memory, &message, sizeof(message));
+			printf("semsop11\n");
 			semOp(semID, DATAREADY, -1);
 		}
 		else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
 		{
 			//invia a R3 tramite FIFO
+			printf("semsop12\n");
 			semOp(semID, REQUEST, 1);
 			int fd = open(FIFO, O_WRONLY);
 			write(fd, &message, sizeof(message));
 			close(fd);
+			printf("semsop13\n");
 			semOp(semID, DATAREADY, -1);
 		}
 	}
@@ -397,18 +410,22 @@ void messageHandler(message_sending message, char processo[]){
 		//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
 		if (strcmp(processo, "S1") == 0){
 			//invia a S2 tramite PIPE
+			printf("semsop14\n");
 			semOp(semID, PIPE1WRITER, -1);
 			ssize_t nBys = write(pipe1[1], &message, sizeof(message));
 			if(nBys != sizeof(message))
 				ErrExit("Messaggio inviato male");
+			printf("semsop15\n");
 			semOp(semID, PIPE1READER, 1);
 		} else if (strcmp(processo, "S2") == 0)
 		{
 			//invia a S3 tramite PIPE
+			printf("semsop16\n");
 			semOp(semID, PIPE2WRITER, -1);
 			ssize_t nBys = write(pipe2[1], &message, sizeof(message));
 			if(nBys != sizeof(message))
 				ErrExit("Messaggio inviato male");
+			printf("semsop17\n");
 			semOp(semID, PIPE2READER, 1);
 
 		} 
