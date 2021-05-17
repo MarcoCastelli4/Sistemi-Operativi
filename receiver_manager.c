@@ -18,7 +18,6 @@ int main(int argc, char *argv[]){
 	//creo semaforo, sarà lo stesso del sender
 	semID = semget(SKey, SEMNUMBER, IPC_CREAT | S_IRUSR | S_IWUSR);
 	//finchè il sender non ha creato le IPC aspetto
-	printf("semop11\n");
 	semOp(semID, CREATION, -1);
 	//Accedo alla
 	SHMID = alloc_shared_memory(MKey, sizeof(struct request_shared_memory));
@@ -49,7 +48,6 @@ int main(int argc, char *argv[]){
 		if(pidPIPER1 == 0){
 			while(1){
 				message_sending messageIncoming;
-				printf("semop12\n");
 				semOp(semID, PIPE4READER, -1);
 				ssize_t nBys = read(pipe4[0],&messageIncoming, sizeof(messageIncoming));
 				if(nBys < 1){
@@ -68,7 +66,6 @@ int main(int argc, char *argv[]){
 					exit(0);
 				}
 
-				printf("semop13\n");
 				semOp(semID, PIPE4WRITER, 1);
 			}
 			exit(0);
@@ -96,7 +93,6 @@ int main(int argc, char *argv[]){
 		if(pidPIPER2 == 0){
 			while(1){
 				message_sending messageIncoming;
-				printf("semop14\n");
 				semOp(semID, PIPE3READER, -1);
 				ssize_t nBys = read(pipe3[0],&messageIncoming, sizeof(messageIncoming));
 				if(nBys < 1){
@@ -116,7 +112,6 @@ int main(int argc, char *argv[]){
 					exit(0);
 				}
 
-				printf("semop15\n");
 				semOp(semID, PIPE3WRITER, 1);
 			}
 			exit(0);
@@ -154,7 +149,6 @@ int main(int argc, char *argv[]){
 
 	//genero file F9
 	writeF9(pidR1, pidR2, pidR3);
-	printf("semop16\n");
 	semOp(semID, HACKLERRECEIVER, 1);
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
@@ -162,7 +156,6 @@ int main(int argc, char *argv[]){
 	while ((waitPID = wait(&stato)) > 0);
 
 	//dico al sender che può eliminare le IPC
-	printf("semop17\n");
 	semOp(semID, ELIMINATION, 1);
 
 	//Chiusura della msgQueue
@@ -345,7 +338,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					exit(0);
 				}} 
 
-			printf("semop4\n");
 			semOp(semID, DATAREADY, 1);
 			continue;
 		} 
@@ -371,7 +363,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				exit(0);
 			}
 
-			printf("semop5\n");
 			semOp(semID, DATAREADY, 1);
 			continue;
 		}
@@ -380,7 +371,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		else {
 			//non sono nel receiver corretto
-			printf("semop6\n");
 			semOp(semID, REQUEST, 1);
 			continue;
 		}
@@ -391,21 +381,17 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 void deliverMessage(message_sending message, char processo[]){
 	if (strcmp(processo, "R3") == 0){
 		//invia a R2 tramite PIPE
-		printf("semop7\n");
 		semOp(semID, PIPE3WRITER, -1);
 		ssize_t nBys = write(pipe3[1], &message, sizeof(message));
 		if(nBys != sizeof(message))
 			ErrExit("Messaggio inviato male");
-		printf("semop8\n");
 		semOp(semID, PIPE3READER, 1);
 	} else if (strcmp(processo, "R2") == 0){
 		//invia a R1 tramite PIPE
-		printf("semop9\n");
 		semOp(semID, PIPE4WRITER, -1);
 		ssize_t nBys = write(pipe4[1], &message, sizeof(message));
 		if(nBys != sizeof(message))
 			ErrExit("Messaggio inviato male");
-		printf("semop10\n");
 		semOp(semID, PIPE4READER, 1);
 	}
 }
