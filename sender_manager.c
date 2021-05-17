@@ -14,6 +14,7 @@ int terminated = 0;
 struct request_shared_memory *request_shared_memory;
 
 void writeF8(int, int, int);
+void writeF10Header();
 message_group *carica_F0(char[]);
 
 void sendMessage(message_group *messageG, char processo[]);
@@ -25,8 +26,24 @@ int main(int argc, char *argv[])
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
 
+	// Creazione header per F10
+	writeF10Header();
+
 	//Inizializzo il semaforo e attendo
 	semID = create_sem_set(SEMNUMBER);
+
+	//genero il tempo attuale --> TimeDeparture
+	time_t now = time(NULL);
+	struct tm TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	ssize_t bufferLength = (sizeof("S") +numcifre(semID) +  sizeof("SM") + 12 * sizeof(char));
+	char *string = malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", semID, "S", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	appendInF10(string, bufferLength);
 
 	// Creo la message queue
 	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
@@ -35,8 +52,39 @@ int main(int argc, char *argv[])
 		ErrExit("Message queue failed");
 	}
 
+	//genero il tempo attuale --> TimeDeparture
+	now = time(NULL);
+	TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	bufferLength = (sizeof("Q") +numcifre(MSQID) +  sizeof("SM") + 12 * sizeof(char));
+	string = (char *) malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", MSQID, "Q", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	appendInF10(string, bufferLength);
+
 	//Creazione della shared memory
 	SHMID = alloc_shared_memory(MKey, sizeof(struct request_shared_memory));
+	if (SHMID == -1)
+	{
+		ErrExit("Shared memory failed");
+	}
+
+	//genero il tempo attuale --> TimeDeparture
+	now = time(NULL);
+	TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	bufferLength = (sizeof("SH") +numcifre(SHMID) +  sizeof("SM") + 12 * sizeof(char));
+	string = (char *) malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", SHMID, "SH", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	appendInF10(string, bufferLength);
+
 
 	request_shared_memory = (struct request_shared_memory *)get_shared_memory(SHMID, 0);
 
@@ -46,6 +94,56 @@ int main(int argc, char *argv[])
 		ErrExit("Creazione fifo errata");
 	}
 
+	//genero il tempo attuale --> TimeDeparture
+	now = time(NULL);
+	TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	bufferLength = (sizeof("FIFO") +numcifre(res) +  sizeof("SM") + 12 * sizeof(char));
+	string = (char *) malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", res, "FIFO", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	appendInF10(string, bufferLength);
+
+	// checking if PIPE successed
+	int resPipe1 = pipe(pipe1);
+	if (resPipe1 == -1)
+		ErrExit("PIPE");
+
+	//genero il tempo attuale --> TimeDeparture
+	now = time(NULL);
+	TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	bufferLength = (sizeof("PIPE1") +numcifre(resPipe1) +  sizeof("SM") + 12 * sizeof(char));
+	string = (char *) malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", resPipe1, "PIPE1", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	appendInF10(string, bufferLength);
+
+
+	// checking if PIPE successed
+	int resPipe2 = pipe(pipe2);
+	if (resPipe2 == -1)
+		ErrExit("PIPE");
+
+	//genero il tempo attuale --> TimeDeparture
+	now = time(NULL);
+	TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	bufferLength = (sizeof("PIPE2") +numcifre(resPipe2) +  sizeof("SM") + 12 * sizeof(char));
+	string = (char *) malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", resPipe2, "PIPE2", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	appendInF10(string, bufferLength);
+
 	//ho creato puoi usarle
 	semOp(semID, CREATION, 1);
 	F0 = argv[1];
@@ -54,17 +152,9 @@ int main(int argc, char *argv[])
 	{
 		exit(1);
 	}
+
 	//la struttura messaggi inizialmente è vuota
 	message_group *messages = NULL;
-
-
-	// checking if PIPE successed
-	if (pipe(pipe1) == -1)
-		ErrExit("PIPE");
-	// checking if PIPE successed
-	if (pipe(pipe2) == -1)
-		ErrExit("PIPE");
-
 	//genero processo S1
 	pidS1 = fork();
 	if (pidS1 == 0)
@@ -413,4 +503,28 @@ void messageHandler(message_sending message, char processo[]){
 
 		} 
 	}
+}
+
+//Funzione che mi genera il file F10 e scrive ogni riga
+void writeF10Header()
+{
+	//creo il file se è gia presente lo sovrascrivo
+	int fp = open(F10, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+	if (fp == -1)
+		ErrExit("Open");
+
+	//calcolo il numero totale di caratteri da scrivere nel buffer
+	int n = 55;
+
+	//inizializzo buffer delle dimenisoni corrette
+	ssize_t bufferLength = sizeof(char) * n;
+	char *buffer = malloc(bufferLength);
+
+	//converto i dati in stringa
+	sprintf(buffer, "IPC | IDKey | Creator | CreationTime | DestructionTime\n");
+
+	//scrivo sul file
+	write(fp, buffer, bufferLength);
+	close(fp);
+	free(buffer);
 }

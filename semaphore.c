@@ -7,8 +7,10 @@
 
 void semOp (int semid, unsigned short sem_num, short sem_op) {
    struct sembuf sop = {.sem_num = sem_num, .sem_op = sem_op, .sem_flg = 0};
-    if (semop(semid,&sop,1) == -1)
+    if (semop(semid,&sop,1) == -1){
+        printf("What sem is failed? %d %d\n", sem_num, sem_op);
         ErrExit("semop failed");
+    }
 }
 
 int create_sem_set(int nSem) {

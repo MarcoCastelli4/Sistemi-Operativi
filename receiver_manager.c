@@ -32,11 +32,41 @@ int main(int argc, char *argv[]){
 	request_shared_memory = get_shared_memory(SHMID, 0);
 
 	// checking if PIPE successed
-	if (pipe(pipe3) == -1)
+	int resPipe3 = pipe(pipe3);
+	if (resPipe3 == -1)
 		ErrExit("PIPE");
+
+	//genero il tempo attuale --> TimeDeparture
+	time_t now = time(NULL);
+	struct tm TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	ssize_t bufferLength = (sizeof("PIPE3") +numcifre(resPipe3) +  sizeof("SM") + 12 * sizeof(char));
+	char *string = malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", resPipe3, "PIPE3", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	appendInF10(string, bufferLength);
+
+
 	// checking if PIPE successed
-	if (pipe(pipe4) == -1)
+	int resPipe4 = pipe(pipe4);
+	if (resPipe4 == -1)
 		ErrExit("PIPE");
+
+	//genero il tempo attuale --> TimeDeparture
+	now = time(NULL);
+	TimeDeparture = *localtime(&now);
+
+	//calcolo la dimensione della riga da scrivere
+	bufferLength = (sizeof("PIPE2") +numcifre(resPipe4) +  sizeof("SM") + 12 * sizeof(char));
+	string = (char *) malloc(bufferLength);
+
+	//mi salvo tutta la stringa
+	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", resPipe4, "PIPE4", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+
+	appendInF10(string, bufferLength);
 
 	//genero processo R1
 	pidR1 = fork();
@@ -48,7 +78,7 @@ int main(int argc, char *argv[]){
 		if(pidPIPER1 == 0){
 			while(1){
 				message_sending messageIncoming;
-				semOp(semID, PIPE4READER, -1);
+				//semOp(semID, PIPE4READER, -1);
 				ssize_t nBys = read(pipe4[0],&messageIncoming, sizeof(messageIncoming));
 				if(nBys < 1){
 					ErrExit("Errore uscito\n");
@@ -66,7 +96,7 @@ int main(int argc, char *argv[]){
 					exit(0);
 				}
 
-				semOp(semID, PIPE4WRITER, 1);
+				//semOp(semID, PIPE4WRITER, 1);
 			}
 			exit(0);
 		}
@@ -93,7 +123,7 @@ int main(int argc, char *argv[]){
 		if(pidPIPER2 == 0){
 			while(1){
 				message_sending messageIncoming;
-				semOp(semID, PIPE3READER, -1);
+				//semOp(semID, PIPE3READER, -1);
 				ssize_t nBys = read(pipe3[0],&messageIncoming, sizeof(messageIncoming));
 				if(nBys < 1){
 					ErrExit("Errore uscito\n");
@@ -179,35 +209,12 @@ int main(int argc, char *argv[]){
 	}
 
 	printf("STO PER CHIUDERE\n");
-	writeF10Header();
 
 	//termino il processo padre
 	exit(0);
 }
 
-//Funzione che mi genera il file F10 e scrive ogni riga
-void writeF10Header()
-{
-	//creo il file se è gia presente lo sovrascrivo
-	int fp = open(F10, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (fp == -1)
-		ErrExit("Open");
 
-	//calcolo il numero totale di caratteri da scrivere nel buffer
-	int n = 55;
-
-	//inizializzo buffer delle dimenisoni corrette
-	ssize_t bufferLength = sizeof(char) * n;
-	char *buffer = malloc(bufferLength);
-
-	//converto i dati in stringa
-	sprintf(buffer, "IPC | IDKey | Creator | CreationTime | DestructionTime\n");
-
-	//scrivo sul file
-	write(fp, buffer, bufferLength);
-	close(fp);
-	free(buffer);
-}
 
 
 //Funzione che mi genera il file F9 e scrive ogni riga
@@ -243,7 +250,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
 	while (1)
 	{
-		printf("semOp1\n");
 		semOp(semID, REQUEST, -1);
 
 		//genero tempo attuale
@@ -292,7 +298,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					exit(0);
 				}		
 			}
-			printf("semOp2\n");
 			semOp(semID, DATAREADY, 1);
 			continue;
 		}else if(strcmp("Q", messaggio.message.Type)== 0){
@@ -300,7 +305,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
 			} else {
-				printf("semOp3\n");
 				semOp(semID, REQUEST, 1);
 				continue;
 			}
@@ -381,17 +385,17 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 void deliverMessage(message_sending message, char processo[]){
 	if (strcmp(processo, "R3") == 0){
 		//invia a R2 tramite PIPE
-		semOp(semID, PIPE3WRITER, -1);
+		/** semOp(semID, PIPE3WRITER, -1); */
 		ssize_t nBys = write(pipe3[1], &message, sizeof(message));
 		if(nBys != sizeof(message))
 			ErrExit("Messaggio inviato male");
-		semOp(semID, PIPE3READER, 1);
+		/** semOp(semID, PIPE3READER, 1); */
 	} else if (strcmp(processo, "R2") == 0){
 		//invia a R1 tramite PIPE
-		semOp(semID, PIPE4WRITER, -1);
+		//semOp(semID, PIPE4WRITER, -1);
 		ssize_t nBys = write(pipe4[1], &message, sizeof(message));
 		if(nBys != sizeof(message))
 			ErrExit("Messaggio inviato male");
-		semOp(semID, PIPE4READER, 1);
+		//semOp(semID, PIPE4READER, 1);
 	}
 }

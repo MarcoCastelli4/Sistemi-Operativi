@@ -177,13 +177,11 @@ void ordinaPerDel(message_group *messageG, char DEL[])
 void sigHandler(int sig){
 	if(sig == SIGINT){
 		exit(0);
-		
 	}
 }
 
 void appendInF10(char * buffer, ssize_t bufferLength)
 {
-	printf("Scrittura 2\n");
 	//creo il file se è gia presente lo sovrascrivo
 	int fp = open(F10, O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fp == -1)
