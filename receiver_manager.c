@@ -45,7 +45,7 @@ int main(int argc, char *argv[]){
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", resPipe3, "PIPE3", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE3",resPipe3, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]){
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", resPipe4, "PIPE4", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n",  "PIPE4",resPipe4, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 

@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", semID, "S", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "S", semID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", MSQID, "Q", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "Q", MSQID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", SHMID, "SH", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "SH",SHMID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", res, "FIFO", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n","FIFO", res, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", resPipe1, "PIPE1", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n",  "PIPE1",resPipe1, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%s;%02d:%02d:%02d;;\n", resPipe2, "PIPE2", "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n","PIPE2", resPipe2,  "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
