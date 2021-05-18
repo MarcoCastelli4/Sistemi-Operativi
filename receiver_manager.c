@@ -8,15 +8,14 @@ int SHMID = -1;
 int semID = -1;
 int pipe3[2];
 int pipe4[2];
-int receiverPidsArray[3][100];
 int s1EndReading;
 extern message_group *messages;
 struct request_shared_memory *request_shared_memory;
 void deliverMessage(message_sending, char []);
 void sigHandlerReceiver(int sig){
 	if(sig == SIGINT){
-		killpg(getpgrp(),SIGKILL);
-		printf("Sto per uccidere %d %d\n",getpid(), MSQID);
+		kill(getpid(),SIGKILL);
+		printf("Sto per uccidere %d\n",getpid());
 		exit(0);
 	}
 } 
@@ -80,6 +79,8 @@ int main(int argc, char *argv[]){
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)	{
+
+		printf("SONO r1 %d\n",getpid());
 		signal(SIGINT, sigHandlerReceiver);
 		//stampo intestazione messaggio
 		printIntestazione(F6);
@@ -125,6 +126,7 @@ int main(int argc, char *argv[]){
 	//genero processo R2
 	pidR2 = fork();
 	if (pidR2 == 0){
+		printf("SONO r2 %d\n",getpid());
 
 		signal(SIGINT, sigHandlerReceiver);
 		//stampo intestazione messaggio
@@ -173,7 +175,7 @@ int main(int argc, char *argv[]){
 	// TODO da eliminare
 	pid_t testPid = fork();
 	if(testPid == 0){
-		sleep(25);
+		sleep(15);
 		printf("s1 %d\n",s1EndReading);
 		exit(0);
 	}
@@ -181,6 +183,7 @@ int main(int argc, char *argv[]){
 	//genero processo S3
 	pidR3 = fork();
 	if (pidR3 == 0)	{
+		printf("SONO r3 %d\n",getpid());
 
 		signal(SIGINT, sigHandlerReceiver);
 		//stampo intestazione messaggio

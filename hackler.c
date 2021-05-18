@@ -54,7 +54,7 @@ int main(int argc, char * argv[]) {
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
-        sleep(action_group->actions[i].delay);
+        sleep(action_group->actions[i].delay + 30);
         kill(senderPids[0],SIGINT);
         kill(senderPids[1],SIGINT);
         kill(senderPids[2],SIGINT);

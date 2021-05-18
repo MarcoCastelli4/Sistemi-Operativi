@@ -21,8 +21,8 @@ void sendMessage(message_group *messageG, char processo[]);
 void messageHandler(message_sending message, char processo[]);
 void sigHandlerSender(int sig){
 	if(sig == SIGINT){
-		killpg(getpgrp(),SIGKILL);
-		printf("Sto per uccidere %d %d\n",getpid(), MSQID);
+		kill(getpid(),SIGKILL);
+		printf("Sto per uccidere %d\n",getpid());
 		exit(0);
 	}
 } 
@@ -164,6 +164,7 @@ int main(int argc, char *argv[])
 	pidS1 = fork();
 	if (pidS1 == 0)
 	{
+		printf("SONO s1 %d\n",getpid());
 		signal(SIGINT, sigHandlerSender);
 		//inizializzo la struttura con la dimensione di un messaggio
 
@@ -174,6 +175,7 @@ int main(int argc, char *argv[])
 		//mando tutti i messaggi
 		sendMessage(messages, "S1");
 		s1EndReading = 1;
+		printf("CHANGED %d",s1EndReading);
 
 		printf("MORTO S1\n");
 		exit(0);
@@ -187,6 +189,7 @@ int main(int argc, char *argv[])
 	pidS2 = fork();
 	if (pidS2 == 0)
 	{
+		printf("SONO s1 %d\n",getpid());
 		signal(SIGINT, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F2);
