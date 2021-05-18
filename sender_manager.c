@@ -175,7 +175,6 @@ int main(int argc, char *argv[])
 		//mando tutti i messaggi
 		sendMessage(messages, "S1");
 		s1EndReading = 1;
-		printf("CHANGED %d",s1EndReading);
 
 		printf("MORTO S1\n");
 		exit(0);

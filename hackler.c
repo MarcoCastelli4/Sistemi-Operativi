@@ -86,10 +86,7 @@ int main(int argc, char * argv[]) {
   free(action_group->actions);
   free(action_group);
 
-  printf("HACKLER TERMINA\n");
-
   return 0;
-
 }
 
 void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
