@@ -174,12 +174,6 @@ void ordinaPerDel(message_group *messageG, char DEL[])
 	}
 }
 
-void sigHandler(int sig){
-	if(sig == SIGINT){
-		exit(0);
-	}
-}
-
 void appendInF10(char * buffer, ssize_t bufferLength)
 {
 	//creo il file se è gia presente lo sovrascrivo
@@ -192,3 +186,4 @@ void appendInF10(char * buffer, ssize_t bufferLength)
 	close(fp);
 	free(buffer);
 }
+	

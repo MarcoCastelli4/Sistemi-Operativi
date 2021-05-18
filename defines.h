@@ -90,6 +90,7 @@ typedef struct
      int DelS2;
      int DelS3;
      char Type[5];
+     pid_t PidManager;
 } message_sending;
 
 struct request_shared_memory
@@ -124,3 +125,4 @@ void printIntestazione(char FILE[]);
 void ordinaPerDel(message_group *messageG, char DEL[]);
 void sigHandler(int);
 void appendInF10(char * buffer, ssize_t bufferLength);
+

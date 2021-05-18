@@ -52,14 +52,24 @@ int main(int argc, char * argv[]) {
   for(i=0; i<action_group->length; i++){
 
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
-      sleep(20);
-      kill(senderPids[0],SIGINT);
-      kill(senderPids[1],SIGINT);
-      kill(senderPids[2],SIGINT);
-      kill(receiverPids[0],SIGINT);
-      kill(receiverPids[1],SIGINT);
-      kill(receiverPids[2],SIGINT);
-      break;
+      pid_t actionProcess= fork();
+      if(actionProcess == 0){
+        sleep(action_group->actions[i].delay);
+        kill(senderPids[0],SIGINT);
+        kill(senderPids[1],SIGINT);
+        kill(senderPids[2],SIGINT);
+        kill(receiverPids[0],SIGINT);
+        kill(receiverPids[1],SIGINT);
+        kill(receiverPids[2],SIGINT);
+        exit(0);
+      }
+    } else if(strcmp(action_group->actions[i].action,"IncreaseDelay")==0){
+      pid_t actionProcess= fork();
+      if(actionProcess == 0){
+        sleep(action_group->actions[i].delay);
+        sleep(5);
+        exit(0);
+      }
     }
 
   }

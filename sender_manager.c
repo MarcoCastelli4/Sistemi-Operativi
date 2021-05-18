@@ -10,7 +10,7 @@ char *F0;
 int MSQID = -1;
 int SHMID = -1;
 int semID;
-int terminated = 0;
+message_group *messages = NULL;
 struct request_shared_memory *request_shared_memory;
 
 void writeF8(int, int, int);
@@ -19,10 +19,16 @@ message_group *carica_F0(char[]);
 
 void sendMessage(message_group *messageG, char processo[]);
 void messageHandler(message_sending message, char processo[]);
+void sigHandlerSender(int sig){
+	if(sig == SIGINT){
+		killpg(getpgrp(),SIGKILL);
+		printf("Sto per uccidere %d %d\n",getpid(), MSQID);
+		exit(0);
+	}
+} 
 
 int main(int argc, char *argv[])
 {
-	signal(SIGINT, sigHandler);
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
 
@@ -154,11 +160,11 @@ int main(int argc, char *argv[])
 	}
 
 	//la struttura messaggi inizialmente è vuota
-	message_group *messages = NULL;
 	//genero processo S1
 	pidS1 = fork();
 	if (pidS1 == 0)
 	{
+		signal(SIGINT, sigHandlerSender);
 		//inizializzo la struttura con la dimensione di un messaggio
 
 		messages = carica_F0(F0);
@@ -181,6 +187,7 @@ int main(int argc, char *argv[])
 	pidS2 = fork();
 	if (pidS2 == 0)
 	{
+		signal(SIGINT, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F2);
 
@@ -214,6 +221,7 @@ int main(int argc, char *argv[])
 	pidS3 = fork();
 	if (pidS3 == 0)
 	{
+		signal(SIGINT, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F3);
 
@@ -328,7 +336,7 @@ message_group *carica_F0(char nomeFile[])
 	}
 
 	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
-	message_sending *messages = malloc(sizeof(message_sending) * (rowNumber));
+	message_sending *messageList = malloc(sizeof(message_sending) * (rowNumber));
 
 	//numero di messaggi che inserisco
 	int messageNumber = 0;
@@ -352,31 +360,31 @@ message_group *carica_F0(char nomeFile[])
 			switch (campo)
 			{
 				case 0:
-					messages[messageNumber].id = atoi(segment);
+					messageList[messageNumber].id = atoi(segment);
 					break;
 				case 1:
 
-					strcpy(messages[messageNumber].message, segment);
+					strcpy(messageList[messageNumber].message, segment);
 					break;
 				case 2:
-					strcpy(messages[messageNumber].idSender, segment);
+					strcpy(messageList[messageNumber].idSender, segment);
 					break;
 				case 3:
 
-					strcpy(messages[messageNumber].idReceiver, segment);
+					strcpy(messageList[messageNumber].idReceiver, segment);
 					break;
 				case 4:
-					messages[messageNumber].DelS1 = atoi(segment);
+					messageList[messageNumber].DelS1 = atoi(segment);
 					break;
 				case 5:
-					messages[messageNumber].DelS2 = atoi(segment);
+					messageList[messageNumber].DelS2 = atoi(segment);
 					break;
 				case 6:
-					messages[messageNumber].DelS3 = atoi(segment);
+					messageList[messageNumber].DelS3 = atoi(segment);
 					break;
 				case 7:
 					segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
-					strcpy(messages[messageNumber].Type, segment);
+					strcpy(messageList[messageNumber].Type, segment);
 					break;
 				default:
 					break;
@@ -393,7 +401,7 @@ message_group *carica_F0(char nomeFile[])
 	//inserisco nella mia struttura l'array di messaggi e quanti messaggi sono stati inseriti
 	message_group *messageG = malloc(sizeof(messageG));
 	messageG->length = messageNumber;
-	messageG->messages = messages;
+	messageG->messages = messageList;
 
 	return messageG;
 }

@@ -8,11 +8,20 @@ int SHMID = -1;
 int semID = -1;
 int pipe3[2];
 int pipe4[2];
+int receiverPidsArray[3][100];
+int s1EndReading;
+extern message_group *messages;
 struct request_shared_memory *request_shared_memory;
 void deliverMessage(message_sending, char []);
+void sigHandlerReceiver(int sig){
+	if(sig == SIGINT){
+		killpg(getpgrp(),SIGKILL);
+		printf("Sto per uccidere %d %d\n",getpid(), MSQID);
+		exit(0);
+	}
+} 
 
 int main(int argc, char *argv[]){
-	signal(SIGINT, sigHandler);
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 	//creo semaforo, sarà lo stesso del sender
@@ -71,6 +80,7 @@ int main(int argc, char *argv[]){
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)	{
+		signal(SIGINT, sigHandlerReceiver);
 		//stampo intestazione messaggio
 		printIntestazione(F6);
 
@@ -78,7 +88,7 @@ int main(int argc, char *argv[]){
 		if(pidPIPER1 == 0){
 			while(1){
 				message_sending messageIncoming;
-				//semOp(semID, PIPE4READER, -1);
+				semOp(semID, PIPE4READER, -1);
 				ssize_t nBys = read(pipe4[0],&messageIncoming, sizeof(messageIncoming));
 				if(nBys < 1){
 					ErrExit("Errore uscito\n");
@@ -96,7 +106,7 @@ int main(int argc, char *argv[]){
 					exit(0);
 				}
 
-				//semOp(semID, PIPE4WRITER, 1);
+				semOp(semID, PIPE4WRITER, 1);
 			}
 			exit(0);
 		}
@@ -116,6 +126,7 @@ int main(int argc, char *argv[]){
 	pidR2 = fork();
 	if (pidR2 == 0){
 
+		signal(SIGINT, sigHandlerReceiver);
 		//stampo intestazione messaggio
 		printIntestazione(F5);
 
@@ -123,7 +134,7 @@ int main(int argc, char *argv[]){
 		if(pidPIPER2 == 0){
 			while(1){
 				message_sending messageIncoming;
-				//semOp(semID, PIPE3READER, -1);
+				semOp(semID, PIPE3READER, -1);
 				ssize_t nBys = read(pipe3[0],&messageIncoming, sizeof(messageIncoming));
 				if(nBys < 1){
 					ErrExit("Errore uscito\n");
@@ -159,10 +170,19 @@ int main(int argc, char *argv[]){
 		ErrExit("Fork");
 	}
 
+	// TODO da eliminare
+	pid_t testPid = fork();
+	if(testPid == 0){
+		sleep(25);
+		printf("s1 %d\n",s1EndReading);
+		exit(0);
+	}
+
 	//genero processo S3
 	pidR3 = fork();
 	if (pidR3 == 0)	{
 
+		signal(SIGINT, sigHandlerReceiver);
 		//stampo intestazione messaggio
 		printIntestazione(F4);
 
@@ -385,17 +405,17 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 void deliverMessage(message_sending message, char processo[]){
 	if (strcmp(processo, "R3") == 0){
 		//invia a R2 tramite PIPE
-		/** semOp(semID, PIPE3WRITER, -1); */
+		semOp(semID, PIPE3WRITER, -1);
 		ssize_t nBys = write(pipe3[1], &message, sizeof(message));
 		if(nBys != sizeof(message))
 			ErrExit("Messaggio inviato male");
-		/** semOp(semID, PIPE3READER, 1); */
+		semOp(semID, PIPE3READER, 1);
 	} else if (strcmp(processo, "R2") == 0){
 		//invia a R1 tramite PIPE
-		//semOp(semID, PIPE4WRITER, -1);
+		semOp(semID, PIPE4WRITER, -1);
 		ssize_t nBys = write(pipe4[1], &message, sizeof(message));
 		if(nBys != sizeof(message))
 			ErrExit("Messaggio inviato male");
-		//semOp(semID, PIPE4READER, 1);
+		semOp(semID, PIPE4READER, 1);
 	}
 }

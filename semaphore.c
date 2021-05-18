@@ -3,13 +3,14 @@
 ///         specifiche per la gestione dei SEMAFORI.
 
 #include "err_exit.h"
+#include <stdio.h>
 #include "semaphore.h"
 
 void semOp (int semid, unsigned short sem_num, short sem_op) {
    struct sembuf sop = {.sem_num = sem_num, .sem_op = sem_op, .sem_flg = 0};
     if (semop(semid,&sop,1) == -1){
-        printf("What sem is failed? %d %d\n", sem_num, sem_op);
-        ErrExit("semop failed");
+        printf("Dovrei uscire %d %d %d %d\n",sem_num,sem_op,getpid(),getppid());
+        //ErrExit("semop failed");
     }
 }
 
