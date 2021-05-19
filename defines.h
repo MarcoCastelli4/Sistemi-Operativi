@@ -63,6 +63,20 @@ typedef struct
      IPC_history *histories;
 } IPC_history_group;
 
+//struttura PIDS
+typedef struct
+{
+     ssize_t pid;
+     ssize_t pid_parent;
+} pid_manager;
+
+//struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
+typedef struct
+{
+     int length;
+     pid_manager *pids;
+} pids_manager;
+
 //struttura messaggio di hackler
 typedef struct
 {

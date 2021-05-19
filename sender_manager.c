@@ -10,6 +10,7 @@ char *F0;
 int MSQID = -1;
 int SHMID = -1;
 int semID;
+pids_manager *pids = NULL;
 message_group *messages = NULL;
 struct request_shared_memory *request_shared_memory;
 
@@ -21,8 +22,11 @@ void sendMessage(message_group *messageG, char processo[]);
 void messageHandler(message_sending message, char processo[]);
 void sigHandlerSender(int sig){
 	if(sig == SIGINT){
-		kill(getpid(),SIGKILL);
-		printf("Sto per uccidere %d\n",getpid());
+		for(int i=0; i<pids->length; i++){
+			if(pids->pids[i].pid_parent == getpid()){
+				kill(pids->pids[i].pid,SIGKILL);
+			}
+		}
 		exit(0);
 	}
 } 
@@ -31,6 +35,10 @@ int main(int argc, char *argv[])
 {
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
+	pids = malloc(sizeof(pids_manager));
+	pid_manager *pids_list = malloc(sizeof(pid_manager) * (100));
+	pids->length = 0;
+	pids->pids = pids_list;
 
 	// Creazione header per F10
 	writeF10Header();
@@ -164,7 +172,6 @@ int main(int argc, char *argv[])
 	pidS1 = fork();
 	if (pidS1 == 0)
 	{
-		printf("SONO s1 %d\n",getpid());
 		signal(SIGINT, sigHandlerSender);
 		//inizializzo la struttura con la dimensione di un messaggio
 
@@ -176,19 +183,22 @@ int main(int argc, char *argv[])
 		sendMessage(messages, "S1");
 		s1EndReading = 1;
 
-		printf("MORTO S1\n");
 		exit(0);
 		//termino il processo
 	}
 	else if (pidS1 == -1)
 	{
 		ErrExit("Fork");
+	} else {
+		pids->pids[pids->length].pid_parent = getpid();		
+		pids->pids[pids->length].pid = pidS1;		
+		pids->length = pids->length +1;
 	}
+
 	//genero processo S2
 	pidS2 = fork();
 	if (pidS2 == 0)
 	{
-		printf("SONO s1 %d\n",getpid());
 		signal(SIGINT, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F2);
@@ -217,6 +227,10 @@ int main(int argc, char *argv[])
 		exit(0);
 	} else if (pidS2 == -1) {
 		ErrExit("Fork");
+	} else {
+		pids->pids[pids->length].pid_parent = getpid();		
+		pids->pids[pids->length].pid = pidS2;		
+		pids->length = pids->length +1;
 	}
 
 	//genero processo S3
@@ -245,11 +259,15 @@ int main(int argc, char *argv[])
 			semOp(semID, PIPE2WRITER, 1);
 		}
 
-		printf("MORTO S3\n");
 		exit(0);
 	}	else if (pidS3 == -1) {
 		ErrExit("Fork");
+	} else {
+		pids->pids[pids->length].pid_parent = getpid();		
+		pids->pids[pids->length].pid = pidS3;		
+		pids->length = pids->length +1;
 	}
+
 
 	//genero file8.csv
 	writeF8(pidS1, pidS2, pidS3);
@@ -428,7 +446,14 @@ void sendMessage(message_group *messageG, char processo[])
 				printInfoMessage(messageG->messages[i], timeArrival, F1);
 				messageHandler(messageG->messages[i],"S1");
 				exit(0);
+			}	else if (childS1 == -1) {
+				ErrExit("Fork");
+			} else {
+				pids->pids[pids->length].pid_parent = getpid();		
+				pids->pids[pids->length].pid = childS1;		
+				pids->length = pids->length +1;
 			}
+
 		} else if (strcmp(processo, "S2") == 0)
 		{
 			pid_t childS1 = fork();
@@ -439,6 +464,12 @@ void sendMessage(message_group *messageG, char processo[])
 				printInfoMessage(messageG->messages[i], timeArrival, F2);
 				messageHandler(messageG->messages[i],"S2");
 				exit(0);
+			} else if (childS1 == -1) {
+				ErrExit("Fork");
+			} else {
+				pids->pids[pids->length].pid_parent = getpid();		
+				pids->pids[pids->length].pid = childS1;		
+				pids->length = pids->length +1;
 			}
 		} else if (strcmp(processo, "S3") == 0){
 			pid_t childS1 = fork();
@@ -449,6 +480,12 @@ void sendMessage(message_group *messageG, char processo[])
 				printInfoMessage(messageG->messages[i], timeArrival, F3);
 				messageHandler(messageG->messages[i],"S3");
 				exit(0);
+			} else if (childS1 == -1) {
+				ErrExit("Fork");
+			} else {
+				pids->pids[pids->length].pid_parent = getpid();		
+				pids->pids[pids->length].pid = childS1;		
+				pids->length = pids->length +1;
 			}
 		}
 	}
