@@ -15,7 +15,7 @@ void sigHandlerReceiver(int sig){
 	if(sig == SIGINT){
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
-				kill(pids->pids[i].pid,SIGKILL);
+				kill(pids->pids[i].pid,SIGTERM);
 			}
 		}
 		exit(0);
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]){
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 	pids = malloc(sizeof(pids_manager));
-	pid_manager *pids_list = malloc(sizeof(pid_manager) * (100));
+	pid_manager *pids_list = malloc(sizeof(pid_manager) * (15));
 	pids->length = 0;
 	pids->pids = pids_list;
 
@@ -77,9 +77,8 @@ int main(int argc, char *argv[]){
 
 	//mi salvo tutta la stringa
 	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE3",resPipe3, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
-
+	
 	appendInF10(string, bufferLength);
-
 
 	// checking if PIPE successed
 	int resPipe4 = pipe(pipe4);

@@ -35,23 +35,20 @@ int main(int argc, char * argv[]) {
   if(argc < 1){
     exit(1);
   }
-
   //inizializzo la struttura leggendo i dati dal file
   action_group* action_group = carica_F7(F7);
   int i = 0;
 
-
   //due array che contengono il pid dei receiver e i pid dei sender
   int senderPids[3];
   int receiverPids[3];
-
   //le inizializzo sfruttando le funzioni
+  // TODO: da modificare carica pids perchè length è più grande del dovuto di 1
   carica_PIDS(F8,SenderPIDHeader,senderPids);
   carica_PIDS(F9,ReceiverPIDHeader,receiverPids);
-
   //scorro le azioni dell'hackler
-  for(i=0; i<action_group->length; i++){
-
+  for(i=0; i<action_group->length -1; i++){
+    
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
@@ -102,12 +99,9 @@ int main(int argc, char * argv[]) {
     }
   }
 
-
-
-
   // Eliminazione della struttura dei messaggi di hackler
 
-  for(i = 0; i < action_group->length; i++){
+  for(i = 0; i < action_group->length-1; i++){
     free(action_group->actions[i].target);
     free(action_group->actions[i].action);
   }
@@ -115,7 +109,7 @@ int main(int argc, char * argv[]) {
   free(action_group->actions);
   free(action_group);
 
-  return 0;
+  exit(0);
 }
 
 void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
@@ -238,7 +232,6 @@ action_group* carica_F7(char nomeFile[]) {
   }
 
   //allochiamo dinamicamente un array di azioni delle dimensioni opportune
-
   action* actions = malloc(sizeof(action) * (rowNumber));
 
   //numero di action che inserisco
@@ -303,7 +296,6 @@ action_group* carica_F7(char nomeFile[]) {
   action_group* actionG = malloc(sizeof(actionG));
   actionG->length = actionNumber;
   actionG->actions = actions;
-
   return actionG;
 
 }
