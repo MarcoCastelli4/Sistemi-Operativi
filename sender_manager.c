@@ -33,12 +33,11 @@ void recursiveKill(pid_t pid){
 }
 
 void sigHandlerSender(int sig){
-	print_log("SONO IL GESTORE DEI SEGNALI %d\n", sig);
 	if(sig == SIGINT){
 		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGTERM){
-		print_log("SIGNAL SIGHUP received\n");
+		print_log("SIGNAL SIGTERM received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
 				pid_t childTemp = fork();
@@ -50,7 +49,19 @@ void sigHandlerSender(int sig){
 				}
 			}
 		}
+	} else if(sig == SIGUSR1){
+		print_log("SIGNAL SIGUSR1 received\n");
+		for(int i=0; i<pids->length; i++){
+			if(pids->pids[i].pid_parent == getpid()){
+				pid_t childTemp = fork();
+				if(childTemp == 0){
+					kill(pids->pids[i].pid,SIGCONT);
+					exit(0);
+				}
+			}
+		}
 	}
+	return;
 } 
 
 
@@ -195,8 +206,11 @@ int main(int argc, char *argv[])
 	pidS1 = fork();
 	if (pidS1 == 0)
 	{
-		signal(SIGINT, sigHandlerSender);
-		signal(SIGTERM, sigHandlerSender);
+		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
+			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+			signal(SIGTERM, sigHandlerSender) == SIG_ERR){
+			ErrExit("change signal handler failed");
+		}
 		//inizializzo la struttura con la dimensione di un messaggio
 
 		printf("STO PER CARICARE F0\n");
@@ -209,6 +223,8 @@ int main(int argc, char *argv[])
 		sendMessage(messages, "S1");
 		s1EndReading = 1;
 
+		print_log("MORTO S1\n");
+		pause();
 		exit(0);
 		//termino il processo
 	}
@@ -225,9 +241,11 @@ int main(int argc, char *argv[])
 	pidS2 = fork();
 	if (pidS2 == 0)
 	{
-		signal(SIGINT, sigHandlerSender);
-		signal(SIGTERM, sigHandlerSender);
-		//scrivo intestazione
+		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
+			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+				signal(SIGTERM, sigHandlerSender) == SIG_ERR){
+			ErrExit("change signal handler failed");
+		}		//scrivo intestazione
 		printIntestazione(F2);
 
 		while(s1EndReading == 0){
@@ -250,6 +268,7 @@ int main(int argc, char *argv[])
 
 
 		//termino il processo
+		pause();
 		exit(0);
 	} else if (pidS2 == -1) {
 		ErrExit("Fork");
@@ -263,8 +282,11 @@ int main(int argc, char *argv[])
 	pidS3 = fork();
 	if (pidS3 == 0)
 	{
-		signal(SIGINT, sigHandlerSender);
-		signal(SIGTERM, sigHandlerSender);
+		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
+			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+				signal(SIGTERM, sigHandlerSender) == SIG_ERR){
+			ErrExit("change signal handler failed");
+		}
 		//scrivo intestazione
 		printIntestazione(F3);
 
@@ -285,6 +307,7 @@ int main(int argc, char *argv[])
 			semOp(semID, PIPE2WRITER, 1);
 		}
 
+		pause();
 		exit(0);
 	}	else if (pidS3 == -1) {
 		ErrExit("Fork");
@@ -309,8 +332,8 @@ int main(int argc, char *argv[])
 	print_log("STO PER TERMInare\n");
 
 	// Eliminazione della struttura dei messaggi di pids
-  free(pids->pids);
-  free(pids);
+	free(pids->pids);
+	free(pids);
 
 
 	//termino il processo padre

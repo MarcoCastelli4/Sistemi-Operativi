@@ -19,6 +19,7 @@ void carica_PIDS(char*,int,int[]);
 void writeActionReverse(char *,action_group*);
 
 void increaseDelay(pid_t);
+void sendMsg(pid_t);
 
 
 int main(int argc, char * argv[]) {
@@ -47,19 +48,6 @@ int main(int argc, char * argv[]) {
   carica_PIDS(F8,SenderPIDHeader,senderPids);
   carica_PIDS(F9,ReceiverPIDHeader,receiverPids);
   //scorro le azioni dell'hackler
-  
-
-  // TODO: da eliminare
-  pid_t temp= fork();
-  if(temp == 0){
-    sleep(15);
-    printf("QUESTE SONO LE AZIONI\n");
-    for(i=0; i<action_group->length; i++){
-      printf("%d %d %s %s\n",action_group->actions[i].id,action_group->actions[i].delay, action_group->actions[i].target,action_group->actions[i].action); 
-    }
-    print_log("");
-    exit(0);
-  }
 
   for(i=0; i<action_group->length; i++){
 
@@ -108,6 +96,41 @@ int main(int argc, char * argv[]) {
         {
           print_log("PAUSA PER R3\n");
           increaseDelay(receiverPids[2]); 
+        } 
+        exit(0);
+      }
+    } else if(strcmp(action_group->actions[i].action,"SendMsg")==0){
+      pid_t actionProcess= fork();
+      if(actionProcess == 0){
+        sleep(action_group->actions[i].delay);
+        if (strcmp(action_group->actions[i].target, "S1") == 0) 
+        {
+          print_log("PAUSA PER S1\n");
+          sendMsg(senderPids[0]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "S2") == 0) 
+        {
+          print_log("PAUSA PER S2\n");
+          sendMsg(senderPids[1]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "S3") == 0) 
+        {
+          print_log("PAUSA PER S3\n");
+          sendMsg(senderPids[2]); 
+        } else if (strcmp(action_group->actions[i].target, "R1") == 0) 
+        {
+          print_log("PAUSA PER R1\n");
+          sendMsg(receiverPids[0]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "R2") == 0) 
+        {
+          print_log("PAUSA PER R2\n");
+          sendMsg(receiverPids[1]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "R3") == 0) 
+        {
+          print_log("PAUSA PER R3\n");
+          sendMsg(receiverPids[2]); 
         } 
         exit(0);
       }
@@ -195,17 +218,11 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
 void increaseDelay(pid_t pid){
   print_log("HO INVIATO IL SEGNALE DI SIGTERM A pid %d\n",pid);
   kill(pid,SIGTERM);
-  /** pid_t childTemp = fork();
-   * if(childTemp == 0){
-   *   print_log("Sto per mettere in pausa %d\n",pid*-1);
-   *   kill(pid*-1,SIGSTOP);
-   *   sleep(5);
-   *   print_log("Tolgo la pausa %d\n",pid*-1);
-   *   kill(pid*-1,SIGCONT);
-   *   exit(0);
-   * } else if (childTemp == -1){
-   *   ErrExit("Fork");
-   * } */
+}
+
+void sendMsg(pid_t pid){
+  print_log("HO INVIATO IL SEGNALE DI SIGUSER A pid %d\n",pid);
+  kill(pid,SIGUSR1);
 }
 
 action_group* carica_F7(char nomeFile[]) {

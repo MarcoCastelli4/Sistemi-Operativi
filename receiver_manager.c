@@ -40,7 +40,19 @@ void sigHandlerReceiver(int sig){
 				}
 			}
 		}
+	} else if(sig == SIGUSR1){
+		print_log("SIGNAL SIGUSR1 received\n");
+		for(int i=0; i<pids->length; i++){
+			if(pids->pids[i].pid_parent == getpid()){
+				pid_t childTemp = fork();
+				if(childTemp == 0){
+					kill(pids->pids[i].pid,SIGCONT);
+					exit(0);
+				}
+			}
+		}
 	}
+	return;
 }
  
 
@@ -108,9 +120,11 @@ int main(int argc, char *argv[]){
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)	{
-
-		signal(SIGINT, sigHandlerReceiver);
-		signal(SIGTERM, sigHandlerReceiver);
+		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
+			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
+			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
+			ErrExit("change signal handler failed");
+		}
 		//stampo intestazione messaggio
 		printIntestazione(F6);
 
@@ -170,8 +184,11 @@ int main(int argc, char *argv[]){
 	pidR2 = fork();
 	if (pidR2 == 0){
 
-		signal(SIGINT, sigHandlerReceiver);
-		signal(SIGTERM, sigHandlerReceiver);
+		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
+			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
+			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
+			ErrExit("change signal handler failed");
+		}
 		//stampo intestazione messaggio
 		printIntestazione(F5);
 
@@ -233,9 +250,11 @@ int main(int argc, char *argv[]){
 	//genero processo S3
 	pidR3 = fork();
 	if (pidR3 == 0)	{
-
-		signal(SIGINT, sigHandlerReceiver);
-		signal(SIGTERM, sigHandlerReceiver);
+		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
+			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
+			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
+			ErrExit("change signal handler failed");
+		}
 		//stampo intestazione messaggio
 		printIntestazione(F4);
 
