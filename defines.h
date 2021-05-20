@@ -21,7 +21,7 @@
 #include "semaphore.h"
 #include <signal.h>
 #include <string.h>      
-#define print_log(f_, ...) printf((f_), ##__VA_ARGS__), printf("PID: %d, PARENT_PID: %d\n%s\n\n",getpid(), getppid(), timestamp())
+#define print_log(f_, ...) printf((f_), ##__VA_ARGS__), printf("PID: %d, PARENT_PID: %d\n%s\n%s:%d\n\n",getpid(), getppid(), timestamp(),__FILE__,__LINE__)
 
 //nomi simbolici dei file su cui agisco
 #define F8 "OutputFiles/F8.csv"
