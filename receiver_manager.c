@@ -383,7 +383,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					sleep(messaggio.message.DelS1);
 					//stampa le info sul tuo file
 					printInfoMessage(messaggio.message, timeArrival, F6);
-					deliverMessage(messaggio.message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
@@ -432,7 +431,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			}
 			semOp(semID, DATAREADY, 1);
 			continue;
-		}else if(strcmp("Q", messaggio.message.Type)== 0){
+		} else if(strcmp("Q", messaggio.message.Type)== 0){
 			//messaggio per un altro receiver
 			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
@@ -445,7 +444,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 
-		else if (strcmp(processo, request_shared_memory->message.idReceiver) == 0){
+		if (strcmp(processo, request_shared_memory->message.idReceiver) == 0){
 
 			if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0){
 				pid_t childS1 = fork();
@@ -454,7 +453,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					sleep(request_shared_memory->message.DelS1);
 					//stampa le info sul tuo file
 					printInfoMessage(request_shared_memory->message, timeArrival, F6);
-					deliverMessage(request_shared_memory->message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
@@ -503,7 +501,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		//-------------------------------------------------- BLOCCO FIFO --------------------------------------------------
 
-		else if (strcmp("R3", processo) == 0){
+		if (strcmp("R3",  processo) == 0){
 
 			int fd = open(FIFO, O_RDONLY);
 			message_sending message;
@@ -544,6 +542,8 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 void deliverMessage(message_sending message, char processo[]){
 	if (strcmp(processo, "R3") == 0){
+
+		print_log("MESSAGGIO PER R3, %s", toString(message));
 		//invia a R2 tramite PIPE
 		semOp(semID, PIPE3WRITER, -1);
 		ssize_t nBys = write(pipe3[1], &message, sizeof(message));
