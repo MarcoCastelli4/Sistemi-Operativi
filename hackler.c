@@ -47,9 +47,23 @@ int main(int argc, char * argv[]) {
   carica_PIDS(F8,SenderPIDHeader,senderPids);
   carica_PIDS(F9,ReceiverPIDHeader,receiverPids);
   //scorro le azioni dell'hackler
-  for(i=0; i<action_group->length -1; i++){
-    
+  
+
+  // TODO: da eliminare
+  pid_t temp= fork();
+  if(temp == 0){
+    sleep(15);
+    printf("QUESTE SONO LE AZIONI\n");
+    for(i=0; i<action_group->length; i++){
+      printf("%d %d %s %s\n",action_group->actions[i].id,action_group->actions[i].delay, action_group->actions[i].target,action_group->actions[i].action); 
+    }
+    print_log("");
+  }
+
+  for(i=0; i<action_group->length; i++){
+
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
+      print_log("\nSONO SHUTDOWn\n");
       pid_t actionProcess= fork();
       if(actionProcess == 0){
         sleep(action_group->actions[i].delay + 10);
@@ -181,16 +195,16 @@ void increaseDelay(pid_t pid){
   print_log("HO INVIATO IL SEGNALE DI SIGQUIT A pid %d\n",pid);
   kill(pid,SIGQUIT);
   /** pid_t childTemp = fork();
-    * if(childTemp == 0){
-    *   print_log("Sto per mettere in pausa %d\n",pid*-1);
-    *   kill(pid*-1,SIGSTOP);
-    *   sleep(5);
-    *   print_log("Tolgo la pausa %d\n",pid*-1);
-    *   kill(pid*-1,SIGCONT);
-    *   exit(0);
-    * } else if (childTemp == -1){
-    *   ErrExit("Fork");
-    * } */
+   * if(childTemp == 0){
+   *   print_log("Sto per mettere in pausa %d\n",pid*-1);
+   *   kill(pid*-1,SIGSTOP);
+   *   sleep(5);
+   *   print_log("Tolgo la pausa %d\n",pid*-1);
+   *   kill(pid*-1,SIGCONT);
+   *   exit(0);
+   * } else if (childTemp == -1){
+   *   ErrExit("Fork");
+   * } */
 }
 
 action_group* carica_F7(char nomeFile[]) {

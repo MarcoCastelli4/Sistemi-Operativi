@@ -11,6 +11,8 @@ int pipe4[2];
 pids_manager *pids = NULL;
 struct request_shared_memory *request_shared_memory;
 void deliverMessage(message_sending, char []);
+
+// TODO Uccisione ricorsiva
 void sigHandlerReceiver(int sig){
 	if(sig == SIGINT){
 		for(int i=0; i<pids->length; i++){
@@ -19,7 +21,7 @@ void sigHandlerReceiver(int sig){
 			}
 		}
 		exit(0);
-	} else if(sig == SIGHUP){
+	} else if(sig == SIGQUIT){
 		print_log("SIGNAL SIGHUP received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){

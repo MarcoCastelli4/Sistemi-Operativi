@@ -20,6 +20,7 @@ message_group *carica_F0(char[]);
 
 void sendMessage(message_group *messageG, char processo[]);
 void messageHandler(message_sending message, char processo[]);
+// TODO Uccisione ricorsiva
 void sigHandlerSender(int sig){
 	print_log("SONO IL GESTORE DEI SEGNALI %d\n", sig);
 	if(sig == SIGINT){
@@ -50,9 +51,7 @@ int main(int argc, char *argv[])
 {
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
-	print_log("Sono prima della pids sender\n");
 	pids = malloc(sizeof(pids_manager));
-	print_log("Sono prima della pids_manager sender\n");
 	pid_manager *pids_list = malloc(sizeof(pid_manager) * (15));
 	pids->length = 0;
 	pids->pids = pids_list;
@@ -69,7 +68,6 @@ int main(int argc, char *argv[])
 
 	//calcolo la dimensione della riga da scrivere
 	ssize_t bufferLength = (sizeof("S") +numcifre(semID) +  sizeof("SM") + 12 * sizeof(char));
-	print_log("Sono prima della string sender\n");
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
@@ -90,7 +88,6 @@ int main(int argc, char *argv[])
 
 	//calcolo la dimensione della riga da scrivere
 	bufferLength = (sizeof("Q") +numcifre(MSQID) +  sizeof("SM") + 12 * sizeof(char));
-	print_log("Sono prima della string 2° sender\n");
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
@@ -111,7 +108,6 @@ int main(int argc, char *argv[])
 
 	//calcolo la dimensione della riga da scrivere
 	bufferLength = (sizeof("SH") +numcifre(SHMID) +  sizeof("SM") + 12 * sizeof(char));
-	print_log("Sono prima della string 3° sender\n");
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
@@ -134,7 +130,6 @@ int main(int argc, char *argv[])
 
 	//calcolo la dimensione della riga da scrivere
 	bufferLength = (sizeof("FIFO") +numcifre(res) +  sizeof("SM") + 12 * sizeof(char));
-	print_log("Sono prima della string 4° sender\n");
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
@@ -153,7 +148,6 @@ int main(int argc, char *argv[])
 
 	//calcolo la dimensione della riga da scrivere
 	bufferLength = (sizeof("PIPE1") +numcifre(resPipe1) +  sizeof("SM") + 12 * sizeof(char));
-	print_log("Sono prima della string 5° sender\n");
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
@@ -173,7 +167,6 @@ int main(int argc, char *argv[])
 
 	//calcolo la dimensione della riga da scrivere
 	bufferLength = (sizeof("PIPE2") +numcifre(resPipe2) +  sizeof("SM") + 12 * sizeof(char));
-	print_log("Sono prima della string 6° sender\n");
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
@@ -237,7 +230,6 @@ int main(int argc, char *argv[])
 			if(nBys < 1){
 				ErrExit("Errore uscito\n");
 			}
-			print_log("Sono prima della message_group2 sender\n");
 			message_group *messageGroupS2 = malloc(sizeof(messageGroupS2));
 			messageGroupS2->length = 1;
 			messageGroupS2->messages = &message;
@@ -276,7 +268,6 @@ int main(int argc, char *argv[])
 			if(nBys < 1){
 				ErrExit("Errore uscito\n");
 			}
-		print_log("Sono prima della string message_group3 sender\n");
 			message_group *messageGroupS3 = malloc(sizeof(messageGroupS3));
 			messageGroupS3->length = 1;
 			messageGroupS3->messages = &message;
@@ -333,7 +324,6 @@ void writeF8(int pid1, int pid2, int pid3)
 
 	//inizializzo buffer delle dimenisoni corrette
 	ssize_t bufferLength = sizeof(char) * n;
-	print_log("Sono prima del buffer in writeF8 sender\n");
 	char *buffer = malloc(bufferLength);
 
 	//converto i dati in stringa
@@ -390,7 +380,6 @@ message_group *carica_F0(char nomeFile[])
 	}
 
 	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
-	print_log("Sono prima della messageList sender, %d; \n", rowNumber);
 	// TODO MALLOC DIFETTOSA
 	message_sending *messageList = malloc(sizeof(message_sending) * (rowNumber+1));
 	printf("HO CREATO MESSAGE SENDING");
@@ -455,7 +444,6 @@ message_group *carica_F0(char nomeFile[])
 	}
 
 	//inserisco nella mia struttura l'array di messaggi e quanti messaggi sono stati inseriti
-	print_log("Sono prima della messageG sender\n");
 	message_group *messageG = malloc(sizeof(messageG));
 	messageG->length = messageNumber;
 	messageG->messages = messageList;
@@ -604,7 +592,6 @@ void writeF10Header()
 
 	//inizializzo buffer delle dimenisoni corrette
 	ssize_t bufferLength = sizeof(char) * n;
-	print_log("Sono prima del buffer writef10 sender\n");
 	char *buffer = malloc(bufferLength);
 
 	//converto i dati in stringa
