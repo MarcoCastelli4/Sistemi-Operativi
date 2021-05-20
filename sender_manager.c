@@ -28,8 +28,8 @@ void recursiveKill(pid_t pid){
 			recursiveKill(pids->pids[i].pid);
 		}
 	}
+	print_log("MORTO %d\n",pid);
 	kill(pid,SIGKILL);
-	exit(0);
 }
 
 void sigHandlerSender(int sig){
@@ -58,6 +58,14 @@ void sigHandlerSender(int sig){
 					kill(pids->pids[i].pid,SIGCONT);
 					exit(0);
 				}
+			}
+		}
+	} else if(sig == SIGUSR2){
+		print_log("SIGNAL SIGUSR2 received\n");
+		for(int i=0; i<pids->length; i++){
+			if(pids->pids[i].pid_parent == getpid()){
+				print_log("STO uccidendo %d\n", pids->pids[i].pid);
+				recursiveKill(pids->pids[i].pid);
 			}
 		}
 	}
@@ -207,23 +215,21 @@ int main(int argc, char *argv[])
 	if (pidS1 == 0)
 	{
 		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
-			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
-			signal(SIGTERM, sigHandlerSender) == SIG_ERR){
+				signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+				signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
+				signal(SIGTERM, sigHandlerSender) == SIG_ERR){
 			ErrExit("change signal handler failed");
 		}
 		//inizializzo la struttura con la dimensione di un messaggio
 
-		printf("STO PER CARICARE F0\n");
 		messages = carica_F0(F0);
 
 		//scrivo intestazione
-		printf("STO PER CREARE F1\n");
 		printIntestazione(F1);
 		//mando tutti i messaggi
 		sendMessage(messages, "S1");
 		s1EndReading = 1;
 
-		print_log("MORTO S1\n");
 		pause();
 		exit(0);
 		//termino il processo
@@ -242,7 +248,8 @@ int main(int argc, char *argv[])
 	if (pidS2 == 0)
 	{
 		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
-			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+				signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+				signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
 				signal(SIGTERM, sigHandlerSender) == SIG_ERR){
 			ErrExit("change signal handler failed");
 		}		//scrivo intestazione
@@ -283,7 +290,8 @@ int main(int argc, char *argv[])
 	if (pidS3 == 0)
 	{
 		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
-			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+				signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+				signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
 				signal(SIGTERM, sigHandlerSender) == SIG_ERR){
 			ErrExit("change signal handler failed");
 		}
@@ -412,7 +420,6 @@ message_group *carica_F0(char nomeFile[])
 	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
 	// TODO MALLOC DIFETTOSA
 	message_sending *messageList = malloc(sizeof(message_sending) * (rowNumber+1));
-	printf("HO CREATO MESSAGE SENDING");
 	//numero di messaggi che inserisco
 	int messageNumber = 0;
 
@@ -556,57 +563,108 @@ void messageHandler(message_sending message, char processo[]){
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
 
 
-	//se sono nel processo sender corretto
-	if (strcmp(processo, message.idSender) == 0)
-	{
-		//viene inviato tramite message queue
-		if (strcmp(message.Type, "Q") == 0)
-		{
-			// sending the message in the queue
-			semOp(semID, REQUEST, 1);
-			if (msgsnd(MSQID, &m, mSize, 0) == -1)
-				ErrExit("msgsnd failed");
-			semOp(semID, DATAREADY, -1);
-		}
-		//viene inviato tramite shared memory
-		else if (strcmp(message.Type, "SH") == 0)
-		{
-			semOp(semID, REQUEST, 1);
-			memcpy(request_shared_memory, &message, sizeof(message));
-			semOp(semID, DATAREADY, -1);
-		}
-		else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
-		{
-			//invia a R3 tramite FIFO
-			semOp(semID, REQUEST, 1);
-			int fd = open(FIFO, O_WRONLY);
-			write(fd, &message, sizeof(message));
-			close(fd);
-			semOp(semID, DATAREADY, -1);
-		}
-	}
-	//non sono nel processo sender corretto, seguo la catena di invio
-	else
-	{
-		//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
-		if (strcmp(processo, "S1") == 0){
-			//invia a S2 tramite PIPE
-			semOp(semID, PIPE1WRITER, -1);
-			ssize_t nBys = write(pipe1[1], &message, sizeof(message));
-			if(nBys != sizeof(message))
-				ErrExit("Messaggio inviato male");
-			semOp(semID, PIPE1READER, 1);
-		} else if (strcmp(processo, "S2") == 0)
-		{
-			//invia a S3 tramite PIPE
-			semOp(semID, PIPE2WRITER, -1);
-			ssize_t nBys = write(pipe2[1], &message, sizeof(message));
-			if(nBys != sizeof(message))
-				ErrExit("Messaggio inviato male");
-			semOp(semID, PIPE2READER, 1);
+/**   //se sono nel processo sender corretto
+	*   if (strcmp(processo, message.idSender) == 0)
+	*   {
+	*     //viene inviato tramite message queue
+	*     if (strcmp(message.Type, "Q") == 0)
+	*     {
+	*       // sending the message in the queue
+	*       semOp(semID, REQUEST, 1);
+	*       if (msgsnd(MSQID, &m, mSize, 0) == -1)
+	*         ErrExit("msgsnd failed");
+	*       semOp(semID, DATAREADY, -1);
+	*     }
+	*     //viene inviato tramite shared memory
+	*     else if (strcmp(message.Type, "SH") == 0)
+	*     {
+	*       semOp(semID, REQUEST, 1);
+	*       memcpy(request_shared_memory, &message, sizeof(message));
+	*       semOp(semID, DATAREADY, -1);
+	*     }
+	*     else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
+	*     {
+	*       //invia a R3 tramite FIFO
+	*       semOp(semID, REQUEST, 1);
+	*       int fd = open(FIFO, O_WRONLY);
+	*       write(fd, &message, sizeof(message));
+	*       close(fd);
+	*       semOp(semID, DATAREADY, -1);
+	*     }
+	*   }
+	*   //non sono nel processo sender corretto, seguo la catena di invio
+	*   else
+	*   {
+	*     //viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
+	*     if (strcmp(processo, "S1") == 0){
+	*       print_log("Messaggio",toString(message));
+	*       //invia a S2 tramite PIPE
+	*       semOp(semID, PIPE1WRITER, -1);
+	*       ssize_t nBys = write(pipe1[1], &message, sizeof(message));
+	*       if(nBys != sizeof(message))
+	*         ErrExit("Messaggio inviato male");
+	*       semOp(semID, PIPE1READER, 1);
+	*     } else if (strcmp(processo, "S2") == 0)
+	*     {
+	*       //invia a S3 tramite PIPE
+	*       semOp(semID, PIPE2WRITER, -1);
+	*       ssize_t nBys = write(pipe2[1], &message, sizeof(message));
+	*       if(nBys != sizeof(message))
+	*         ErrExit("Messaggio inviato male");
+	*       semOp(semID, PIPE2READER, 1);
+  *
+	*     }
+	*   } */
 
-		} 
+	//se sono nel processo sender corretto
+//viene inviato tramite message queue
+if (strcmp(message.Type, "Q") == 0 && strcmp(processo, message.idSender) == 0)
+{
+	// sending the message in the queue
+	semOp(semID, REQUEST, 1);
+	if (msgsnd(MSQID, &m, mSize, 0) == -1)
+		ErrExit("msgsnd failed");
+	semOp(semID, DATAREADY, -1);
+}
+//viene inviato tramite shared memory
+else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0)
+{
+	semOp(semID, REQUEST, 1);
+	memcpy(request_shared_memory, &message, sizeof(message));
+	semOp(semID, DATAREADY, -1);
+}
+else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
+{
+	//invia a R3 tramite FIFO
+	semOp(semID, REQUEST, 1);
+	int fd = open(FIFO, O_WRONLY);
+	write(fd, &message, sizeof(message));
+	close(fd);
+	semOp(semID, DATAREADY, -1);
+}
+//non sono nel processo sender corretto, seguo la catena di invio
+else if(strcmp(processo, message.idSender) != 0 || ((strcmp(processo, "S3") != 0) && (strcmp(message.Type, "FIFO") == 0)))
+{
+	//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
+	if (strcmp(processo, "S1") == 0){
+		print_log("Messaggio",toString(message));
+		//invia a S2 tramite PIPE
+		semOp(semID, PIPE1WRITER, -1);
+		ssize_t nBys = write(pipe1[1], &message, sizeof(message));
+		if(nBys != sizeof(message))
+			ErrExit("Messaggio inviato male");
+		semOp(semID, PIPE1READER, 1);
+	} else if (strcmp(processo, "S2") == 0)
+	{
+		//invia a S3 tramite PIPE
+		semOp(semID, PIPE2WRITER, -1);
+		ssize_t nBys = write(pipe2[1], &message, sizeof(message));
+		if(nBys != sizeof(message))
+			ErrExit("Messaggio inviato male");
+		semOp(semID, PIPE2READER, 1);
 	}
+}
+
 }
 
 //Funzione che mi genera il file F10 e scrive ogni riga

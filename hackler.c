@@ -20,6 +20,7 @@ void writeActionReverse(char *,action_group*);
 
 void increaseDelay(pid_t);
 void sendMsg(pid_t);
+void removeMsg(pid_t);
 
 
 int main(int argc, char * argv[]) {
@@ -52,10 +53,10 @@ int main(int argc, char * argv[]) {
   for(i=0; i<action_group->length; i++){
 
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
-      print_log("\nSONO SHUTDOWn\n");
       pid_t actionProcess= fork();
       if(actionProcess == 0){
-        sleep(action_group->actions[i].delay + 10);
+        sleep(action_group->actions[i].delay + 25);
+        print_log("Partito shutdown\n");
         kill(senderPids[0],SIGINT);
         kill(senderPids[1],SIGINT);
         kill(senderPids[2],SIGINT);
@@ -131,6 +132,41 @@ int main(int argc, char * argv[]) {
         {
           print_log("PAUSA PER R3\n");
           sendMsg(receiverPids[2]); 
+        } 
+        exit(0);
+      }
+    } else if(strcmp(action_group->actions[i].action,"RemoveMsg")==0){
+      pid_t actionProcess= fork();
+      if(actionProcess == 0){
+        sleep(action_group->actions[i].delay);
+        if (strcmp(action_group->actions[i].target, "S1") == 0) 
+        {
+          print_log("PAUSA PER S1\n");
+          removeMsg(senderPids[0]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "S2") == 0) 
+        {
+          print_log("PAUSA PER S2\n");
+          removeMsg(senderPids[1]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "S3") == 0) 
+        {
+          print_log("PAUSA PER S3\n");
+          removeMsg(senderPids[2]); 
+        } else if (strcmp(action_group->actions[i].target, "R1") == 0) 
+        {
+          print_log("PAUSA PER R1\n");
+          removeMsg(receiverPids[0]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "R2") == 0) 
+        {
+          print_log("PAUSA PER R2\n");
+          removeMsg(receiverPids[1]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "R3") == 0) 
+        {
+          print_log("PAUSA PER R3\n");
+          removeMsg(receiverPids[2]); 
         } 
         exit(0);
       }
@@ -221,8 +257,13 @@ void increaseDelay(pid_t pid){
 }
 
 void sendMsg(pid_t pid){
-  print_log("HO INVIATO IL SEGNALE DI SIGUSER A pid %d\n",pid);
+  print_log("HO INVIATO IL SEGNALE DI SIGUSER 1 A pid %d\n",pid);
   kill(pid,SIGUSR1);
+}
+
+void removeMsg(pid_t pid){
+  print_log("HO INVIATO IL SEGNALE DI SIGUSER 2 A pid %d\n",pid);
+  kill(pid,SIGUSR2);
 }
 
 action_group* carica_F7(char nomeFile[]) {

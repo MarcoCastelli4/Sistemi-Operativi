@@ -51,6 +51,13 @@ void sigHandlerReceiver(int sig){
 				}
 			}
 		}
+	} else if(sig == SIGUSR2){
+		print_log("SIGNAL SIGUSR2 received\n");
+		for(int i=0; i<pids->length; i++){
+			if(pids->pids[i].pid_parent == getpid()){
+				recursiveKill(pids->pids[i].pid);
+			}
+		}
 	}
 	return;
 }
@@ -122,6 +129,7 @@ int main(int argc, char *argv[]){
 	if (pidR1 == 0)	{
 		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
 			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
+			signal(SIGUSR2, sigHandlerReceiver) == SIG_ERR ||
 			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
 			ErrExit("change signal handler failed");
 		}
@@ -158,6 +166,7 @@ int main(int argc, char *argv[]){
 
 				semOp(semID, PIPE4WRITER, 1);
 			}
+			pause();
 			exit(0);
 		} else if (pidPIPER1 == -1){
 			ErrExit("Fork");
@@ -170,6 +179,7 @@ int main(int argc, char *argv[]){
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R1");
 
+		pause();
 		exit(0);
 	} else if (pidR1 == -1){
 		ErrExit("Fork");
@@ -186,6 +196,7 @@ int main(int argc, char *argv[]){
 
 		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
 			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
+			signal(SIGUSR2, sigHandlerReceiver) == SIG_ERR ||
 			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
 			ErrExit("change signal handler failed");
 		}
@@ -223,6 +234,8 @@ int main(int argc, char *argv[]){
 
 				semOp(semID, PIPE3WRITER, 1);
 			}
+		
+			pause();
 			exit(0);
 		} else if (pidPIPER2 == -1){
 			ErrExit("Fork");
@@ -252,6 +265,7 @@ int main(int argc, char *argv[]){
 	if (pidR3 == 0)	{
 		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
 			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
+			signal(SIGUSR2, sigHandlerReceiver) == SIG_ERR ||
 			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
 			ErrExit("change signal handler failed");
 		}
