@@ -21,10 +21,25 @@ message_group *carica_F0(char[]);
 void sendMessage(message_group *messageG, char processo[]);
 void messageHandler(message_sending message, char processo[]);
 void sigHandlerSender(int sig){
+	printf("SONO IL GESTORE DEI SEGNALI %d\n", sig);
 	if(sig == SIGINT){
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
 				kill(pids->pids[i].pid,SIGKILL);
+			}
+		}
+		exit(0);
+	} else if(sig == SIGHUP){
+		printf("SIGNAL SIGHUP received\n");
+		for(int i=0; i<pids->length; i++){
+			if(pids->pids[i].pid_parent == getpid()){
+				pid_t childTemp = fork();
+				if(childTemp == 0){
+					kill(pids->pids[i].pid,SIGSTOP);
+					sleep(5);
+					kill(pids->pids[i].pid,SIGCONT);
+					exit(0);
+				}
 			}
 		}
 		exit(0);
@@ -200,6 +215,7 @@ int main(int argc, char *argv[])
 	if (pidS2 == 0)
 	{
 		signal(SIGINT, sigHandlerSender);
+		signal(SIGHUP, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F2);
 
@@ -238,6 +254,7 @@ int main(int argc, char *argv[])
 	if (pidS3 == 0)
 	{
 		signal(SIGINT, sigHandlerSender);
+		signal(SIGHUP, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F3);
 

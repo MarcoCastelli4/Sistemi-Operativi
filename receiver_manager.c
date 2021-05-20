@@ -19,6 +19,21 @@ void sigHandlerReceiver(int sig){
 			}
 		}
 		exit(0);
+	} else if(sig == SIGHUP){
+		printf("SIGNAL SIGHUP received\n");
+		for(int i=0; i<pids->length; i++){
+			if(pids->pids[i].pid_parent == getpid()){
+				pid_t childTemp = fork();
+				if(childTemp == 0){
+					kill(pids->pids[i].pid,SIGSTOP);
+					sleep(5);
+					kill(pids->pids[i].pid,SIGCONT);
+					exit(0);
+				} else if (childTemp == -1){
+					ErrExit("Fork");
+				}
+			}
+		}
 	}
 } 
 

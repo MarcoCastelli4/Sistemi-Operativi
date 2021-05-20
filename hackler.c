@@ -18,6 +18,7 @@ void carica_PIDS(char*,int,int[]);
 
 void writeActionReverse(char *,action_group*);
 
+void increaseDelay(pid_t);
 
 
 int main(int argc, char * argv[]) {
@@ -67,12 +68,40 @@ int main(int argc, char * argv[]) {
       pid_t actionProcess= fork();
       if(actionProcess == 0){
         sleep(action_group->actions[i].delay);
-        sleep(5);
+        if (strcmp(action_group->actions[i].target, "S1") == 0) 
+        {
+          printf("PAUSA PER S1\n");
+          increaseDelay(senderPids[0]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "S2") == 0) 
+        {
+          printf("PAUSA PER S2\n");
+          increaseDelay(senderPids[1]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "S3") == 0) 
+        {
+          printf("PAUSA PER S3\n");
+          increaseDelay(senderPids[2]); 
+        } else if (strcmp(action_group->actions[i].target, "R1") == 0) 
+        {
+          printf("PAUSA PER R1\n");
+          increaseDelay(receiverPids[0]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "R2") == 0) 
+        {
+          printf("PAUSA PER R2\n");
+          increaseDelay(receiverPids[1]); 
+        } 
+        else if (strcmp(action_group->actions[i].target, "R3") == 0) 
+        {
+          printf("PAUSA PER R3\n");
+          increaseDelay(receiverPids[2]); 
+        } 
         exit(0);
       }
     }
-
   }
+
 
 
 
@@ -151,6 +180,18 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
     //vado alla riga successiva
     index++;
     row = strtok_r(NULL, "\n", &end_str);
+  }
+}
+
+void increaseDelay(pid_t pid){
+  pid_t childTemp = fork();
+  if(childTemp == 0){
+    kill(pid*-1,SIGSTOP);
+    sleep(5);
+    kill(pid*-1,SIGCONT);
+    exit(0);
+  } else if (childTemp == -1){
+    ErrExit("Fork");
   }
 }
 
