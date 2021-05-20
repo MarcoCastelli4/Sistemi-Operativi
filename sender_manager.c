@@ -20,15 +20,21 @@ message_group *carica_F0(char[]);
 
 void sendMessage(message_group *messageG, char processo[]);
 void messageHandler(message_sending message, char processo[]);
-// TODO Uccisione ricorsiva
+
+// Uccisione ricorsiva
+void recursiveKill(pid_t pid){
+	for(int i=0; i<pids->length; i++){
+		if(pids->pids[i].pid_parent == pid){
+			recursiveKill(pids->pids[i].pid);
+		}
+	}
+	kill(pid,SIGTERM);
+}
+
 void sigHandlerSender(int sig){
 	print_log("SONO IL GESTORE DEI SEGNALI %d\n", sig);
 	if(sig == SIGINT){
-		for(int i=0; i<pids->length; i++){
-			if(pids->pids[i].pid_parent == getpid()){
-				kill(pids->pids[i].pid,SIGTERM);
-			}
-		}
+		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGQUIT){
 		print_log("SIGNAL SIGHUP received\n");
@@ -46,6 +52,7 @@ void sigHandlerSender(int sig){
 		exit(0);
 	}
 } 
+
 
 int main(int argc, char *argv[])
 {

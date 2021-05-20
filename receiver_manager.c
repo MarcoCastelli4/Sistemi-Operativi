@@ -11,15 +11,18 @@ int pipe4[2];
 pids_manager *pids = NULL;
 struct request_shared_memory *request_shared_memory;
 void deliverMessage(message_sending, char []);
-
-// TODO Uccisione ricorsiva
+// Uccisione ricorsiva
+void recursiveKill(pid_t pid){
+	for(int i=0; i<pids->length; i++){
+		if(pids->pids[i].pid_parent == pid){
+			recursiveKill(pids->pids[i].pid);
+		}
+	}
+	kill(pid,SIGTERM);
+}
 void sigHandlerReceiver(int sig){
 	if(sig == SIGINT){
-		for(int i=0; i<pids->length; i++){
-			if(pids->pids[i].pid_parent == getpid()){
-				kill(pids->pids[i].pid,SIGTERM);
-			}
-		}
+		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGQUIT){
 		print_log("SIGNAL SIGHUP received\n");
@@ -37,7 +40,8 @@ void sigHandlerReceiver(int sig){
 			}
 		}
 	}
-} 
+}
+ 
 
 int main(int argc, char *argv[]){
 	pid_t pidR1, pidR2, pidR3;
