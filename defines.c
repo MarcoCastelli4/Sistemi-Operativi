@@ -186,4 +186,25 @@ void appendInF10(char * buffer, ssize_t bufferLength)
 	close(fp);
 	free(buffer);
 }
-	
+
+char * timestamp(){
+	time_t now = time(NULL); 
+	char * time = asctime(gmtime(&now));
+	time[strlen(time)-1] = '\0';    // Remove \n
+	int spaceCounter = 0;
+	for(int i = 0; i<strlen(time); i++){
+		if(time[i] == ' '){
+			spaceCounter ++;
+		}	
+		if(spaceCounter == 3){
+			for(int j = 0; j<8; j++){
+				i++;
+				time[j]=time[i];
+			}
+			for(int x = 8; x<strlen(time); x++)
+				time[x] = '\0';
+			break;
+		}
+	}
+	return time;
+}

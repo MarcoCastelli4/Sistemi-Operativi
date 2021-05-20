@@ -20,6 +20,8 @@
 #include "err_exit.h"
 #include "semaphore.h"
 #include <signal.h>
+#include <string.h>      
+#define print_log(f_, ...) printf((f_), ##__VA_ARGS__), printf("PID: %d, PARENT_PID: %d\n%s\n\n",getpid(), getppid(), timestamp())
 
 //nomi simbolici dei file su cui agisco
 #define F8 "OutputFiles/F8.csv"
@@ -125,6 +127,8 @@ struct message_queue
      long mtype;
      message_sending message;
 };
+
+char * timestamp();
 
 int stringLenght(message_sending message);
 char *toString(message_sending message);

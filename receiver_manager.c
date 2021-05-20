@@ -20,7 +20,7 @@ void sigHandlerReceiver(int sig){
 		}
 		exit(0);
 	} else if(sig == SIGHUP){
-		printf("SIGNAL SIGHUP received\n");
+		print_log("SIGNAL SIGHUP received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
 				pid_t childTemp = fork();
@@ -275,7 +275,11 @@ int main(int argc, char *argv[]){
 		ErrExit("semrmv failed");
 	}
 
-	printf("STO PER CHIUDERE\n");
+	// Eliminazione della struttura dei messaggi di pids
+  free(pids->pids);
+  free(pids);
+
+	print_log("STO PER CHIUDERE\n");
 
 	//termino il processo padre
 	exit(0);

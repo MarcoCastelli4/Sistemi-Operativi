@@ -55,7 +55,7 @@ int main(int argc, char * argv[]) {
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
-        sleep(action_group->actions[i].delay);
+        sleep(action_group->actions[i].delay + 10);
         kill(senderPids[0],SIGINT);
         kill(senderPids[1],SIGINT);
         kill(senderPids[2],SIGINT);
@@ -70,31 +70,31 @@ int main(int argc, char * argv[]) {
         sleep(action_group->actions[i].delay);
         if (strcmp(action_group->actions[i].target, "S1") == 0) 
         {
-          printf("PAUSA PER S1\n");
+          print_log("PAUSA PER S1\n");
           increaseDelay(senderPids[0]); 
         } 
         else if (strcmp(action_group->actions[i].target, "S2") == 0) 
         {
-          printf("PAUSA PER S2\n");
+          print_log("PAUSA PER S2\n");
           increaseDelay(senderPids[1]); 
         } 
         else if (strcmp(action_group->actions[i].target, "S3") == 0) 
         {
-          printf("PAUSA PER S3\n");
+          print_log("PAUSA PER S3\n");
           increaseDelay(senderPids[2]); 
         } else if (strcmp(action_group->actions[i].target, "R1") == 0) 
         {
-          printf("PAUSA PER R1\n");
+          print_log("PAUSA PER R1\n");
           increaseDelay(receiverPids[0]); 
         } 
         else if (strcmp(action_group->actions[i].target, "R2") == 0) 
         {
-          printf("PAUSA PER R2\n");
+          print_log("PAUSA PER R2\n");
           increaseDelay(receiverPids[1]); 
         } 
         else if (strcmp(action_group->actions[i].target, "R3") == 0) 
         {
-          printf("PAUSA PER R3\n");
+          print_log("PAUSA PER R3\n");
           increaseDelay(receiverPids[2]); 
         } 
         exit(0);
@@ -184,15 +184,19 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
 }
 
 void increaseDelay(pid_t pid){
-  pid_t childTemp = fork();
-  if(childTemp == 0){
-    kill(pid*-1,SIGSTOP);
-    sleep(5);
-    kill(pid*-1,SIGCONT);
-    exit(0);
-  } else if (childTemp == -1){
-    ErrExit("Fork");
-  }
+  print_log("HO INVIATO IL SEGNALE DI SIGQUIT A pid %d\n",pid);
+  kill(pid,SIGQUIT);
+  /** pid_t childTemp = fork();
+    * if(childTemp == 0){
+    *   print_log("Sto per mettere in pausa %d\n",pid*-1);
+    *   kill(pid*-1,SIGSTOP);
+    *   sleep(5);
+    *   print_log("Tolgo la pausa %d\n",pid*-1);
+    *   kill(pid*-1,SIGCONT);
+    *   exit(0);
+    * } else if (childTemp == -1){
+    *   ErrExit("Fork");
+    * } */
 }
 
 action_group* carica_F7(char nomeFile[]) {

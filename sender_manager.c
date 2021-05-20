@@ -21,7 +21,7 @@ message_group *carica_F0(char[]);
 void sendMessage(message_group *messageG, char processo[]);
 void messageHandler(message_sending message, char processo[]);
 void sigHandlerSender(int sig){
-	printf("SONO IL GESTORE DEI SEGNALI %d\n", sig);
+	print_log("SONO IL GESTORE DEI SEGNALI %d\n", sig);
 	if(sig == SIGINT){
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
@@ -29,8 +29,8 @@ void sigHandlerSender(int sig){
 			}
 		}
 		exit(0);
-	} else if(sig == SIGHUP){
-		printf("SIGNAL SIGHUP received\n");
+	} else if(sig == SIGQUIT){
+		print_log("SIGNAL SIGHUP received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
 				pid_t childTemp = fork();
@@ -188,6 +188,7 @@ int main(int argc, char *argv[])
 	if (pidS1 == 0)
 	{
 		signal(SIGINT, sigHandlerSender);
+		signal(SIGQUIT, sigHandlerSender);
 		//inizializzo la struttura con la dimensione di un messaggio
 
 		messages = carica_F0(F0);
@@ -215,7 +216,7 @@ int main(int argc, char *argv[])
 	if (pidS2 == 0)
 	{
 		signal(SIGINT, sigHandlerSender);
-		signal(SIGHUP, sigHandlerSender);
+		signal(SIGQUIT, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F2);
 
@@ -254,7 +255,7 @@ int main(int argc, char *argv[])
 	if (pidS3 == 0)
 	{
 		signal(SIGINT, sigHandlerSender);
-		signal(SIGHUP, sigHandlerSender);
+		signal(SIGQUIT, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F3);
 
@@ -297,7 +298,12 @@ int main(int argc, char *argv[])
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
 
-	printf("STO PER TERMInare\n");
+	print_log("STO PER TERMInare\n");
+
+	// Eliminazione della struttura dei messaggi di pids
+  free(pids->pids);
+  free(pids);
+
 
 	//termino il processo padre
 	exit(0);
@@ -455,10 +461,12 @@ void sendMessage(message_group *messageG, char processo[])
 		//ritardo il messaggio
 		if (strcmp(processo, "S1") == 0){
 
+			print_log("MESSAGGIO ARRIVATO IN S1\n");
 			pid_t childS1 = fork();
 			if(childS1 == 0){
 				sleep(messageG->messages[i].DelS1); //dormi per quanto ti manca
 
+				print_log("MESSAGGIO PAUSATO IN S1\n");
 				//stampa su file F1
 				printInfoMessage(messageG->messages[i], timeArrival, F1);
 				messageHandler(messageG->messages[i],"S1");
