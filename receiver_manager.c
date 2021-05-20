@@ -18,13 +18,14 @@ void recursiveKill(pid_t pid){
 			recursiveKill(pids->pids[i].pid);
 		}
 	}
-	kill(pid,SIGTERM);
+	kill(pid,SIGKILL);
+	exit(0);
 }
 void sigHandlerReceiver(int sig){
 	if(sig == SIGINT){
 		recursiveKill(getpid());
 		exit(0);
-	} else if(sig == SIGQUIT){
+	} else if(sig == SIGTERM){
 		print_log("SIGNAL SIGHUP received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
@@ -109,6 +110,7 @@ int main(int argc, char *argv[]){
 	if (pidR1 == 0)	{
 
 		signal(SIGINT, sigHandlerReceiver);
+		signal(SIGTERM, sigHandlerReceiver);
 		//stampo intestazione messaggio
 		printIntestazione(F6);
 
@@ -169,6 +171,7 @@ int main(int argc, char *argv[]){
 	if (pidR2 == 0){
 
 		signal(SIGINT, sigHandlerReceiver);
+		signal(SIGTERM, sigHandlerReceiver);
 		//stampo intestazione messaggio
 		printIntestazione(F5);
 
@@ -232,6 +235,7 @@ int main(int argc, char *argv[]){
 	if (pidR3 == 0)	{
 
 		signal(SIGINT, sigHandlerReceiver);
+		signal(SIGTERM, sigHandlerReceiver);
 		//stampo intestazione messaggio
 		printIntestazione(F4);
 

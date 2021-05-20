@@ -58,6 +58,7 @@ int main(int argc, char * argv[]) {
       printf("%d %d %s %s\n",action_group->actions[i].id,action_group->actions[i].delay, action_group->actions[i].target,action_group->actions[i].action); 
     }
     print_log("");
+    exit(0);
   }
 
   for(i=0; i<action_group->length; i++){
@@ -192,8 +193,8 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
 }
 
 void increaseDelay(pid_t pid){
-  print_log("HO INVIATO IL SEGNALE DI SIGQUIT A pid %d\n",pid);
-  kill(pid,SIGQUIT);
+  print_log("HO INVIATO IL SEGNALE DI SIGTERM A pid %d\n",pid);
+  kill(pid,SIGTERM);
   /** pid_t childTemp = fork();
    * if(childTemp == 0){
    *   print_log("Sto per mettere in pausa %d\n",pid*-1);

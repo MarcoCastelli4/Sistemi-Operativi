@@ -28,7 +28,8 @@ void recursiveKill(pid_t pid){
 			recursiveKill(pids->pids[i].pid);
 		}
 	}
-	kill(pid,SIGTERM);
+	kill(pid,SIGKILL);
+	exit(0);
 }
 
 void sigHandlerSender(int sig){
@@ -36,7 +37,7 @@ void sigHandlerSender(int sig){
 	if(sig == SIGINT){
 		recursiveKill(getpid());
 		exit(0);
-	} else if(sig == SIGQUIT){
+	} else if(sig == SIGTERM){
 		print_log("SIGNAL SIGHUP received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
@@ -49,7 +50,6 @@ void sigHandlerSender(int sig){
 				}
 			}
 		}
-		exit(0);
 	}
 } 
 
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 	if (pidS1 == 0)
 	{
 		signal(SIGINT, sigHandlerSender);
-		signal(SIGQUIT, sigHandlerSender);
+		signal(SIGTERM, sigHandlerSender);
 		//inizializzo la struttura con la dimensione di un messaggio
 
 		printf("STO PER CARICARE F0\n");
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
 	if (pidS2 == 0)
 	{
 		signal(SIGINT, sigHandlerSender);
-		signal(SIGQUIT, sigHandlerSender);
+		signal(SIGTERM, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F2);
 
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
 	if (pidS3 == 0)
 	{
 		signal(SIGINT, sigHandlerSender);
-		signal(SIGQUIT, sigHandlerSender);
+		signal(SIGTERM, sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F3);
 
