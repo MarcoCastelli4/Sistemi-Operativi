@@ -371,7 +371,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		//sei nel processo receiver corretto?
 		if(strcmp(processo, messaggio.message.idReceiver) == 0){
-			//print_log("è arrivato un messaggio Q per me (%s);\n", processo);
+			printf("Messagio %s; è arrivato un messaggio Q per me (%s);\n", toString(messaggio.message), processo);
 			if (strcmp(messaggio.message.idReceiver, "R1") == 0)
 			{
 				pid_t childS1 = fork();
@@ -429,7 +429,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			continue;
 		} 
 		else if(strcmp("Q", messaggio.message.Type)== 0){
-			//print_log("è arrivato un messaggio Q NON per me (%s);\n", processo);
+			printf("Messagio %s; è arrivato un messaggio Q NON per me (%s);\n",toString(messaggio.message), processo);
 			//messaggio per un altro receiver
 			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
@@ -443,7 +443,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 
 		else if (strcmp(processo, request_shared_memory->message.idReceiver) == 0){
-			//print_log("è arrivato un messaggio nella sharedMemory: %s e è per me (%s);", toString(request_shared_memory->message), processo);
+			printf("Messagio %s; è arrivato un messaggio nella SH è per me (%s);\n", toString(request_shared_memory->message), processo);
 			if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0){
 				pid_t childS1 = fork();
 				if(childS1 == 0){
@@ -504,8 +504,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			int fd = open(FIFO, O_RDONLY);
 			message_sending message;
 			ssize_t nBys = read(fd,&message, sizeof(message));
+			close(fd);
 
-			//print_log("è arrivato un messaggio nella FIFO: %s e è per me (%s);", toString(message), processo);
+			printf("Messagio %s; è arrivato un messaggio nella FIFO è per me (%s);\n", toString(message), processo);
 
 			if(nBys < 1){
 				ErrExit("Errore uscito\n");

@@ -665,7 +665,6 @@ void messageHandler(message_sending message, char processo[])
 		if (msgsnd(MSQID, &m, mSize, 0) == -1){
 			ErrExit("msgsnd failed");
 		}else{
-			printf("Q, Sono %s, messaggio: %s \n", processo, toString(message));
 		}
 			
 		semOp(semID, DATAREADY, -1);
@@ -673,7 +672,6 @@ void messageHandler(message_sending message, char processo[])
 	//viene inviato tramite shared memory
 	else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0)
 	{
-		printf("SH, Sono %s, messaggio: %s \n", processo, toString(message));
 		semOp(semID, REQUEST, 1);
 		memcpy(request_shared_memory, &message, sizeof(message));
 		semOp(semID, DATAREADY, -1);
@@ -681,7 +679,6 @@ void messageHandler(message_sending message, char processo[])
 	else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
 	{	
 		//invia a R3 tramite FIFO
-		printf("FIFO, Sono %s, messaggio: %s \n", processo, toString(message));
 		semOp(semID, REQUEST, 1);
 		int fd = open(FIFO, O_WRONLY);
 		write(fd, &message, sizeof(message));
@@ -697,7 +694,6 @@ void messageHandler(message_sending message, char processo[])
 			//invia a S2 tramite PIPE
 			semOp(semID, PIPE1WRITER, -1);
 			ssize_t nBys = write(pipe1[1], &message, sizeof(message));
-			printf("PIPE1, Sono %s, messaggio: %s \n", processo, toString(message));
 			if (nBys != sizeof(message))
 				ErrExit("Messaggio inviato male");
 			semOp(semID, PIPE1READER, 1);
@@ -707,7 +703,6 @@ void messageHandler(message_sending message, char processo[])
 			//invia a S3 tramite PIPE
 			semOp(semID, PIPE2WRITER, -1);
 			ssize_t nBys = write(pipe2[1], &message, sizeof(message));
-			printf("PIPE2, Sono %s, messaggio: %s \n", processo, toString(message));
 			if (nBys != sizeof(message))
 				ErrExit("Messaggio inviato male");
 			semOp(semID, PIPE2READER, 1);
