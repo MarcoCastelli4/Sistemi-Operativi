@@ -22,56 +22,69 @@ void sendMessage(message_group *messageG, char processo[]);
 void messageHandler(message_sending message, char processo[]);
 
 // Uccisione ricorsiva
-void recursiveKill(pid_t pid){
-	for(int i=0; i<pids->length; i++){
-		if(pids->pids[i].pid_parent == pid){
+void recursiveKill(pid_t pid)
+{
+	for (int i = 0; i < pids->length; i++)
+	{
+		if (pids->pids[i].pid_parent == pid)
+		{
 			recursiveKill(pids->pids[i].pid);
 		}
 	}
-	print_log("MORTO %d\n",pid);
-	kill(pid,SIGKILL);
+	kill(pid, SIGKILL);
 }
 
-void sigHandlerSender(int sig){
-	if(sig == SIGINT){
+void sigHandlerSender(int sig)
+{
+	if (sig == SIGINT)
+	{
 		recursiveKill(getpid());
 		exit(0);
-	} else if(sig == SIGTERM){
-		print_log("SIGNAL SIGTERM received\n");
-		for(int i=0; i<pids->length; i++){
-			if(pids->pids[i].pid_parent == getpid()){
+	}
+	else if (sig == SIGTERM)
+	{
+		for (int i = 0; i < pids->length; i++)
+		{
+			if (pids->pids[i].pid_parent == getpid())
+			{
 				pid_t childTemp = fork();
-				if(childTemp == 0){
-					kill(pids->pids[i].pid,SIGSTOP);
+				if (childTemp == 0)
+				{
+					kill(pids->pids[i].pid, SIGSTOP);
 					sleep(5);
-					kill(pids->pids[i].pid,SIGCONT);
+					kill(pids->pids[i].pid, SIGCONT);
 					exit(0);
 				}
 			}
 		}
-	} else if(sig == SIGUSR1){
-		print_log("SIGNAL SIGUSR1 received\n");
-		for(int i=0; i<pids->length; i++){
-			if(pids->pids[i].pid_parent == getpid()){
+	}
+	else if (sig == SIGUSR1)
+	{
+		for (int i = 0; i < pids->length; i++)
+		{
+			if (pids->pids[i].pid_parent == getpid())
+			{
 				pid_t childTemp = fork();
-				if(childTemp == 0){
-					kill(pids->pids[i].pid,SIGCONT);
+				if (childTemp == 0)
+				{
+					kill(pids->pids[i].pid, SIGCONT);
 					exit(0);
 				}
 			}
 		}
-	} else if(sig == SIGUSR2){
-		print_log("SIGNAL SIGUSR2 received\n");
-		for(int i=0; i<pids->length; i++){
-			if(pids->pids[i].pid_parent == getpid()){
-				print_log("STO uccidendo %d\n", pids->pids[i].pid);
+	}
+	else if (sig == SIGUSR2)
+	{
+		for (int i = 0; i < pids->length; i++)
+		{
+			if (pids->pids[i].pid_parent == getpid())
+			{
 				recursiveKill(pids->pids[i].pid);
 			}
 		}
 	}
 	return;
-} 
-
+}
 
 int main(int argc, char *argv[])
 {
@@ -93,7 +106,7 @@ int main(int argc, char *argv[])
 	struct tm TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	ssize_t bufferLength = (sizeof("S") +numcifre(semID) +  sizeof("SM") + 12 * sizeof(char));
+	ssize_t bufferLength = (sizeof("S") + numcifre(semID) + sizeof("SM") + 12 * sizeof(char));
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
@@ -113,8 +126,8 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("Q") +numcifre(MSQID) +  sizeof("SM") + 12 * sizeof(char));
-	string = (char *) malloc(bufferLength);
+	bufferLength = (sizeof("Q") + numcifre(MSQID) + sizeof("SM") + 12 * sizeof(char));
+	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
 	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "Q", MSQID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
@@ -133,20 +146,20 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("SH") +numcifre(SHMID) +  sizeof("SM") + 12 * sizeof(char));
-	string = (char *) malloc(bufferLength);
+	bufferLength = (sizeof("SH") + numcifre(SHMID) + sizeof("SM") + 12 * sizeof(char));
+	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "SH",SHMID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "SH", SHMID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
-
 
 	request_shared_memory = (struct request_shared_memory *)get_shared_memory(SHMID, 0);
 
 	unlink(FIFO);
 	int res = mkfifo(FIFO, O_CREAT | O_TRUNC | S_IRUSR | S_IWUSR);
-	if(res == -1){
+	if (res == -1)
+	{
 		ErrExit("Creazione fifo errata");
 	}
 
@@ -155,11 +168,11 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("FIFO") +numcifre(res) +  sizeof("SM") + 12 * sizeof(char));
-	string = (char *) malloc(bufferLength);
+	bufferLength = (sizeof("FIFO") + numcifre(res) + sizeof("SM") + 12 * sizeof(char));
+	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n","FIFO", res, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "FIFO", res, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -173,14 +186,13 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("PIPE1") +numcifre(resPipe1) +  sizeof("SM") + 12 * sizeof(char));
-	string = (char *) malloc(bufferLength);
+	bufferLength = (sizeof("PIPE1") + numcifre(resPipe1) + sizeof("SM") + 12 * sizeof(char));
+	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n",  "PIPE1",resPipe1, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE1", resPipe1, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
-
 
 	// checking if PIPE successed
 	int resPipe2 = pipe(pipe2);
@@ -192,11 +204,11 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("PIPE2") +numcifre(resPipe2) +  sizeof("SM") + 12 * sizeof(char));
-	string = (char *) malloc(bufferLength);
+	bufferLength = (sizeof("PIPE2") + numcifre(resPipe2) + sizeof("SM") + 12 * sizeof(char));
+	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n","PIPE2", resPipe2,  "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE2", resPipe2, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -214,10 +226,11 @@ int main(int argc, char *argv[])
 	pidS1 = fork();
 	if (pidS1 == 0)
 	{
-		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
-				signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
-				signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
-				signal(SIGTERM, sigHandlerSender) == SIG_ERR){
+		if (signal(SIGINT, sigHandlerSender) == SIG_ERR ||
+			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+			signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
+			signal(SIGTERM, sigHandlerSender) == SIG_ERR)
+		{
 			ErrExit("change signal handler failed");
 		}
 		//inizializzo la struttura con la dimensione di un messaggio
@@ -237,29 +250,34 @@ int main(int argc, char *argv[])
 	else if (pidS1 == -1)
 	{
 		ErrExit("Fork");
-	} else {
-		pids->pids[pids->length].pid_parent = getpid();		
-		pids->pids[pids->length].pid = pidS1;		
-		pids->length = pids->length +1;
+	}
+	else
+	{
+		pids->pids[pids->length].pid_parent = getpid();
+		pids->pids[pids->length].pid = pidS1;
+		pids->length = pids->length + 1;
 	}
 
 	//genero processo S2
 	pidS2 = fork();
 	if (pidS2 == 0)
 	{
-		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
-				signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
-				signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
-				signal(SIGTERM, sigHandlerSender) == SIG_ERR){
+		if (signal(SIGINT, sigHandlerSender) == SIG_ERR ||
+			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+			signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
+			signal(SIGTERM, sigHandlerSender) == SIG_ERR)
+		{
 			ErrExit("change signal handler failed");
-		}		//scrivo intestazione
+		} //scrivo intestazione
 		printIntestazione(F2);
 
-		while(s1EndReading == 0){
+		while (s1EndReading == 0)
+		{
 			message_sending message;
 			semOp(semID, PIPE1READER, -1);
-			ssize_t nBys = read(pipe1[0],&message, sizeof(message));
-			if(nBys < 1){
+			ssize_t nBys = read(pipe1[0], &message, sizeof(message));
+			if (nBys < 1)
+			{
 				ErrExit("Errore uscito\n");
 			}
 			message_group *messageGroupS2 = malloc(sizeof(messageGroupS2));
@@ -273,36 +291,42 @@ int main(int argc, char *argv[])
 		}
 		s2EndReading = 1;
 
-
 		//termino il processo
 		pause();
 		exit(0);
-	} else if (pidS2 == -1) {
+	}
+	else if (pidS2 == -1)
+	{
 		ErrExit("Fork");
-	} else {
-		pids->pids[pids->length].pid_parent = getpid();		
-		pids->pids[pids->length].pid = pidS2;		
-		pids->length = pids->length +1;
+	}
+	else
+	{
+		pids->pids[pids->length].pid_parent = getpid();
+		pids->pids[pids->length].pid = pidS2;
+		pids->length = pids->length + 1;
 	}
 
 	//genero processo S3
 	pidS3 = fork();
 	if (pidS3 == 0)
 	{
-		if(signal(SIGINT, sigHandlerSender) == SIG_ERR || 
-				signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
-				signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
-				signal(SIGTERM, sigHandlerSender) == SIG_ERR){
+		if (signal(SIGINT, sigHandlerSender) == SIG_ERR ||
+			signal(SIGUSR1, sigHandlerSender) == SIG_ERR ||
+			signal(SIGUSR2, sigHandlerSender) == SIG_ERR ||
+			signal(SIGTERM, sigHandlerSender) == SIG_ERR)
+		{
 			ErrExit("change signal handler failed");
 		}
 		//scrivo intestazione
 		printIntestazione(F3);
 
-		while(s2EndReading == 0){
+		while (s2EndReading == 0)
+		{
 			message_sending message;
 			semOp(semID, PIPE2READER, -1);
-			ssize_t nBys = read(pipe2[0],&message, sizeof(message));
-			if(nBys < 1){
+			ssize_t nBys = read(pipe2[0], &message, sizeof(message));
+			if (nBys < 1)
+			{
 				ErrExit("Errore uscito\n");
 			}
 			message_group *messageGroupS3 = malloc(sizeof(messageGroupS3));
@@ -317,14 +341,17 @@ int main(int argc, char *argv[])
 
 		pause();
 		exit(0);
-	}	else if (pidS3 == -1) {
-		ErrExit("Fork");
-	} else {
-		pids->pids[pids->length].pid_parent = getpid();		
-		pids->pids[pids->length].pid = pidS3;		
-		pids->length = pids->length +1;
 	}
-
+	else if (pidS3 == -1)
+	{
+		ErrExit("Fork");
+	}
+	else
+	{
+		pids->pids[pids->length].pid_parent = getpid();
+		pids->pids[pids->length].pid = pidS3;
+		pids->length = pids->length + 1;
+	}
 
 	//genero file8.csv
 	writeF8(pidS1, pidS2, pidS3);
@@ -332,17 +359,16 @@ int main(int argc, char *argv[])
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0);
+	while ((waitPID = wait(&stato)) > 0)
+		;
 
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
 
-	print_log("STO PER TERMInare\n");
 
 	// Eliminazione della struttura dei messaggi di pids
 	free(pids->pids);
 	free(pids);
-
 
 	//termino il processo padre
 	exit(0);
@@ -389,8 +415,7 @@ message_group *carica_F0(char nomeFile[])
 	}
 
 	// posiziono l'offset alla prima riga dei messaggi (salto i titoli)
-	if (lseek(fp, (size_t)(MessageSendingHeader + 1) * sizeof(char), SEEK_SET) == -1)
-	{
+	if (lseek(fp, (size_t)(MessageSendingHeader + 1) * sizeof(char), SEEK_SET) == -1){
 		ErrExit("Lseek");
 	}
 
@@ -419,7 +444,7 @@ message_group *carica_F0(char nomeFile[])
 
 	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
 	// TODO MALLOC DIFETTOSA
-	message_sending *messageList = malloc(sizeof(message_sending) * (rowNumber+1));
+	message_sending *messageList = malloc(sizeof(message_sending) * (rowNumber + 1));
 	//numero di messaggi che inserisco
 	int messageNumber = 0;
 
@@ -441,35 +466,35 @@ message_group *carica_F0(char nomeFile[])
 			//memorizzo il segmento ne rispettivo campo della struttura
 			switch (campo)
 			{
-				case 0:
-					messageList[messageNumber].id = atoi(segment);
-					break;
-				case 1:
+			case 0:
+				messageList[messageNumber].id = atoi(segment);
+				break;
+			case 1:
 
-					strcpy(messageList[messageNumber].message, segment);
-					break;
-				case 2:
-					strcpy(messageList[messageNumber].idSender, segment);
-					break;
-				case 3:
+				strcpy(messageList[messageNumber].message, segment);
+				break;
+			case 2:
+				strcpy(messageList[messageNumber].idSender, segment);
+				break;
+			case 3:
 
-					strcpy(messageList[messageNumber].idReceiver, segment);
-					break;
-				case 4:
-					messageList[messageNumber].DelS1 = atoi(segment);
-					break;
-				case 5:
-					messageList[messageNumber].DelS2 = atoi(segment);
-					break;
-				case 6:
-					messageList[messageNumber].DelS3 = atoi(segment);
-					break;
-				case 7:
-					segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
-					strcpy(messageList[messageNumber].Type, segment);
-					break;
-				default:
-					break;
+				strcpy(messageList[messageNumber].idReceiver, segment);
+				break;
+			case 4:
+				messageList[messageNumber].DelS1 = atoi(segment);
+				break;
+			case 5:
+				messageList[messageNumber].DelS2 = atoi(segment);
+				break;
+			case 6:
+				messageList[messageNumber].DelS3 = atoi(segment);
+				break;
+			case 7:
+				segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
+				strcpy(messageList[messageNumber].Type, segment);
+				break;
+			default:
+				break;
 			}
 			//vado al campo successivo
 			campo++;
@@ -498,72 +523,87 @@ void sendMessage(message_group *messageG, char processo[])
 		struct tm timeArrival = *localtime(&now);
 
 		//ritardo il messaggio
-		if (strcmp(processo, "S1") == 0){
-
-			print_log("MESSAGGIO ARRIVATO IN S1\n");
-			pid_t childS1 = fork();
-			if(childS1 == 0){
-				sleep(messageG->messages[i].DelS1); //dormi per quanto ti manca
-
-				print_log("MESSAGGIO PAUSATO IN S1\n");
-				//stampa su file F1
-				printInfoMessage(messageG->messages[i], timeArrival, F1);
-				messageHandler(messageG->messages[i],"S1");
-				exit(0);
-			}	else if (childS1 == -1) {
-				ErrExit("Fork");
-			} else {
-				pids->pids[pids->length].pid_parent = getpid();		
-				pids->pids[pids->length].pid = childS1;		
-				pids->length = pids->length +1;
-			}
-
-		} else if (strcmp(processo, "S2") == 0)
+		if (strcmp(processo, "S1") == 0)
 		{
 			pid_t childS1 = fork();
-			if(childS1 == 0){
+			if (childS1 == 0)
+			{
+				sleep(messageG->messages[i].DelS1); //dormi per quanto ti manca
+
+				//stampa su file F1
+				printInfoMessage(messageG->messages[i], timeArrival, F1);
+				messageHandler(messageG->messages[i], "S1");
+				exit(0);
+			}
+			else if (childS1 == -1)
+			{
+				ErrExit("Fork");
+			}
+			else
+			{
+				pids->pids[pids->length].pid_parent = getpid();
+				pids->pids[pids->length].pid = childS1;
+				pids->length = pids->length + 1;
+			}
+		}
+		else if (strcmp(processo, "S2") == 0)
+		{
+			pid_t childS1 = fork();
+			if (childS1 == 0)
+			{
 				sleep(messageG->messages[i].DelS2); //dormi per quanto ti manca
 
 				//stampa su file F2
 				printInfoMessage(messageG->messages[i], timeArrival, F2);
-				messageHandler(messageG->messages[i],"S2");
+				messageHandler(messageG->messages[i], "S2");
 				exit(0);
-			} else if (childS1 == -1) {
-				ErrExit("Fork");
-			} else {
-				pids->pids[pids->length].pid_parent = getpid();		
-				pids->pids[pids->length].pid = childS1;		
-				pids->length = pids->length +1;
 			}
-		} else if (strcmp(processo, "S3") == 0){
+			else if (childS1 == -1)
+			{
+				ErrExit("Fork");
+			}
+			else
+			{
+				pids->pids[pids->length].pid_parent = getpid();
+				pids->pids[pids->length].pid = childS1;
+				pids->length = pids->length + 1;
+			}
+		}
+		else if (strcmp(processo, "S3") == 0)
+		{
 			pid_t childS1 = fork();
-			if(childS1 == 0){
+			if (childS1 == 0)
+			{
 				sleep(messageG->messages[i].DelS3); //dormi per quanto ti manca
 
 				//stampa su file F3
 				printInfoMessage(messageG->messages[i], timeArrival, F3);
-				messageHandler(messageG->messages[i],"S3");
+				messageHandler(messageG->messages[i], "S3");
 				exit(0);
-			} else if (childS1 == -1) {
+			}
+			else if (childS1 == -1)
+			{
 				ErrExit("Fork");
-			} else {
-				pids->pids[pids->length].pid_parent = getpid();		
-				pids->pids[pids->length].pid = childS1;		
-				pids->length = pids->length +1;
+			}
+			else
+			{
+				pids->pids[pids->length].pid_parent = getpid();
+				pids->pids[pids->length].pid = childS1;
+				pids->length = pids->length + 1;
 			}
 		}
 	}
 }
 
-void messageHandler(message_sending message, char processo[]){
+void messageHandler(message_sending message, char processo[])
+{
 	struct message_queue m;
 	m.mtype = 1;
 
 	memcpy(&m.message, &message, sizeof(message));
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
 
-
-/**   //se sono nel processo sender corretto
+	/**   //se sono nel processo sender corretto
 	*   if (strcmp(processo, message.idSender) == 0)
 	*   {
 	*     //viene inviato tramite message queue
@@ -597,7 +637,6 @@ void messageHandler(message_sending message, char processo[]){
 	*   {
 	*     //viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
 	*     if (strcmp(processo, "S1") == 0){
-	*       print_log("Messaggio",toString(message));
 	*       //invia a S2 tramite PIPE
 	*       semOp(semID, PIPE1WRITER, -1);
 	*       ssize_t nBys = write(pipe1[1], &message, sizeof(message));
@@ -617,54 +656,63 @@ void messageHandler(message_sending message, char processo[]){
 	*   } */
 
 	//se sono nel processo sender corretto
-//viene inviato tramite message queue
-if (strcmp(message.Type, "Q") == 0 && strcmp(processo, message.idSender) == 0)
-{
-	// sending the message in the queue
-	semOp(semID, REQUEST, 1);
-	if (msgsnd(MSQID, &m, mSize, 0) == -1)
-		ErrExit("msgsnd failed");
-	semOp(semID, DATAREADY, -1);
-}
-//viene inviato tramite shared memory
-else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0)
-{
-	semOp(semID, REQUEST, 1);
-	memcpy(request_shared_memory, &message, sizeof(message));
-	semOp(semID, DATAREADY, -1);
-}
-else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
-{
-	//invia a R3 tramite FIFO
-	semOp(semID, REQUEST, 1);
-	int fd = open(FIFO, O_WRONLY);
-	write(fd, &message, sizeof(message));
-	close(fd);
-	semOp(semID, DATAREADY, -1);
-}
-//non sono nel processo sender corretto, seguo la catena di invio
-else if(strcmp(processo, message.idSender) != 0 || ((strcmp(processo, "S3") != 0) && (strcmp(message.Type, "FIFO") == 0)))
-{
-	//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
-	if (strcmp(processo, "S1") == 0){
-		print_log("Messaggio",toString(message));
-		//invia a S2 tramite PIPE
-		semOp(semID, PIPE1WRITER, -1);
-		ssize_t nBys = write(pipe1[1], &message, sizeof(message));
-		if(nBys != sizeof(message))
-			ErrExit("Messaggio inviato male");
-		semOp(semID, PIPE1READER, 1);
-	} else if (strcmp(processo, "S2") == 0)
+	//viene inviato tramite message queue
+	
+	if (strcmp(message.Type, "Q") == 0 && strcmp(processo, message.idSender) == 0)
 	{
-		//invia a S3 tramite PIPE
-		semOp(semID, PIPE2WRITER, -1);
-		ssize_t nBys = write(pipe2[1], &message, sizeof(message));
-		if(nBys != sizeof(message))
-			ErrExit("Messaggio inviato male");
-		semOp(semID, PIPE2READER, 1);
+		// sending the message in the queue
+		semOp(semID, REQUEST, 1);
+		if (msgsnd(MSQID, &m, mSize, 0) == -1){
+			ErrExit("msgsnd failed");
+		}else{
+			printf("Q, Sono %s, messaggio: %s \n", processo, toString(message));
+		}
+			
+		semOp(semID, DATAREADY, -1);
 	}
-}
-
+	//viene inviato tramite shared memory
+	else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0)
+	{
+		printf("SH, Sono %s, messaggio: %s \n", processo, toString(message));
+		semOp(semID, REQUEST, 1);
+		memcpy(request_shared_memory, &message, sizeof(message));
+		semOp(semID, DATAREADY, -1);
+	}
+	else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
+	{	
+		//invia a R3 tramite FIFO
+		printf("FIFO, Sono %s, messaggio: %s \n", processo, toString(message));
+		semOp(semID, REQUEST, 1);
+		int fd = open(FIFO, O_WRONLY);
+		write(fd, &message, sizeof(message));
+		close(fd);
+		semOp(semID, DATAREADY, -1);
+	}
+	//non sono nel processo sender corretto, seguo la catena di invio
+	else if (strcmp(processo, message.idSender) != 0 || ((strcmp(processo, "S3") != 0) && (strcmp(message.Type, "FIFO") == 0)))
+	{
+		//viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
+		if (strcmp(processo, "S1") == 0)
+		{
+			//invia a S2 tramite PIPE
+			semOp(semID, PIPE1WRITER, -1);
+			ssize_t nBys = write(pipe1[1], &message, sizeof(message));
+			printf("PIPE1, Sono %s, messaggio: %s \n", processo, toString(message));
+			if (nBys != sizeof(message))
+				ErrExit("Messaggio inviato male");
+			semOp(semID, PIPE1READER, 1);
+		}
+		else if (strcmp(processo, "S2") == 0)
+		{
+			//invia a S3 tramite PIPE
+			semOp(semID, PIPE2WRITER, -1);
+			ssize_t nBys = write(pipe2[1], &message, sizeof(message));
+			printf("PIPE2, Sono %s, messaggio: %s \n", processo, toString(message));
+			if (nBys != sizeof(message))
+				ErrExit("Messaggio inviato male");
+			semOp(semID, PIPE2READER, 1);
+		}
+	}
 }
 
 //Funzione che mi genera il file F10 e scrive ogni riga

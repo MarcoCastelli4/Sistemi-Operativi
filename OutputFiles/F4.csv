@@ -1,5 +1,1 @@
 ID;Message;IDSender;IDReceiver;TimeArrival;TimeDeparture
-2;FIFO;3;2;16:53:59;16:54:00
-3;SHHH;3;3;16:54:02;16:54:04
-3;SHHH;3;3;16:54:03;16:54:05
-3;SHHH;3;3;16:54:05;16:54:07

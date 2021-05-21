@@ -6,6 +6,7 @@
 
 #define CREATION 0
 #define ELIMINATION 1
+//Mutex per bloccare processi che vogliono leggere quando non ci sono messaggi nuovi
 #define REQUEST 2
 #define DATAREADY 3
 #define HACKLERRECEIVER 4

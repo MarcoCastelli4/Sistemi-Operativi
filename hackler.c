@@ -50,13 +50,12 @@ int main(int argc, char * argv[]) {
   carica_PIDS(F9,ReceiverPIDHeader,receiverPids);
   //scorro le azioni dell'hackler
 
-  for(i=0; i<action_group->length; i++){
+  for(i=0; i < action_group->length -1; i++){
 
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
-        sleep(action_group->actions[i].delay + 35);
-        print_log("Partito shutdown\n");
+        sleep(action_group->actions[i].delay + 10);
         kill(senderPids[0],SIGINT);
         kill(senderPids[1],SIGINT);
         kill(senderPids[2],SIGINT);
@@ -71,31 +70,25 @@ int main(int argc, char * argv[]) {
         sleep(action_group->actions[i].delay);
         if (strcmp(action_group->actions[i].target, "S1") == 0) 
         {
-          print_log("PAUSA PER S1\n");
           increaseDelay(senderPids[0]); 
         } 
         else if (strcmp(action_group->actions[i].target, "S2") == 0) 
         {
-          print_log("PAUSA PER S2\n");
           increaseDelay(senderPids[1]); 
         } 
         else if (strcmp(action_group->actions[i].target, "S3") == 0) 
         {
-          print_log("PAUSA PER S3\n");
           increaseDelay(senderPids[2]); 
         } else if (strcmp(action_group->actions[i].target, "R1") == 0) 
         {
-          print_log("PAUSA PER R1\n");
           increaseDelay(receiverPids[0]); 
         } 
         else if (strcmp(action_group->actions[i].target, "R2") == 0) 
         {
-          print_log("PAUSA PER R2\n");
           increaseDelay(receiverPids[1]); 
         } 
         else if (strcmp(action_group->actions[i].target, "R3") == 0) 
         {
-          print_log("PAUSA PER R3\n");
           increaseDelay(receiverPids[2]); 
         } 
         exit(0);
@@ -106,31 +99,25 @@ int main(int argc, char * argv[]) {
         sleep(action_group->actions[i].delay);
         if (strcmp(action_group->actions[i].target, "S1") == 0) 
         {
-          print_log("PAUSA PER S1\n");
           sendMsg(senderPids[0]); 
         } 
         else if (strcmp(action_group->actions[i].target, "S2") == 0) 
         {
-          print_log("PAUSA PER S2\n");
           sendMsg(senderPids[1]); 
         } 
         else if (strcmp(action_group->actions[i].target, "S3") == 0) 
         {
-          print_log("PAUSA PER S3\n");
           sendMsg(senderPids[2]); 
         } else if (strcmp(action_group->actions[i].target, "R1") == 0) 
         {
-          print_log("PAUSA PER R1\n");
           sendMsg(receiverPids[0]); 
         } 
         else if (strcmp(action_group->actions[i].target, "R2") == 0) 
         {
-          print_log("PAUSA PER R2\n");
           sendMsg(receiverPids[1]); 
         } 
         else if (strcmp(action_group->actions[i].target, "R3") == 0) 
         {
-          print_log("PAUSA PER R3\n");
           sendMsg(receiverPids[2]); 
         } 
         exit(0);
@@ -141,31 +128,25 @@ int main(int argc, char * argv[]) {
         sleep(action_group->actions[i].delay);
         if (strcmp(action_group->actions[i].target, "S1") == 0) 
         {
-          print_log("PAUSA PER S1\n");
           removeMsg(senderPids[0]); 
         } 
         else if (strcmp(action_group->actions[i].target, "S2") == 0) 
         {
-          print_log("PAUSA PER S2\n");
           removeMsg(senderPids[1]); 
         } 
         else if (strcmp(action_group->actions[i].target, "S3") == 0) 
         {
-          print_log("PAUSA PER S3\n");
           removeMsg(senderPids[2]); 
         } else if (strcmp(action_group->actions[i].target, "R1") == 0) 
         {
-          print_log("PAUSA PER R1\n");
           removeMsg(receiverPids[0]); 
         } 
         else if (strcmp(action_group->actions[i].target, "R2") == 0) 
         {
-          print_log("PAUSA PER R2\n");
           removeMsg(receiverPids[1]); 
         } 
         else if (strcmp(action_group->actions[i].target, "R3") == 0) 
         {
-          print_log("PAUSA PER R3\n");
           removeMsg(receiverPids[2]); 
         } 
         exit(0);
@@ -252,17 +233,14 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
 }
 
 void increaseDelay(pid_t pid){
-  print_log("HO INVIATO IL SEGNALE DI SIGTERM A pid %d\n",pid);
   kill(pid,SIGTERM);
 }
 
 void sendMsg(pid_t pid){
-  print_log("HO INVIATO IL SEGNALE DI SIGUSER 1 A pid %d\n",pid);
   kill(pid,SIGUSR1);
 }
 
 void removeMsg(pid_t pid){
-  print_log("HO INVIATO IL SEGNALE DI SIGUSER 2 A pid %d\n",pid);
   kill(pid,SIGUSR2);
 }
 

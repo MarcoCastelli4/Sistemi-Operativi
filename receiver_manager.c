@@ -26,7 +26,6 @@ void sigHandlerReceiver(int sig){
 		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGTERM){
-		print_log("SIGNAL SIGHUP received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
 				pid_t childTemp = fork();
@@ -41,7 +40,6 @@ void sigHandlerReceiver(int sig){
 			}
 		}
 	} else if(sig == SIGUSR1){
-		print_log("SIGNAL SIGUSR1 received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
 				pid_t childTemp = fork();
@@ -52,7 +50,6 @@ void sigHandlerReceiver(int sig){
 			}
 		}
 	} else if(sig == SIGUSR2){
-		print_log("SIGNAL SIGUSR2 received\n");
 		for(int i=0; i<pids->length; i++){
 			if(pids->pids[i].pid_parent == getpid()){
 				recursiveKill(pids->pids[i].pid);
@@ -271,7 +268,6 @@ int main(int argc, char *argv[]){
 		}
 		//stampo intestazione messaggio
 		printIntestazione(F4);
-
 		listen(MSQID, SHMID, semID, "R3");
 
 		//termino il processo
@@ -321,7 +317,6 @@ int main(int argc, char *argv[]){
   free(pids->pids);
   free(pids);
 
-	print_log("STO PER CHIUDERE\n");
 
 	//termino il processo padre
 	exit(0);
@@ -365,6 +360,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 	{
 		semOp(semID, REQUEST, -1);
 
+		//printf("Sono: %s e sto ascoltando\n", processo);
 		//genero tempo attuale
 		time_t now = time(NULL);
 		struct tm timeArrival = *localtime(&now);
@@ -375,6 +371,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		//sei nel processo receiver corretto?
 		if(strcmp(processo, messaggio.message.idReceiver) == 0){
+			//print_log("è arrivato un messaggio Q per me (%s);\n", processo);
 			if (strcmp(messaggio.message.idReceiver, "R1") == 0)
 			{
 				pid_t childS1 = fork();
@@ -427,11 +424,12 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					pids->pids[pids->length].pid = childS1;		
 					pids->length = pids->length +1;
 				}
-
 			}
 			semOp(semID, DATAREADY, 1);
 			continue;
-		} else if(strcmp("Q", messaggio.message.Type)== 0){
+		} 
+		else if(strcmp("Q", messaggio.message.Type)== 0){
+			//print_log("è arrivato un messaggio Q NON per me (%s);\n", processo);
 			//messaggio per un altro receiver
 			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
@@ -444,8 +442,8 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 
-		if (strcmp(processo, request_shared_memory->message.idReceiver) == 0){
-
+		else if (strcmp(processo, request_shared_memory->message.idReceiver) == 0){
+			//print_log("è arrivato un messaggio nella sharedMemory: %s e è per me (%s);", toString(request_shared_memory->message), processo);
 			if (strcmp(request_shared_memory->message.idReceiver, "R1") == 0){
 				pid_t childS1 = fork();
 				if(childS1 == 0){
@@ -501,11 +499,14 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		//-------------------------------------------------- BLOCCO FIFO --------------------------------------------------
 
-		if (strcmp("R3",  processo) == 0){
+		else if (strcmp("R3",  processo) == 0){
 
 			int fd = open(FIFO, O_RDONLY);
 			message_sending message;
 			ssize_t nBys = read(fd,&message, sizeof(message));
+
+			//print_log("è arrivato un messaggio nella FIFO: %s e è per me (%s);", toString(message), processo);
+
 			if(nBys < 1){
 				ErrExit("Errore uscito\n");
 			}
@@ -542,8 +543,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 void deliverMessage(message_sending message, char processo[]){
 	if (strcmp(processo, "R3") == 0){
-
-		print_log("MESSAGGIO PER R3, %s", toString(message));
 		//invia a R2 tramite PIPE
 		semOp(semID, PIPE3WRITER, -1);
 		ssize_t nBys = write(pipe3[1], &message, sizeof(message));
