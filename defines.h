@@ -51,81 +51,82 @@
 //struttura IPC history
 typedef struct
 {
-     char *ipc;
-     char *idKey;
-     char *creator;
-     char *creationTime;
-     char *destructionTime;
+  char *ipc;
+  char *idKey;
+  char *creator;
+  char *creationTime;
+  char *destructionTime;
 } IPC_history;
 
 //struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
 typedef struct
 {
-     int length;
-     IPC_history *histories;
+  int length;
+  IPC_history *histories;
 } IPC_history_group;
 
 //struttura PIDS
 typedef struct
 {
-     ssize_t pid;
-     ssize_t pid_parent;
+  int increaseDelay;
+  ssize_t pid;
+  ssize_t pid_parent;
 } pid_manager;
 
 //struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
 typedef struct
 {
-     int length;
-     pid_manager *pids;
+  int length;
+  pid_manager *pids;
 } pids_manager;
 
 //struttura messaggio di hackler
 typedef struct
 {
-     int id;
-     int delay;
-     char *target;
-     char *action;
+  int id;
+  int delay;
+  char *target;
+  char *action;
 } action;
 
 //struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
 typedef struct
 {
-     int length;
-     action *actions;
+  int length;
+  action *actions;
 } action_group;
 
 //struttura messaggio
 typedef struct
 {
-     int id;
-     char message[50];
-     char idSender[3];
-     char idReceiver[3];
-     int DelS1;
-     int DelS2;
-     int DelS3;
-     char Type[5];
-     pid_t PidManager;
+  int id;
+  char message[50];
+  char idSender[3];
+  char idReceiver[3];
+  int DelS1;
+  int DelS2;
+  int DelS3;
+  char Type[5];
+  pid_t PidManager;
 } message_sending;
 
 struct request_shared_memory
 {
-     message_sending message;
-     key_t SHMKey;
+  message_sending message;
+  key_t SHMKey;
 };
 
 //struttura che contiene l'array dei messaggi e la rispettiva lunghezza
 typedef struct
 {
-     int length;
-     message_sending *messages;
+  int length;
+  message_sending *messages;
 } message_group;
 
 struct message_queue
 {
-     long mtype;
-     message_sending message;
+  long mtype;
+  message_sending message;
 };
 
 char * timestamp();

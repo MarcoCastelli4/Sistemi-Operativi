@@ -8,68 +8,77 @@ int SHMID = -1;
 int semID = -1;
 int pipe3[2];
 int pipe4[2];
-pids_manager *pids = NULL;
+pids_manager *myChildrenPid = NULL;
+int waitTime = 0;
 struct request_shared_memory *request_shared_memory;
 void deliverMessage(message_sending, char []);
 // Uccisione ricorsiva
 void recursiveKill(pid_t pid){
-	for(int i=0; i<pids->length; i++){
-		if(pids->pids[i].pid_parent == pid){
-			recursiveKill(pids->pids[i].pid);
+	for(int i=0; i<myChildrenPid->length; i++){
+		if(myChildrenPid->pids[i].pid_parent == pid){
+			recursiveKill(myChildrenPid->pids[i].pid);
 		}
 	}
 	kill(pid,SIGKILL);
 	exit(0);
 }
+
 void sigHandlerReceiver(int sig){
-	if(sig == SIGINT){
+	if(sig == SIGTERM){
 		recursiveKill(getpid());
 		exit(0);
-	} else if(sig == SIGTERM){
-		print_log("SIGNAL SIGHUP received\n");
-		for(int i=0; i<pids->length; i++){
-			if(pids->pids[i].pid_parent == getpid()){
-				pid_t childTemp = fork();
-				if(childTemp == 0){
-					kill(pids->pids[i].pid,SIGSTOP);
-					sleep(5);
-					kill(pids->pids[i].pid,SIGCONT);
-					exit(0);
-				} else if (childTemp == -1){
-					ErrExit("Fork");
-				}
+	} else if(sig == SIGUSR2){
+		for(int i=0; i<myChildrenPid->length; i++){
+			if(myChildrenPid->pids[i].pid_parent == getpid()){
+				kill(myChildrenPid->pids[i].pid, SIGPIPE);
 			}
 		}
 	} else if(sig == SIGUSR1){
-		print_log("SIGNAL SIGUSR1 received\n");
-		for(int i=0; i<pids->length; i++){
-			if(pids->pids[i].pid_parent == getpid()){
-				pid_t childTemp = fork();
-				if(childTemp == 0){
-					kill(pids->pids[i].pid,SIGCONT);
-					exit(0);
-				}
+		for(int i=0; i<myChildrenPid->length; i++){
+			if(myChildrenPid->pids[i].pid_parent == getpid()){
+				kill(myChildrenPid->pids[i].pid,SIGCONT);
 			}
 		}
-	} else if(sig == SIGUSR2){
-		print_log("SIGNAL SIGUSR2 received\n");
-		for(int i=0; i<pids->length; i++){
-			if(pids->pids[i].pid_parent == getpid()){
-				recursiveKill(pids->pids[i].pid);
+	} else if(sig == SIGINT){
+		for(int i=0; i<myChildrenPid->length; i++){
+			if(myChildrenPid->pids[i].pid_parent == getpid()){
+				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
+	} else if(sig == SIGALRM){
+		if(waitTime != 0){
+			sleep(waitTime);
+			waitTime = 0;
+		}
+	} else if(sig == SIGPIPE){
+		waitTime += 5;
+		pause();
+	} else if(sig == SIGCONT){
+		// GENERIC WAKE UP WITHOUT WAIT TIME
 	}
 	return;
 }
- 
+
 
 int main(int argc, char *argv[]){
+	struct sigaction sigact;
+	sigemptyset(&sigact.sa_mask);
+	sigact.sa_flags = 0;
+	sigact.sa_handler = sigHandlerReceiver;
+	sigaction(SIGALRM, &sigact, NULL);
+	sigaction(SIGPIPE, &sigact, NULL);
+	sigaction(SIGINT, &sigact, NULL);
+	sigaction(SIGUSR1, &sigact, NULL);
+	sigaction(SIGUSR2, &sigact, NULL);
+	sigaction(SIGTERM, &sigact, NULL);
+	sigaction(SIGCONT, &sigact, NULL);
+
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
-	pids = malloc(sizeof(pids_manager));
+	myChildrenPid = malloc(sizeof(pids_manager));
 	pid_manager *pids_list = malloc(sizeof(pid_manager) * (15));
-	pids->length = 0;
-	pids->pids = pids_list;
+	myChildrenPid->length = 0;
+	myChildrenPid->pids = pids_list;
 
 
 	//creo semaforo, sarà lo stesso del sender
@@ -103,7 +112,7 @@ int main(int argc, char *argv[]){
 
 	//mi salvo tutta la stringa
 	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE3",resPipe3, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
-	
+
 	appendInF10(string, bufferLength);
 
 	// checking if PIPE successed
@@ -127,12 +136,7 @@ int main(int argc, char *argv[]){
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)	{
-		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
-			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
-			signal(SIGUSR2, sigHandlerReceiver) == SIG_ERR ||
-			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
-			ErrExit("change signal handler failed");
-		}
+
 		//stampo intestazione messaggio
 		printIntestazione(F6);
 
@@ -153,15 +157,16 @@ int main(int argc, char *argv[]){
 					time_t now = time(NULL);
 					struct tm timeArrival = *localtime(&now);
 
-					sleep(messageIncoming.DelS1);
+					alarm(messageIncoming.DelS1);
+					pause();
 					printInfoMessage(messageIncoming, timeArrival, F6);
 					exit(0);
 				} else if (pidPIPER1_1 == -1){
 					ErrExit("Fork");
 				} else {
-					pids->pids[pids->length].pid_parent = getpid();		
-					pids->pids[pids->length].pid = pidPIPER1_1;		
-					pids->length = pids->length +1;
+					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+					myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER1_1;		
+					myChildrenPid->length = myChildrenPid->length +1;
 				}
 
 				semOp(semID, PIPE4WRITER, 1);
@@ -171,9 +176,9 @@ int main(int argc, char *argv[]){
 		} else if (pidPIPER1 == -1){
 			ErrExit("Fork");
 		} else {
-			pids->pids[pids->length].pid_parent = getpid();		
-			pids->pids[pids->length].pid = pidPIPER1;		
-			pids->length = pids->length +1;
+			myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+			myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER1;		
+			myChildrenPid->length = myChildrenPid->length +1;
 		}
 
 		//leggo dalla coda
@@ -184,9 +189,9 @@ int main(int argc, char *argv[]){
 	} else if (pidR1 == -1){
 		ErrExit("Fork");
 	} else {
-		pids->pids[pids->length].pid_parent = getpid();		
-		pids->pids[pids->length].pid = pidR1;		
-		pids->length = pids->length +1;
+		myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+		myChildrenPid->pids[myChildrenPid->length].pid = pidR1;		
+		myChildrenPid->length = myChildrenPid->length +1;
 	}
 
 
@@ -194,12 +199,6 @@ int main(int argc, char *argv[]){
 	pidR2 = fork();
 	if (pidR2 == 0){
 
-		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
-			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
-			signal(SIGUSR2, sigHandlerReceiver) == SIG_ERR ||
-			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
-			ErrExit("change signal handler failed");
-		}
 		//stampo intestazione messaggio
 		printIntestazione(F5);
 
@@ -220,29 +219,30 @@ int main(int argc, char *argv[]){
 					time_t now = time(NULL);
 					struct tm timeArrival = *localtime(&now);
 
-					sleep(messageIncoming.DelS2);
+					alarm(messageIncoming.DelS2);
+					pause();
 					printInfoMessage(messageIncoming, timeArrival, F5);
 					deliverMessage(messageIncoming, "R2");
 					exit(0);
 				} else if (pidPIPER2_1 == -1){
 					ErrExit("Fork");
 				} else {
-					pids->pids[pids->length].pid_parent = getpid();		
-					pids->pids[pids->length].pid = pidPIPER2_1;		
-					pids->length = pids->length +1;
+					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+					myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER2_1;		
+					myChildrenPid->length = myChildrenPid->length +1;
 				}
 
 				semOp(semID, PIPE3WRITER, 1);
 			}
-		
+
 			pause();
 			exit(0);
 		} else if (pidPIPER2 == -1){
 			ErrExit("Fork");
 		} else {
-			pids->pids[pids->length].pid_parent = getpid();		
-			pids->pids[pids->length].pid = pidPIPER2;		
-			pids->length = pids->length +1;
+			myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+			myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER2;		
+			myChildrenPid->length = myChildrenPid->length +1;
 		}
 
 		//leggo dalla coda
@@ -255,20 +255,15 @@ int main(int argc, char *argv[]){
 	{
 		ErrExit("Fork");
 	} else {
-		pids->pids[pids->length].pid_parent = getpid();		
-		pids->pids[pids->length].pid = pidR2;		
-		pids->length = pids->length +1;
+		myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+		myChildrenPid->pids[myChildrenPid->length].pid = pidR2;		
+		myChildrenPid->length = myChildrenPid->length +1;
 	}
 
 	//genero processo S3
 	pidR3 = fork();
 	if (pidR3 == 0)	{
-		if(signal(SIGINT, sigHandlerReceiver) == SIG_ERR || 
-			signal(SIGUSR1, sigHandlerReceiver) == SIG_ERR ||
-			signal(SIGUSR2, sigHandlerReceiver) == SIG_ERR ||
-			signal(SIGTERM, sigHandlerReceiver) == SIG_ERR){
-			ErrExit("change signal handler failed");
-		}
+
 		//stampo intestazione messaggio
 		printIntestazione(F4);
 
@@ -281,9 +276,9 @@ int main(int argc, char *argv[]){
 	{
 		ErrExit("Fork");
 	} else {
-		pids->pids[pids->length].pid_parent = getpid();		
-		pids->pids[pids->length].pid = pidR3;		
-		pids->length = pids->length +1;
+		myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+		myChildrenPid->pids[myChildrenPid->length].pid = pidR3;		
+		myChildrenPid->length = myChildrenPid->length +1;
 	}
 
 	//genero file F9
@@ -318,10 +313,9 @@ int main(int argc, char *argv[]){
 	}
 
 	// Eliminazione della struttura dei messaggi di pids
-  free(pids->pids);
-  free(pids);
+	free(myChildrenPid->pids);
+	free(myChildrenPid);
 
-	print_log("STO PER CHIUDERE\n");
 
 	//termino il processo padre
 	exit(0);
@@ -380,16 +374,17 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				pid_t childS1 = fork();
 				if(childS1 == 0){
 					//dormi
-					sleep(messaggio.message.DelS1);
+					alarm(messaggio.message.DelS1);
+					pause();
 					//stampa le info sul tuo file
 					printInfoMessage(messaggio.message, timeArrival, F6);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
 				} else {
-					pids->pids[pids->length].pid_parent = getpid();		
-					pids->pids[pids->length].pid = childS1;		
-					pids->length = pids->length +1;
+					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+					myChildrenPid->length = myChildrenPid->length +1;
 				}
 			}
 			else if (strcmp(messaggio.message.idReceiver, "R2") == 0)
@@ -397,7 +392,8 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				pid_t childS1 = fork();
 				if(childS1 == 0){
 					//dormi
-					sleep(messaggio.message.DelS2);
+					alarm(messaggio.message.DelS2);
+					pause();
 					//stampa le info sul tuo file
 					printInfoMessage(messaggio.message, timeArrival, F5);
 					deliverMessage(messaggio.message, processo);
@@ -405,9 +401,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
 				} else {
-					pids->pids[pids->length].pid_parent = getpid();		
-					pids->pids[pids->length].pid = childS1;		
-					pids->length = pids->length +1;
+					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+					myChildrenPid->length = myChildrenPid->length +1;
 				}
 			}
 			else if (strcmp(messaggio.message.idReceiver, "R3") == 0)
@@ -415,7 +411,8 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				pid_t childS1 = fork();
 				if(childS1 == 0){
 					//dormi
-					sleep(messaggio.message.DelS3);
+					alarm(messaggio.message.DelS3);
+					pause();
 					//stampa le info sul tuo file
 					printInfoMessage(messaggio.message, timeArrival, F4);
 					deliverMessage(messaggio.message, processo);
@@ -423,9 +420,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
 				} else {
-					pids->pids[pids->length].pid_parent = getpid();		
-					pids->pids[pids->length].pid = childS1;		
-					pids->length = pids->length +1;
+					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+					myChildrenPid->length = myChildrenPid->length +1;
 				}
 
 			}
@@ -450,46 +447,49 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				pid_t childS1 = fork();
 				if(childS1 == 0){
 					//dormi
-					sleep(request_shared_memory->message.DelS1);
+					alarm(request_shared_memory->message.DelS1);
+					pause();
 					//stampa le info sul tuo file
 					printInfoMessage(request_shared_memory->message, timeArrival, F6);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
 				} else {
-					pids->pids[pids->length].pid_parent = getpid();		
-					pids->pids[pids->length].pid = childS1;		
-					pids->length = pids->length +1;
+					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+					myChildrenPid->length = myChildrenPid->length +1;
 				}
 
 			} else if (strcmp(request_shared_memory->message.idReceiver, "R2") == 0){
 				pid_t childS1 = fork();
 				if(childS1 == 0){
-					sleep(request_shared_memory->message.DelS2);
+					alarm(request_shared_memory->message.DelS2);
+					pause();
 					printInfoMessage(request_shared_memory->message, timeArrival, F5);
 					deliverMessage(request_shared_memory->message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
 				} else {
-					pids->pids[pids->length].pid_parent = getpid();		
-					pids->pids[pids->length].pid = childS1;		
-					pids->length = pids->length +1;
+					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+					myChildrenPid->length = myChildrenPid->length +1;
 				}
 
 			} else if (strcmp(request_shared_memory->message.idReceiver, "R3") == 0){
 				pid_t childS1 = fork();
 				if(childS1 == 0){
-					sleep(request_shared_memory->message.DelS3);
+					alarm(request_shared_memory->message.DelS3);
+					pause();
 					printInfoMessage(request_shared_memory->message, timeArrival, F4);
 					deliverMessage(request_shared_memory->message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
 				} else {
-					pids->pids[pids->length].pid_parent = getpid();		
-					pids->pids[pids->length].pid = childS1;		
-					pids->length = pids->length +1;
+					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+					myChildrenPid->length = myChildrenPid->length +1;
 				}
 			} 
 
@@ -512,16 +512,17 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 			pid_t childFIFO = fork();
 			if(childFIFO == 0){
-				sleep(message.DelS3);
+				alarm(message.DelS3);
+				pause();
 				printInfoMessage(message, timeArrival, F4);
 				deliverMessage(message, "R3");
 				exit(0);
 			} else if (childFIFO == -1) {
 				ErrExit("Fork");
 			} else {
-				pids->pids[pids->length].pid_parent = getpid();		
-				pids->pids[pids->length].pid = childFIFO;		
-				pids->length = pids->length +1;
+				myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+				myChildrenPid->pids[myChildrenPid->length].pid = childFIFO;		
+				myChildrenPid->length = myChildrenPid->length +1;
 			}
 
 
@@ -542,8 +543,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 void deliverMessage(message_sending message, char processo[]){
 	if (strcmp(processo, "R3") == 0){
-
-		print_log("MESSAGGIO PER R3, %s", toString(message));
 		//invia a R2 tramite PIPE
 		semOp(semID, PIPE3WRITER, -1);
 		ssize_t nBys = write(pipe3[1], &message, sizeof(message));

@@ -1,5 +1,3 @@
 Id;Message;IdSender;IdReceiver;DelS1;DelS2;DelS3;Type
-1;QSS;S3;R3;3;3;3;SH
-2;FIFO;S3;R2;1;1;1;FIFO
-3;SHHH;S3;R3;2;2;2;Q
-2;FIFIO;S2;R2;2;4;1;FIFO
+1;QSS;S1;R3;6;1;3;Q
+2;SHH;S1;R3;4;1;3;SH
