@@ -54,31 +54,37 @@ void customPause(int startingDelay){
 void sigHandlerSender(int sig){
 	// PER PROCESSI PADRI
 	if(sig == SIGTERM){
+		// SHUTDOWN
 		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGUSR2){
+		// PER INCREASE DELAY
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				kill(myChildrenPid->pids[i].pid, SIGPIPE);
 			}
 		}
 	} else if(sig == SIGUSR1){
+		// PER SEND MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				kill(myChildrenPid->pids[i].pid,SIGCONT);
 			}
 		}
 	} else if(sig == SIGINT){
+		// REMOVE MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
-	// PER PROCESSI MESSAGGI
+		// PER PROCESSI MESSAGGI
 	} else if(sig == SIGPIPE){
+		// INCREASE DELAY NEL MESSAGGIO
 		waitTime += 5;
 		pause();
 	} else if(sig == SIGCONT){
+		// SEND MSG NEL MESSAGGIO
 		waitTime = 0;
 	} else if(sig == SIGALRM){
 		// GENERIC DETECTOR
@@ -250,6 +256,7 @@ int main(int argc, char *argv[])
 
 		while(1)
 			sleep(1);
+
 		exit(0);
 		//termino il processo
 	}
@@ -348,8 +355,7 @@ int main(int argc, char *argv[])
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0)
-		;
+	while ((waitPID = wait(&stato)) > 0);
 
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);

@@ -12,6 +12,7 @@ pids_manager *myChildrenPid = NULL;
 int waitTime = 0;
 struct request_shared_memory *request_shared_memory;
 void deliverMessage(message_sending, char []);
+
 // Uccisione ricorsiva
 void recursiveKill(pid_t pid){
 	for(int i=0; i<myChildrenPid->length; i++){
@@ -28,6 +29,7 @@ void recursiveKill(pid_t pid){
 	}
 	exit(0);
 }
+
 void customPause(int startingDelay){
 	alarm(startingDelay); //dormi per quanto ti manca
 	pause();
@@ -39,32 +41,41 @@ void customPause(int startingDelay){
 }
 
 void sigHandlerReceiver(int sig){
+	// PER PROCESSI PADRI
 	if(sig == SIGTERM){
+		// SHUTDOWN
 		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGUSR2){
+		print_log("INCREASE DELAY\n");
+		// PER INCREASE DELAY
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				kill(myChildrenPid->pids[i].pid, SIGPIPE);
 			}
 		}
 	} else if(sig == SIGUSR1){
+		// PER SEND MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				kill(myChildrenPid->pids[i].pid,SIGCONT);
 			}
 		}
 	} else if(sig == SIGINT){
+		// REMOVE MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
+		// PER PROCESSI MESSAGGI
 	} else if(sig == SIGPIPE){
-		print_log("MESSAGGIO RITARDATO\n");
+		print_log("PIPE DELAY\n");
+		// INCREASE DELAY NEL MESSAGGIO
 		waitTime += 5;
 		pause();
 	} else if(sig == SIGCONT){
+		// SEND MSG NEL MESSAGGIO
 		waitTime = 0;
 	} else if(sig == SIGALRM){
 		// GENERIC DETECTOR
@@ -153,6 +164,7 @@ int main(int argc, char *argv[]){
 		//stampo intestazione messaggio
 		printIntestazione(F6);
 
+		//leggo dalla pipe R1
 		pid_t pidPIPER1 = fork();
 		if(pidPIPER1 == 0){
 			while(1){
@@ -183,8 +195,6 @@ int main(int argc, char *argv[]){
 
 				semOp(semID, PIPE4WRITER, 1);
 			}
-			pause();
-			exit(0);
 		} else if (pidPIPER1 == -1){
 			ErrExit("Fork");
 		} else {
@@ -196,7 +206,9 @@ int main(int argc, char *argv[]){
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R1");
 
-		pause();
+		while(1)
+			sleep(1);
+		print_log("R2 morto\n");
 		exit(0);
 	} else if (pidR1 == -1){
 		ErrExit("Fork");
@@ -246,7 +258,9 @@ int main(int argc, char *argv[]){
 				semOp(semID, PIPE3WRITER, 1);
 			}
 
-			pause();
+			while(1)
+				sleep(1);
+			print_log("R3 morto\n");
 			exit(0);
 		} else if (pidPIPER2 == -1){
 			ErrExit("Fork");
