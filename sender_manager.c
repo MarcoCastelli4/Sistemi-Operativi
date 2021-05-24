@@ -13,7 +13,7 @@ int SHMID = -1;
 int semID;
 pids_manager *myChildrenPid = NULL;
 message_group *messages = NULL;
-struct request_shared_memory *request_shared_memory;
+shared_memory_messages *shMessages = 0;
 
 void writeF8(int, int, int);
 void writeF10Header();
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
 	appendInF10(string, bufferLength);
 
 	//Creazione della shared memory
-	SHMID = alloc_shared_memory(MKey, sizeof(struct request_shared_memory));
+	SHMID = alloc_shared_memory(MKey, sizeof(shared_memory_messages));
 	if (SHMID == -1)
 	{
 		ErrExit("Shared memory failed");
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 
 	appendInF10(string, bufferLength);
 
-	request_shared_memory = (struct request_shared_memory *)get_shared_memory(SHMID, 0);
+	shMessages = (shared_memory_messages*)get_shared_memory(SHMID, 0);
 
 	unlink(FIFO);
 	int res = mkfifo(FIFO, O_CREAT | O_TRUNC | S_IRUSR | S_IWUSR);
@@ -346,8 +346,7 @@ int main(int argc, char *argv[])
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
-	while ((waitPID = wait(&stato)) > 0)
-		;
+	while ((waitPID = wait(&stato)) > 0);
 
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
@@ -649,7 +648,17 @@ void messageHandler(message_sending message, char processo[])
 	else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0)
 	{
 		semOp(semID, REQUEST, 1);
-		memcpy(request_shared_memory, &message, sizeof(message));
+		
+		if(shMessages->messages[shMessages->cursorEnd].idSender[0] == '\0'){
+			memcpy(&shMessages->messages[shMessages->cursorEnd], &message, sizeof(message));	
+			shMessages->messages[shMessages->cursorEnd] = message;
+		}
+		if(shMessages->cursorEnd < 15){
+			shMessages->cursorEnd++;
+		}else{
+			shMessages->cursorEnd = 0;
+		}
+		
 		semOp(semID, DATAREADY, -1);
 	}
 	else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))

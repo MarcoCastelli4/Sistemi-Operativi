@@ -123,6 +123,13 @@ typedef struct
   message_sending *messages;
 } message_group;
 
+typedef struct
+{
+  int cursorEnd;
+  int cursorStart;
+  message_sending messages[15];
+} shared_memory_messages;
+
 struct message_queue
 {
   long mtype;

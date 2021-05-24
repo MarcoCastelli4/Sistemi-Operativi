@@ -1,5 +1,2 @@
 Id;Delay;Target;Action
-1;35;all;ShutDown
-2;2;S1;IncreaseDelay
-2;3;S1;IncreaseDelay
-2;4;S1;SendMsg
+1;45;all;ShutDown
