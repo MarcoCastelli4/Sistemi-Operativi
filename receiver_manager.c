@@ -13,6 +13,7 @@ int waitTime = 0;
 shared_memory_messages *shMessages = NULL;
 
 void deliverMessage(message_sending, char []);
+
 // Uccisione ricorsiva
 void recursiveKill(pid_t pid){
 	for(int i=0; i<myChildrenPid->length; i++){
@@ -29,6 +30,7 @@ void recursiveKill(pid_t pid){
 	}
 	exit(0);
 }
+
 void customPause(int startingDelay){
 	alarm(startingDelay); //dormi per quanto ti manca
 	pause();
@@ -40,34 +42,43 @@ void customPause(int startingDelay){
 }
 
 void sigHandlerReceiver(int sig){
+	// PER PROCESSI PADRI
 	if(sig == SIGTERM){
+		// SHUTDOWN
 		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGUSR2){
+		print_log("INCREASE DELAY\n");
+		// PER INCREASE DELAY
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				kill(myChildrenPid->pids[i].pid, SIGPIPE);
 			}
 		}
 	} else if(sig == SIGUSR1){
+		// PER SEND MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				kill(myChildrenPid->pids[i].pid,SIGCONT);
 			}
 		}
 	} else if(sig == SIGINT){
+		// REMOVE MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
+		// PER PROCESSI MESSAGGI
 	} else if(sig == SIGPIPE){
-		print_log("MESSAGGIO RITARDATO\n");
+		print_log("PIPE DELAY\n");
+		// INCREASE DELAY NEL MESSAGGIO
 		waitTime += 5;
 		pause();
 	} else if(sig == SIGCONT){
+		// SEND MSG NEL MESSAGGIO
 		waitTime = 0;
-	}else if(sig == SIGALRM){
+	} else if(sig == SIGALRM){
 		// GENERIC DETECTOR
 	} 
 	return;
@@ -121,11 +132,11 @@ int main(int argc, char *argv[]){
 	struct tm TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	ssize_t bufferLength = (sizeof("PIPE3") +numcifre(resPipe3) +  sizeof("SM") + 12 * sizeof(char));
+	ssize_t bufferLength = (sizeof("PIPE3") +numcifre(resPipe3) +  sizeof("RM") + 11 * sizeof(char));
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE3",resPipe3, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "PIPE3",resPipe3, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -138,12 +149,12 @@ int main(int argc, char *argv[]){
 	now = time(NULL);
 	TimeDeparture = *localtime(&now);
 
-	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("PIPE2") +numcifre(resPipe4) +  sizeof("SM") + 12 * sizeof(char));
+	//calcolo la dimensione della riga da scrivere, 10 invece che 11 per prevenire bug per caratteri particolari
+	bufferLength = (sizeof("PIPE2") +numcifre(resPipe4) +  sizeof("RM") + 11 * sizeof(char));
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n",  "PIPE4",resPipe4, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n",  "PIPE4",resPipe4, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -154,6 +165,7 @@ int main(int argc, char *argv[]){
 		//stampo intestazione messaggio
 		printIntestazione(F6);
 
+		//leggo dalla pipe R1
 		pid_t pidPIPER1 = fork();
 		if(pidPIPER1 == 0){
 			while(1){
@@ -172,7 +184,7 @@ int main(int argc, char *argv[]){
 					struct tm timeArrival = *localtime(&now);
 
 					customPause(messageIncoming.DelS1);
-					printInfoMessage(messageIncoming, timeArrival, F6);
+					printInfoMessage(semID,messageIncoming, timeArrival, F6);
 					exit(0);
 				} else if (pidPIPER1_1 == -1){
 					ErrExit("Fork");
@@ -184,8 +196,6 @@ int main(int argc, char *argv[]){
 
 				semOp(semID, PIPE4WRITER, 1);
 			}
-			pause();
-			exit(0);
 		} else if (pidPIPER1 == -1){
 			ErrExit("Fork");
 		} else {
@@ -197,7 +207,9 @@ int main(int argc, char *argv[]){
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R1");
 
-		pause();
+		while(1)
+			sleep(1);
+		print_log("R2 morto\n");
 		exit(0);
 	} else if (pidR1 == -1){
 		ErrExit("Fork");
@@ -233,7 +245,7 @@ int main(int argc, char *argv[]){
 					struct tm timeArrival = *localtime(&now);
 
 					customPause(messageIncoming.DelS2);
-					printInfoMessage(messageIncoming, timeArrival, F5);
+					printInfoMessage(semID,messageIncoming, timeArrival, F5);
 					deliverMessage(messageIncoming, "R2");
 					exit(0);
 				} else if (pidPIPER2_1 == -1){
@@ -247,7 +259,9 @@ int main(int argc, char *argv[]){
 				semOp(semID, PIPE3WRITER, 1);
 			}
 
-			pause();
+			while(1)
+				sleep(1);
+			print_log("R3 morto\n");
 			exit(0);
 		} else if (pidPIPER2 == -1){
 			ErrExit("Fork");
@@ -309,19 +323,33 @@ int main(int argc, char *argv[]){
 		ErrExit("msgrmv failed");
 	}
 
+	//Segna chiuso Q
+	completeInF10("Q");
+
 	//Eliminazione memoria condivisa
 	if(SHMID != -1){
 		free_shared_memory(shMessages);
 		remove_shared_memory(SHMID);
 	}
 
+	//Segna chiuso SH
+	completeInF10("SH");
+
 	unlink(FIFO);
+
+	// Segna chiuso S
+	completeInF10("FIFO");
 
 	//Eliminazione semafori
 	if (semID != -1 && semctl(semID, 0, IPC_RMID, 0) == -1)
 	{
 		ErrExit("semrmv failed");
 	}
+
+	//Segna chiuso S
+	completeInF10("S");
+
+
 
 	// Eliminazione della struttura dei messaggi di pids
 	free(myChildrenPid->pids);
@@ -389,7 +417,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					//dormi
 					customPause(messaggio.message.DelS1);
 					//stampa le info sul tuo file
-					printInfoMessage(messaggio.message, timeArrival, F6);
+					printInfoMessage(semID,messaggio.message, timeArrival, F6);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
@@ -406,7 +434,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					//dormi
 					customPause(messaggio.message.DelS2);
 					//stampa le info sul tuo file
-					printInfoMessage(messaggio.message, timeArrival, F5);
+					printInfoMessage(semID,messaggio.message, timeArrival, F5);
 					deliverMessage(messaggio.message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
@@ -424,7 +452,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					//dormi
 					customPause(messaggio.message.DelS3);
 					//stampa le info sul tuo file
-					printInfoMessage(messaggio.message, timeArrival, F4);
+					printInfoMessage(semID,messaggio.message, timeArrival, F4);
 					deliverMessage(messaggio.message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
@@ -466,7 +494,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 						//dormi
 						customPause(shMessages->messages[i].DelS1);
 						//stampa le info sul tuo file
-						printInfoMessage(shMessages->messages[i], timeArrival, F6);
+						printInfoMessage(semID,shMessages->messages[i], timeArrival, F6);
 						exit(0);
 					} else if (childS1 == -1) {
 						ErrExit("Fork");
@@ -480,7 +508,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					pid_t childS1 = fork();
 					if(childS1 == 0){
 						customPause(shMessages->messages[i].DelS2);
-						printInfoMessage(shMessages->messages[i], timeArrival, F5);
+						printInfoMessage(semID,shMessages->messages[i], timeArrival, F5);
 						deliverMessage(shMessages->messages[i], processo);
 						exit(0);
 					} else if (childS1 == -1) {
@@ -495,7 +523,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					pid_t childS1 = fork();
 					if(childS1 == 0){
 						customPause(shMessages->messages[i].DelS3);
-						printInfoMessage(shMessages->messages[i], timeArrival, F4);
+						printInfoMessage(semID,shMessages->messages[i], timeArrival, F4);
 						deliverMessage(shMessages->messages[i], processo);
 						exit(0);
 					} else if (childS1 == -1) {
@@ -532,7 +560,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			pid_t childFIFO = fork();
 			if(childFIFO == 0){
 				customPause(message.DelS3);
-				printInfoMessage(message, timeArrival, F4);
+				printInfoMessage(semID,message, timeArrival, F4);
 				deliverMessage(message, "R3");
 				exit(0);
 			} else if (childFIFO == -1) {

@@ -116,9 +116,10 @@ void printIntestazione(char file[])
 
 	close(fp);
 }
-void printInfoMessage(message_sending message, struct tm timeArrival, char file[])
+void printInfoMessage(int semID, message_sending message, struct tm timeArrival, char file[])
 {
 
+	semOp(semID, INFOMESSAGEFILE, -1);
 	//scrivo in append il messaggio al file già presente cosi non perdo i messaggi precedenti
 	int fp = open(file, O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fp == -1)
@@ -145,6 +146,7 @@ void printInfoMessage(message_sending message, struct tm timeArrival, char file[
 	free(string);
 
 	close(fp);
+	semOp(semID, INFOMESSAGEFILE, 1);
 }
 
 void ordinaPerDel(message_group *messageG, char DEL[])
@@ -177,6 +179,16 @@ void ordinaPerDel(message_group *messageG, char DEL[])
 void appendInF10(char * buffer, ssize_t bufferLength)
 {
 	//creo il file se è gia presente lo sovrascrivo
+	int counter = 0;
+	for(int i =0; i<strlen(buffer); i++){
+		if(buffer[i] == ';'){
+			counter++;
+			if(counter == 4){
+				buffer[i+1]='\n';
+				buffer[i+2]='\0';
+			}
+		}
+	}
 	int fp = open(F10, O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fp == -1)
 		ErrExit("Open");
@@ -185,6 +197,97 @@ void appendInF10(char * buffer, ssize_t bufferLength)
 	write(fp, buffer, bufferLength);
 	close(fp);
 	free(buffer);
+}
+
+void completeInF10(char * searchBuffer) {
+	//apro il file 
+	int fp = open(F10, O_RDONLY);
+	if (fp == -1)
+		ErrExit("Open");
+
+	// utilizzo lseek per calcolarne le dimensioni 
+	int fileSize = lseek(fp, (size_t)0, SEEK_END);
+	if (fileSize == -1) { ErrExit("Lseek"); }
+
+	// posiziono l'offset alla prima riga delle azioni (salto i titoli) 
+	if (lseek(fp, (size_t)F10Header * sizeof(char), SEEK_SET) == -1) {
+		ErrExit("Lseek");
+	}
+
+	int bufferLength = fileSize / sizeof(char) - F10Header;
+	char buf[bufferLength];
+	if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
+		ErrExit("Read");
+	}
+
+	//numero di action che inserisco
+	int index = 0;
+	char *end_str;
+
+	// Preparo la stringa del tempo
+	time_t now = time(NULL);
+	struct tm local = *localtime(&now);
+	ssize_t timeLength = (10 * sizeof(char));
+	char *appendString = malloc(timeLength);
+	sprintf(appendString, "%02d:%02d:%02d\n", local.tm_hour, local.tm_min, local.tm_sec);
+
+	int offsetLength = F10Header;
+	int found = 0;
+
+	//prendo la riga che è delimitata dal carattere \n
+	char *row = strtok_r(buf, "\n", &end_str);
+	//scorro finchè la riga non è finita
+	while (row != NULL)
+	{
+
+		// Se non ho trovato aggiungo il numero di caratteri per cui spostarmi in avanti
+		if(found == 0){
+			offsetLength += strlen(row);
+		}
+
+		// Se ho trovato il campo ricercato mi sposto avanti e aggiungo alla stringa da incollare
+		if(found == 1){
+			strcat(appendString,row);
+			strcat(appendString,"\n");
+		}
+
+		char *end_segment;
+		char *segment = strtok_r(row, ";", &end_segment);
+		int campo=0;
+		while (segment!=NULL)
+		{	
+			if(found == 0 && campo == 0 && strcmp(segment, searchBuffer)==0){
+				found = 1;
+			}
+
+			campo++;
+			segment = strtok_r(NULL, ";", &end_segment);
+		}
+
+		index++;
+		row = strtok_r(NULL, "\n", &end_str);
+	}
+	close(fp);
+
+	fp = open(F10, O_WRONLY, S_IRUSR | S_IWUSR);
+	if (fp == -1)
+		ErrExit("Open");
+
+	if (lseek(fp, (size_t)(offsetLength) * sizeof(char) + 1, SEEK_SET) == -1)
+		ErrExit("Lseek");
+
+	int i;
+	for( i = strlen(appendString) - 1; !isdigit(appendString[i]) && appendString[i]!=';'; i--);
+	appendString[i+1] = '\n';
+	appendString[i+2] = '\0';
+	
+	if (write(fp, appendString, strlen(appendString)) != strlen(appendString))
+	{
+		print_log("ERRORE\n");
+		ErrExit("Write");
+	}
+	close(fp);
+	free(appendString);
 }
 
 char * timestamp(){

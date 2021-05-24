@@ -21,6 +21,7 @@
 #include "semaphore.h"
 #include <signal.h>
 #include <string.h>      
+#include <ctype.h>      
 #define print_log(f_, ...) printf((f_), ##__VA_ARGS__), printf("PID: %d, PARENT_PID: %d\n%s\n%s:%d\n\n",getpid(), getppid(), timestamp(),__FILE__,__LINE__)
 
 //nomi simbolici dei file su cui agisco
@@ -40,6 +41,7 @@
 
 //dimensioni classiche mi servono (stringa titoli dei messaggi, stringa titoli delle sole intestazioni dei messaggi, stringa titolo delle sole intestazioni dei messaggi di header)
 #define TrafficInfoLength 57
+#define F10Header 47
 #define MessageSendingHeader 54
 #define ActionSendingHeader 23
 #define ReceiverPIDHeader 16
@@ -146,7 +148,8 @@ void printMessage(message_sending);
 void printAction(action);
 void writeTraffic(char *, message_group *);
 ssize_t dimensioneOfMessage(message_sending message);
-void printInfoMessage(message_sending message, struct tm timeArrival, char file[]);
+void printInfoMessage(int semID,message_sending message, struct tm timeArrival, char file[]);
 void printIntestazione(char FILE[]);
 void ordinaPerDel(message_group *messageG, char DEL[]);
 void appendInF10(char * buffer, ssize_t bufferLength);
+void completeInF10(char * searchBuffer); 

@@ -1,4 +1,5 @@
 ID;Message;IDSender;IDReceiver;TimeArrival;TimeDeparture
+<<<<<<< HEAD
 2;SH;1;2;23:37:55;23:37:56
 3;SH;1;2;23:37:55;23:37:57
 3;SH;1;2;23:37:56;23:37:58
@@ -18,3 +19,5 @@ ID;Message;IDSender;IDReceiver;TimeArrival;TimeDeparture
 14;SH;1;2;23:38:10;23:38:23
 15;SH;1;2;23:38:11;23:38:25
 16;SH;1;2;23:38:13;23:38:28
+=======
+>>>>>>> 1ec3e79c73e32efc8efdb2d75f24a382e795f888
