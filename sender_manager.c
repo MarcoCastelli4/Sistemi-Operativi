@@ -52,6 +52,7 @@ void customPause(int startingDelay){
 }
 
 void sigHandlerSender(int sig){
+	// PER PROCESSI PADRI
 	if(sig == SIGTERM){
 		recursiveKill(getpid());
 		exit(0);
@@ -73,6 +74,7 @@ void sigHandlerSender(int sig){
 				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
+	// PER PROCESSI MESSAGGI
 	} else if(sig == SIGPIPE){
 		waitTime += 5;
 		pause();
