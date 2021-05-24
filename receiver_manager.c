@@ -66,7 +66,7 @@ void sigHandlerReceiver(int sig){
 		pause();
 	} else if(sig == SIGCONT){
 		waitTime = 0;
-	}else if(sig == SIGALRM){
+	} else if(sig == SIGALRM){
 		// GENERIC DETECTOR
 	} 
 	return;
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]){
 					struct tm timeArrival = *localtime(&now);
 
 					customPause(messageIncoming.DelS1);
-					printInfoMessage(messageIncoming, timeArrival, F6);
+					printInfoMessage(semID,messageIncoming, timeArrival, F6);
 					exit(0);
 				} else if (pidPIPER1_1 == -1){
 					ErrExit("Fork");
@@ -232,7 +232,7 @@ int main(int argc, char *argv[]){
 					struct tm timeArrival = *localtime(&now);
 
 					customPause(messageIncoming.DelS2);
-					printInfoMessage(messageIncoming, timeArrival, F5);
+					printInfoMessage(semID,messageIncoming, timeArrival, F5);
 					deliverMessage(messageIncoming, "R2");
 					exit(0);
 				} else if (pidPIPER2_1 == -1){
@@ -388,7 +388,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					//dormi
 					customPause(messaggio.message.DelS1);
 					//stampa le info sul tuo file
-					printInfoMessage(messaggio.message, timeArrival, F6);
+					printInfoMessage(semID,messaggio.message, timeArrival, F6);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
@@ -405,7 +405,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					//dormi
 					customPause(messaggio.message.DelS2);
 					//stampa le info sul tuo file
-					printInfoMessage(messaggio.message, timeArrival, F5);
+					printInfoMessage(semID,messaggio.message, timeArrival, F5);
 					deliverMessage(messaggio.message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
@@ -423,7 +423,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					//dormi
 					customPause(messaggio.message.DelS3);
 					//stampa le info sul tuo file
-					printInfoMessage(messaggio.message, timeArrival, F4);
+					printInfoMessage(semID,messaggio.message, timeArrival, F4);
 					deliverMessage(messaggio.message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
@@ -459,7 +459,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					//dormi
 					customPause(request_shared_memory->message.DelS1);
 					//stampa le info sul tuo file
-					printInfoMessage(request_shared_memory->message, timeArrival, F6);
+					printInfoMessage(semID,request_shared_memory->message, timeArrival, F6);
 					exit(0);
 				} else if (childS1 == -1) {
 					ErrExit("Fork");
@@ -473,7 +473,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				pid_t childS1 = fork();
 				if(childS1 == 0){
 					customPause(request_shared_memory->message.DelS2);
-					printInfoMessage(request_shared_memory->message, timeArrival, F5);
+					printInfoMessage(semID,request_shared_memory->message, timeArrival, F5);
 					deliverMessage(request_shared_memory->message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
@@ -488,7 +488,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				pid_t childS1 = fork();
 				if(childS1 == 0){
 					customPause(request_shared_memory->message.DelS3);
-					printInfoMessage(request_shared_memory->message, timeArrival, F4);
+					printInfoMessage(semID,request_shared_memory->message, timeArrival, F4);
 					deliverMessage(request_shared_memory->message, processo);
 					exit(0);
 				} else if (childS1 == -1) {
@@ -524,7 +524,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			pid_t childFIFO = fork();
 			if(childFIFO == 0){
 				customPause(message.DelS3);
-				printInfoMessage(message, timeArrival, F4);
+				printInfoMessage(semID,message, timeArrival, F4);
 				deliverMessage(message, "R3");
 				exit(0);
 			} else if (childFIFO == -1) {

@@ -116,9 +116,10 @@ void printIntestazione(char file[])
 
 	close(fp);
 }
-void printInfoMessage(message_sending message, struct tm timeArrival, char file[])
+void printInfoMessage(int semID, message_sending message, struct tm timeArrival, char file[])
 {
 
+	semOp(semID, INFOMESSAGEFILE, -1);
 	//scrivo in append il messaggio al file già presente cosi non perdo i messaggi precedenti
 	int fp = open(file, O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fp == -1)
@@ -145,6 +146,7 @@ void printInfoMessage(message_sending message, struct tm timeArrival, char file[
 	free(string);
 
 	close(fp);
+	semOp(semID, INFOMESSAGEFILE, 1);
 }
 
 void ordinaPerDel(message_group *messageG, char DEL[])

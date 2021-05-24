@@ -78,7 +78,7 @@ void sigHandlerSender(int sig){
 		pause();
 	} else if(sig == SIGCONT){
 		waitTime = 0;
-	}else if(sig == SIGALRM){
+	} else if(sig == SIGALRM){
 		// GENERIC DETECTOR
 	} 
 	return;
@@ -518,7 +518,7 @@ void sendMessage(message_group *messageG, char processo[])
 				customPause(messageG->messages[i].DelS1);
 
 				//stampa su file F1
-				printInfoMessage(messageG->messages[i], timeArrival, F1);
+				printInfoMessage(semID,messageG->messages[i], timeArrival, F1);
 				messageHandler(messageG->messages[i], "S1");
 				exit(0);
 			}
@@ -538,7 +538,7 @@ void sendMessage(message_group *messageG, char processo[])
 				customPause(messageG->messages[i].DelS2);
 
 				//stampa su file F2
-				printInfoMessage(messageG->messages[i], timeArrival, F2);
+				printInfoMessage(semID,messageG->messages[i], timeArrival, F2);
 				messageHandler(messageG->messages[i], "S2");
 				exit(0);
 			}
@@ -558,7 +558,7 @@ void sendMessage(message_group *messageG, char processo[])
 				customPause(messageG->messages[i].DelS3);
 
 				//stampa su file F3
-				printInfoMessage(messageG->messages[i], timeArrival, F3);
+				printInfoMessage(semID,messageG->messages[i], timeArrival, F3);
 				messageHandler(messageG->messages[i], "S3");
 				exit(0);
 			}
