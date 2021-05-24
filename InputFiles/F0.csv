@@ -1,8 +1,2 @@
 Id;Message;IdSender;IdReceiver;DelS1;DelS2;DelS3;Type
-<<<<<<< HEAD
-3;C;S2;R1;1;1;1;Q
-3;B;S3;R1;2;2;2;Q
-=======
-1;QSS;S1;R3;6;1;3;Q
-2;SHH;S1;R3;4;1;3;SH
->>>>>>> 40274e6320bd10971400bca3f846cf618f7db215
+3;C;S3;R3;3;1;4;Q

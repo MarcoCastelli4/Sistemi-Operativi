@@ -29,7 +29,26 @@ void recursiveKill(pid_t pid){
 			recursiveKill(myChildrenPid->pids[i].pid);
 		}
 	}
-	kill(pid,SIGKILL);
+	// Se sei testo ucciditi
+	if(pid == getpid()){
+		kill(pid,SIGKILL);
+	} else {
+		// Altrimenti manda un sigterm in modo che uccida tutta la sua catena di figli
+		kill(pid,SIGTERM);
+	}
+	exit(0);
+}
+
+void customPause(int startingDelay){
+	alarm(startingDelay); //dormi per quanto ti manca
+	pause();
+	while(waitTime != 0){
+		print_log("ENTRO IN SECONDA ATTESA %d\n",waitTime);
+		alarm(waitTime);
+		waitTime = 0;
+		pause();
+		print_log("SECONDA ATTESA TERMINATA\n");
+	}
 }
 
 void sigHandlerSender(int sig){
@@ -54,18 +73,14 @@ void sigHandlerSender(int sig){
 				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
-	} else if(sig == SIGALRM){
-		if(waitTime != 0){
-			sleep(waitTime);
-			waitTime = 0;
-		}
 	} else if(sig == SIGPIPE){
 		waitTime += 5;
 		pause();
-		// TODO doppio sig pipe rompe il sistema
 	} else if(sig == SIGCONT){
-		// GENERIC WAKE UP WITHOUT WAIT TIME
-	}
+		waitTime = 0;
+	}else if(sig == SIGALRM){
+		// GENERIC DETECTOR
+	} 
 	return;
 }
 
@@ -438,35 +453,35 @@ message_group *carica_F0(char nomeFile[])
 			//memorizzo il segmento ne rispettivo campo della struttura
 			switch (campo)
 			{
-			case 0:
-				messageList[messageNumber].id = atoi(segment);
-				break;
-			case 1:
+				case 0:
+					messageList[messageNumber].id = atoi(segment);
+					break;
+				case 1:
 
-				strcpy(messageList[messageNumber].message, segment);
-				break;
-			case 2:
-				strcpy(messageList[messageNumber].idSender, segment);
-				break;
-			case 3:
+					strcpy(messageList[messageNumber].message, segment);
+					break;
+				case 2:
+					strcpy(messageList[messageNumber].idSender, segment);
+					break;
+				case 3:
 
-				strcpy(messageList[messageNumber].idReceiver, segment);
-				break;
-			case 4:
-				messageList[messageNumber].DelS1 = atoi(segment);
-				break;
-			case 5:
-				messageList[messageNumber].DelS2 = atoi(segment);
-				break;
-			case 6:
-				messageList[messageNumber].DelS3 = atoi(segment);
-				break;
-			case 7:
-				segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
-				strcpy(messageList[messageNumber].Type, segment);
-				break;
-			default:
-				break;
+					strcpy(messageList[messageNumber].idReceiver, segment);
+					break;
+				case 4:
+					messageList[messageNumber].DelS1 = atoi(segment);
+					break;
+				case 5:
+					messageList[messageNumber].DelS2 = atoi(segment);
+					break;
+				case 6:
+					messageList[messageNumber].DelS3 = atoi(segment);
+					break;
+				case 7:
+					segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
+					strcpy(messageList[messageNumber].Type, segment);
+					break;
+				default:
+					break;
 			}
 			//vado al campo successivo
 			campo++;
@@ -499,8 +514,8 @@ void sendMessage(message_group *messageG, char processo[])
 
 			pid_t childS1 = fork();
 			if(childS1 == 0){
-				alarm(messageG->messages[i].DelS1); //dormi per quanto ti manca
-				pause();
+				print_log("PRIMA ATTESA\n");
+				customPause(messageG->messages[i].DelS1);
 
 				//stampa su file F1
 				printInfoMessage(messageG->messages[i], timeArrival, F1);
@@ -520,8 +535,8 @@ void sendMessage(message_group *messageG, char processo[])
 		{
 			pid_t childS1 = fork();
 			if(childS1 == 0){
-				alarm(messageG->messages[i].DelS2); //dormi per quanto ti manca
-				pause();
+				customPause(messageG->messages[i].DelS2);
+
 				//stampa su file F2
 				printInfoMessage(messageG->messages[i], timeArrival, F2);
 				messageHandler(messageG->messages[i], "S2");
@@ -540,8 +555,7 @@ void sendMessage(message_group *messageG, char processo[])
 		{
 			pid_t childS1 = fork();
 			if(childS1 == 0){
-				alarm(messageG->messages[i].DelS3); //dormi per quanto ti manca
-				pause();
+				customPause(messageG->messages[i].DelS3);
 
 				//stampa su file F3
 				printInfoMessage(messageG->messages[i], timeArrival, F3);
