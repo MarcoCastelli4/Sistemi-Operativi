@@ -1,3 +1,6 @@
 ID;Message;IDSender;IDReceiver;TimeArrival;TimeDeparture
+<<<<<<< HEAD
 3;C;2;1;12:20:55;12:20:56
 3;B;3;1;12:20:56;12:20:58
+=======
+>>>>>>> 40274e6320bd10971400bca3f846cf618f7db215

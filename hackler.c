@@ -21,7 +21,7 @@ void writeActionReverse(char *,action_group*);
 void increaseDelay(pid_t);
 void sendMsg(pid_t);
 void removeMsg(pid_t);
-
+void shutDownProcess(pid_t);
 
 int main(int argc, char * argv[]) {
 
@@ -55,13 +55,13 @@ int main(int argc, char * argv[]) {
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
-        sleep(action_group->actions[i].delay + 10);
-        kill(senderPids[0],SIGINT);
-        kill(senderPids[1],SIGINT);
-        kill(senderPids[2],SIGINT);
-        kill(receiverPids[0],SIGINT);
-        kill(receiverPids[1],SIGINT);
-        kill(receiverPids[2],SIGINT);
+        sleep(action_group->actions[i].delay);
+        shutDownProcess(senderPids[0]);
+        shutDownProcess(senderPids[1]);
+        shutDownProcess(senderPids[2]);
+        shutDownProcess(receiverPids[0]);
+        shutDownProcess(receiverPids[1]);
+        shutDownProcess(receiverPids[2]);
         exit(0);
       }
     } else if(strcmp(action_group->actions[i].action,"IncreaseDelay")==0){
@@ -233,15 +233,23 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
 }
 
 void increaseDelay(pid_t pid){
-  kill(pid,SIGTERM);
+  /** print_log("HO INVIATO IL SEGNALE DI INCREASE DELAY (sigusr2) A pid %d\n",pid); */
+  kill(pid,SIGUSR2);
 }
 
 void sendMsg(pid_t pid){
+  /** print_log("HO INVIATO IL SEGNALE DI SENDMSG (sigusr1) A pid %d\n",pid); */
   kill(pid,SIGUSR1);
 }
 
 void removeMsg(pid_t pid){
-  kill(pid,SIGUSR2);
+  /** print_log("HO INVIATO IL SEGNALE DI REMOVE MSG (sigint) A pid %d\n",pid); */
+  kill(pid,SIGINT);
+}
+
+void shutDownProcess(pid_t pid){
+  /** print_log("HO INVIATO IL SEGNALE DI MORTE (sigterm) A pid %d\n",pid); */
+  kill(pid,SIGTERM);
 }
 
 action_group* carica_F7(char nomeFile[]) {
