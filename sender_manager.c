@@ -124,11 +124,11 @@ int main(int argc, char *argv[])
 	struct tm TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	ssize_t bufferLength = (sizeof("S") + numcifre(semID) + sizeof("SM") + 12 * sizeof(char));
+	ssize_t bufferLength = (sizeof("S") + numcifre(semID) + sizeof("SM") + 11 * sizeof(char));
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "S", semID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "S", semID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -144,11 +144,11 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("Q") + numcifre(MSQID) + sizeof("SM") + 12 * sizeof(char));
+	bufferLength = (sizeof("Q") + numcifre(MSQID) + sizeof("SM") + 11 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "Q", MSQID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "Q", MSQID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -164,11 +164,11 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("SH") + numcifre(SHMID) + sizeof("SM") + 12 * sizeof(char));
+	bufferLength = (sizeof("SH") + numcifre(SHMID) + sizeof("SM") + 11 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "SH", SHMID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "SH", SHMID, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -186,11 +186,11 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("FIFO") + numcifre(res) + sizeof("SM") + 12 * sizeof(char));
+	bufferLength = (sizeof("FIFO") + numcifre(res) + sizeof("SM") + 11 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "FIFO", res, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "FIFO", res, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -204,11 +204,11 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("PIPE1") + numcifre(resPipe1) + sizeof("SM") + 12 * sizeof(char));
+	bufferLength = (sizeof("PIPE1") + numcifre(resPipe1) + sizeof("SM") + 11 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE1", resPipe1, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "PIPE1", resPipe1, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -222,11 +222,11 @@ int main(int argc, char *argv[])
 	TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("PIPE2") + numcifre(resPipe2) + sizeof("SM") + 12 * sizeof(char));
+	bufferLength = (sizeof("PIPE2") + numcifre(resPipe2) + sizeof("SM") + 11 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE2", resPipe2, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "PIPE2", resPipe2, "SM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -364,6 +364,13 @@ int main(int argc, char *argv[])
 	free(myChildrenPid->pids);
 	free(myChildrenPid);
 
+	print_log("CIAO CIAO\n");
+
+	//calcolo la dimensione della riga da scrivere
+	completeInF10("PIPE1");
+
+	//calcolo la dimensione della riga da scrivere
+	completeInF10("PIPE2");
 
 	//termino il processo padre
 	exit(0);
@@ -590,59 +597,6 @@ void messageHandler(message_sending message, char processo[])
 	memcpy(&m.message, &message, sizeof(message));
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
 
-
-	/**   //se sono nel processo sender corretto
-	 *   if (strcmp(processo, message.idSender) == 0)
-	 *   {
-	 *     //viene inviato tramite message queue
-	 *     if (strcmp(message.Type, "Q") == 0)
-	 *     {
-	 *       // sending the message in the queue
-	 *       semOp(semID, REQUEST, 1);
-	 *       if (msgsnd(MSQID, &m, mSize, 0) == -1)
-	 *         ErrExit("msgsnd failed");
-	 *       semOp(semID, DATAREADY, -1);
-	 *     }
-	 *     //viene inviato tramite shared memory
-	 *     else if (strcmp(message.Type, "SH") == 0)
-	 *     {
-	 *       semOp(semID, REQUEST, 1);
-	 *       memcpy(request_shared_memory, &message, sizeof(message));
-	 *       semOp(semID, DATAREADY, -1);
-	 *     }
-	 *     else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
-	 *     {
-	 *       //invia a R3 tramite FIFO
-	 *       semOp(semID, REQUEST, 1);
-	 *       int fd = open(FIFO, O_WRONLY);
-	 *       write(fd, &message, sizeof(message));
-	 *       close(fd);
-	 *       semOp(semID, DATAREADY, -1);
-	 *     }
-	 *   }
-	 *   //non sono nel processo sender corretto, seguo la catena di invio
-	 *   else
-	 *   {
-	 *     //viene inviato tramite PIPE, fino a che non raggiunge il sender corretto con il quale partità con modalità Type
-	 *     if (strcmp(processo, "S1") == 0){
-	 *       //invia a S2 tramite PIPE
-	 *       semOp(semID, PIPE1WRITER, -1);
-	 *       ssize_t nBys = write(pipe1[1], &message, sizeof(message));
-	 *       if(nBys != sizeof(message))
-	 *         ErrExit("Messaggio inviato male");
-	 *       semOp(semID, PIPE1READER, 1);
-	 *     } else if (strcmp(processo, "S2") == 0)
-	 *     {
-	 *       //invia a S3 tramite PIPE
-	 *       semOp(semID, PIPE2WRITER, -1);
-	 *       ssize_t nBys = write(pipe2[1], &message, sizeof(message));
-	 *       if(nBys != sizeof(message))
-	 *         ErrExit("Messaggio inviato male");
-	 *       semOp(semID, PIPE2READER, 1);
-	 *
-	 *     }
-	 *   } */
-
 	//se sono nel processo sender corretto
 	//viene inviato tramite message queue
 	if (strcmp(message.Type, "Q") == 0 && strcmp(processo, message.idSender) == 0)
@@ -701,14 +655,13 @@ void writeF10Header()
 		ErrExit("Open");
 
 	//calcolo il numero totale di caratteri da scrivere nel buffer
-	int n = 55;
 
 	//inizializzo buffer delle dimenisoni corrette
-	ssize_t bufferLength = sizeof(char) * n;
+	ssize_t bufferLength = sizeof(char) * F10Header;
 	char *buffer = malloc(bufferLength);
 
 	//converto i dati in stringa
-	sprintf(buffer, "IPC | IDKey | Creator | CreationTime | DestructionTime\n");
+	sprintf(buffer, "IPC;IDKey;Creator;CreationTime;DestructionTime\n");
 
 	//scrivo sul file
 	write(fp, buffer, bufferLength);

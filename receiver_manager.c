@@ -131,11 +131,11 @@ int main(int argc, char *argv[]){
 	struct tm TimeDeparture = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
-	ssize_t bufferLength = (sizeof("PIPE3") +numcifre(resPipe3) +  sizeof("SM") + 12 * sizeof(char));
+	ssize_t bufferLength = (sizeof("PIPE3") +numcifre(resPipe3) +  sizeof("RM") + 11 * sizeof(char));
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n", "PIPE3",resPipe3, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "PIPE3",resPipe3, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -148,12 +148,12 @@ int main(int argc, char *argv[]){
 	now = time(NULL);
 	TimeDeparture = *localtime(&now);
 
-	//calcolo la dimensione della riga da scrivere
-	bufferLength = (sizeof("PIPE2") +numcifre(resPipe4) +  sizeof("SM") + 12 * sizeof(char));
+	//calcolo la dimensione della riga da scrivere, 10 invece che 11 per prevenire bug per caratteri particolari
+	bufferLength = (sizeof("PIPE2") +numcifre(resPipe4) +  sizeof("RM") + 11 * sizeof(char));
 	string = (char *) malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;;\n",  "PIPE4",resPipe4, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n",  "PIPE4",resPipe4, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
 
 	appendInF10(string, bufferLength);
 
@@ -322,19 +322,33 @@ int main(int argc, char *argv[]){
 		ErrExit("msgrmv failed");
 	}
 
+	//Segna chiuso Q
+	completeInF10("Q");
+
 	//Eliminazione memoria condivisa
 	if(SHMID != -1){
 		free_shared_memory(request_shared_memory);
 		remove_shared_memory(SHMID);
 	}
 
+	//Segna chiuso SH
+	completeInF10("SH");
+
 	unlink(FIFO);
+
+	// Segna chiuso S
+	completeInF10("FIFO");
 
 	//Eliminazione semafori
 	if (semID != -1 && semctl(semID, 0, IPC_RMID, 0) == -1)
 	{
 		ErrExit("semrmv failed");
 	}
+
+	//Segna chiuso S
+	completeInF10("S");
+
+
 
 	// Eliminazione della struttura dei messaggi di pids
 	free(myChildrenPid->pids);
