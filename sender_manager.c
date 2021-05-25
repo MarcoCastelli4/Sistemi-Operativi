@@ -616,7 +616,7 @@ void messageHandler(message_sending message, char processo[])
 		semOp(semID, REQUEST, 1);
 		memcpy(&shMessages->messages[shMessages->cursorEnd], &message, sizeof(message));	
 		shMessages->messages[shMessages->cursorEnd] = message;
-		if(shMessages->cursorEnd < 15){
+		if(shMessages->cursorEnd < 4){
 			shMessages->cursorEnd++;
 		}else{
 			shMessages->cursorEnd = 0;

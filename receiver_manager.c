@@ -470,7 +470,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			semOp(semID, DATAREADY, 1);
 			continue;
 		} 
-		else if((strcmp("Q", messaggio.message.Type) == 0) && strcmp(messaggio.message.idReceiver, processo) != 0){
+		else if((strcmp("Q", messaggio.message.Type) == 0)){
 			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
 			} else {
@@ -484,11 +484,11 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 
-		// è arrivato un messaggio SH ed è per me(cioè processo)
-		else if (strcmp(processo, shMessages->messages[shMessages->cursorEnd-1].idReceiver) == 0){
-			//printf("Start: %d - End: %d\n", shMessages->cursorStart, shMessages->cursorEnd);
+		// C'è un messaggio da leggere SH ed è per me(cioè processo)
+		else if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
+			printf("Start: %d - End: %d\n", shMessages->cursorStart, shMessages->cursorEnd);
 			// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura
-			if(shMessages->cursorEnd < shMessages->cursorStart && shMessages->cursorStart == 15){
+			if(shMessages->cursorEnd < shMessages->cursorStart && shMessages->cursorStart == 4){
 				shMessages->cursorStart = 0;
 			}
 			int i = shMessages->cursorStart;
@@ -508,7 +508,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 						myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
 						myChildrenPid->length = myChildrenPid->length +1;
 					}
-					shMessages->cursorStart++;
 				} else if (strcmp(shMessages->messages[i].idReceiver, "R2") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
@@ -523,7 +522,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 						myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
 						myChildrenPid->length = myChildrenPid->length +1;
 					}
-					shMessages->cursorStart++;
 				} else if (strcmp(shMessages->messages[i].idReceiver, "R3") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
@@ -538,12 +536,12 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 						myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
 						myChildrenPid->length = myChildrenPid->length +1;
 					}
-					shMessages->cursorStart++;
-				} 
+				}
+				shMessages->cursorStart++;
 			}
 			semOp(semID, DATAREADY, 1);
 			continue;
-		} else if(strcmp("SH", shMessages->messages[shMessages->cursorEnd-1].Type) == 0 ){
+		} else if(strcmp("SH", shMessages->messages[shMessages->cursorStart].Type) == 0 ){
 			semOp(semID, REQUEST, 1);
 			continue;
 		}

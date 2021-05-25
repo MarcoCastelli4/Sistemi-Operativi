@@ -129,7 +129,7 @@ typedef struct
 {
   int cursorEnd;
   int cursorStart;
-  message_sending messages[15];
+  message_sending messages[5];
 } shared_memory_messages;
 
 struct message_queue
