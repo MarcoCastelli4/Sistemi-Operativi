@@ -40,15 +40,18 @@ void recursiveKill(pid_t pid){
 }
 
 void customPause(int startingDelay){
-	alarm(startingDelay); //dormi per quanto ti manca
-	pause();
-	while(waitTime != 0){
-		print_log("ENTRO IN SECONDA ATTESA %d\n",waitTime);
-		alarm(waitTime);
-		waitTime = 0;
+	if (startingDelay > 0){
+		alarm(startingDelay); //dormi per quanto ti manca
 		pause();
-		print_log("SECONDA ATTESA TERMINATA\n");
+		while(waitTime != 0){
+			print_log("ENTRO IN SECONDA ATTESA %d\n",waitTime);
+			alarm(waitTime);
+			waitTime = 0;
+			pause();
+			print_log("SECONDA ATTESA TERMINATA\n");
+		}
 	}
+	
 }
 
 void sigHandlerSender(int sig){
@@ -364,7 +367,7 @@ int main(int argc, char *argv[])
 	free(myChildrenPid->pids);
 	free(myChildrenPid);
 
-	print_log("CIAO CIAO\n");
+	//print_log("CIAO CIAO\n");
 
 	//calcolo la dimensione della riga da scrivere
 	completeInF10("PIPE1");
@@ -596,7 +599,6 @@ void messageHandler(message_sending message, char processo[])
 
 	memcpy(&m.message, &message, sizeof(message));
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
-
 	//se sono nel processo sender corretto
 	//viene inviato tramite message queue
 	if (strcmp(message.Type, "Q") == 0 && strcmp(processo, message.idSender) == 0)
@@ -610,12 +612,10 @@ void messageHandler(message_sending message, char processo[])
 	//viene inviato tramite shared memory
 	else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0)
 	{
-		semOp(semID, REQUEST, 1);
 		
-		if(shMessages->messages[shMessages->cursorEnd].idSender[0] == '\0'){
-			memcpy(&shMessages->messages[shMessages->cursorEnd], &message, sizeof(message));	
-			shMessages->messages[shMessages->cursorEnd] = message;
-		}
+		semOp(semID, REQUEST, 1);
+		memcpy(&shMessages->messages[shMessages->cursorEnd], &message, sizeof(message));	
+		shMessages->messages[shMessages->cursorEnd] = message;
 		if(shMessages->cursorEnd < 15){
 			shMessages->cursorEnd++;
 		}else{

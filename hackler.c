@@ -2,11 +2,7 @@
 
 /// @brief Contiene l'implementazione del client.
 
-
-
 #include "defines.h"
-
-
 
 int semID = -1;
 
@@ -50,7 +46,7 @@ int main(int argc, char * argv[]) {
   carica_PIDS(F9,ReceiverPIDHeader,receiverPids);
   //scorro le azioni dell'hackler
 
-  for(i=0; i < action_group->length -1; i++){
+  for(i=0; i < action_group->length - 1; i++){
 
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
       pid_t actionProcess= fork();

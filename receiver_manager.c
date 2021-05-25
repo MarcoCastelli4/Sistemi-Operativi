@@ -32,12 +32,14 @@ void recursiveKill(pid_t pid){
 }
 
 void customPause(int startingDelay){
-	alarm(startingDelay); //dormi per quanto ti manca
-	pause();
-	while(waitTime != 0){
-		alarm(waitTime);
-		waitTime = 0;
+	if(startingDelay > 0){
+		alarm(startingDelay); //dormi per quanto ti manca
 		pause();
+		while(waitTime != 0){
+			alarm(waitTime);
+			waitTime = 0;
+			pause();
+		}
 	}
 }
 
@@ -396,6 +398,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
 	while (1)
 	{
+		// C'è un messaggio in arrivo
 		semOp(semID, REQUEST, -1);
 
 		//printf("Sono: %s e sto ascoltando\n", processo);
@@ -406,10 +409,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
 		//prelevo il messaggio senza aspettare
 		msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
-
-		//sei nel processo receiver corretto?
+		
+		//sei nel processo receiver corretto? ed è arrivato Q
 		if(strcmp(processo, messaggio.message.idReceiver) == 0){
-			printf("Messagio %s; è arrivato un messaggio Q per me (%s);\n", toString(messaggio.message), processo);
 			if (strcmp(messaggio.message.idReceiver, "R1") == 0)
 			{
 				pid_t childS1 = fork();
@@ -463,15 +465,17 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 					myChildrenPid->length = myChildrenPid->length +1;
 				}
 			}
+			// Pulisco la variabile message
+			memset(&messaggio, 0, sizeof(messaggio));
 			semOp(semID, DATAREADY, 1);
 			continue;
 		} 
-		else if(strcmp("Q", messaggio.message.Type)== 0){
-			printf("Messagio %s; è arrivato un messaggio Q NON per me (%s);\n",toString(messaggio.message), processo);
-			//messaggio per un altro receiver
+		else if((strcmp("Q", messaggio.message.Type) == 0) && strcmp(messaggio.message.idReceiver, processo) != 0){
 			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 				ErrExit("re-msgsnd failed");
 			} else {
+				// Pulisco la variabile message
+				memset(&messaggio, 0, sizeof(messaggio));
 				semOp(semID, REQUEST, 1);
 				continue;
 			}
@@ -480,13 +484,14 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 
-		
+		// è arrivato un messaggio SH ed è per me(cioè processo)
 		else if (strcmp(processo, shMessages->messages[shMessages->cursorEnd-1].idReceiver) == 0){
+			//printf("Start: %d - End: %d\n", shMessages->cursorStart, shMessages->cursorEnd);
 			// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura
-			if(shMessages->cursorEnd < shMessages->cursorStart){
+			if(shMessages->cursorEnd < shMessages->cursorStart && shMessages->cursorStart == 15){
 				shMessages->cursorStart = 0;
 			}
-			int i = shMessages->cursorStart-1;
+			int i = shMessages->cursorStart;
 			for(; i < shMessages->cursorEnd; i++){
 				if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
 					pid_t childS1 = fork();
@@ -538,20 +543,21 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			}
 			semOp(semID, DATAREADY, 1);
 			continue;
-		} 
+		} else if(strcmp("SH", shMessages->messages[shMessages->cursorEnd-1].Type) == 0 ){
+			semOp(semID, REQUEST, 1);
+			continue;
+		}
 
 		//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
 
 		//-------------------------------------------------- BLOCCO FIFO --------------------------------------------------
 
 		else if (strcmp("R3",  processo) == 0){
-
+			printf("Sono dentro R3");
 			int fd = open(FIFO, O_RDONLY);
 			message_sending message;
 			ssize_t nBys = read(fd,&message, sizeof(message));
 			close(fd);
-
-			printf("Messagio %s; è arrivato un messaggio nella FIFO è per me (%s);\n", toString(message), processo);
 
 			if(nBys < 1){
 				ErrExit("Errore uscito\n");
@@ -571,7 +577,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				myChildrenPid->length = myChildrenPid->length +1;
 			}
 
-
 			semOp(semID, DATAREADY, 1);
 			continue;
 		}
@@ -583,7 +588,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			semOp(semID, REQUEST, 1);
 			continue;
 		}
-
+		printf("SONO ALLA FINE");
 	}
 }
 
