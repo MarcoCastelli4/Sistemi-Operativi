@@ -129,36 +129,30 @@ int main(int argc, char *argv[]){
 	if (resPipe3 == -1)
 		ErrExit("PIPE");
 
-	//genero il tempo attuale --> TimeDeparture
+	//genero il tempo attuale
 	time_t now = time(NULL);
-	struct tm TimeDeparture = *localtime(&now);
+	struct tm timeCreation = *localtime(&now);
 
-	//calcolo la dimensione della riga da scrivere
-	ssize_t bufferLength = (sizeof("PIPE3") +numcifre(resPipe3) +  sizeof("RM") + 11 * sizeof(char));
+	//Scrivo info creazione PIPE3
+	ssize_t bufferLength = (sizeof("PIPE3") +numcifre(resPipe3) +  sizeof("RM") + 20 * sizeof(char));
 	char *string = malloc(bufferLength);
-
-	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n", "PIPE3",resPipe3, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
-
-	appendInF10(string, bufferLength);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE3",resPipe3, "RM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	appendInF10(string, bufferLength,7);
 
 	// checking if PIPE successed
 	int resPipe4 = pipe(pipe4);
 	if (resPipe4 == -1)
 		ErrExit("PIPE");
 
-	//genero il tempo attuale --> TimeDeparture
+	//genero il tempo attuale 
 	now = time(NULL);
-	TimeDeparture = *localtime(&now);
+	timeCreation = *localtime(&now);
 
-	//calcolo la dimensione della riga da scrivere, 10 invece che 11 per prevenire bug per caratteri particolari
-	bufferLength = (sizeof("PIPE2") +numcifre(resPipe4) +  sizeof("RM") + 11 * sizeof(char));
+	//Scrivo info creazione PIPE2
+	bufferLength = (sizeof("PIPE2") +numcifre(resPipe4) +  sizeof("RM") + 20 * sizeof(char));
 	string = (char *) malloc(bufferLength);
-
-	//mi salvo tutta la stringa
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;\n",  "PIPE4",resPipe4, "RM", TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
-
-	appendInF10(string, bufferLength);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n",  "PIPE4",resPipe4, "RM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	appendInF10(string, bufferLength,8);
 
 	//genero processo R1
 	pidR1 = fork();
@@ -325,6 +319,12 @@ int main(int argc, char *argv[]){
 		ErrExit("msgrmv failed");
 	}
 
+	//Segna chiuso PIPE3
+	completeInF10("PIPE3");
+
+	//Segna chiuso PIPE4
+	completeInF10("PIPE4");
+	
 	//Segna chiuso Q
 	completeInF10("Q");
 

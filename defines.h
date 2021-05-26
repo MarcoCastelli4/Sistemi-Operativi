@@ -60,7 +60,7 @@ typedef struct
   char *destructionTime;
 } IPC_history;
 
-//struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
+//struttura ..
 typedef struct
 {
   int length;
@@ -75,7 +75,7 @@ typedef struct
   ssize_t pid_parent;
 } pid_manager;
 
-//struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
+//struttura che contiene tutti i pid dei figli generati--> nipoti, pronipoti, ecc
 typedef struct
 {
   int length;
@@ -112,12 +112,6 @@ typedef struct
   pid_t PidManager;
 } message_sending;
 
-struct request_shared_memory
-{
-  message_sending message;
-  key_t SHMKey;
-};
-
 //struttura che contiene l'array dei messaggi e la rispettiva lunghezza
 typedef struct
 {
@@ -125,6 +119,14 @@ typedef struct
   message_sending *messages;
 } message_group;
 
+//struttura x messaggio inviato attraverso shared memory
+struct request_shared_memory
+{
+  message_sending message;
+  key_t SHMKey;
+};
+
+//array di messaggi x shared memory
 typedef struct
 {
   int cursorEnd;
@@ -132,24 +134,25 @@ typedef struct
   message_sending messages[5];
 } shared_memory_messages;
 
+//struttura per messaggio inviato attraverso message queue
 struct message_queue
 {
   long mtype;
   message_sending message;
 };
 
-char * timestamp();
 
-int stringLenght(message_sending message);
+
+
+char * timestamp();
 char *toString(message_sending message);
 
 int numcifre(int);
-void printMessage(message_sending);
-void printAction(action);
-void writeTraffic(char *, message_group *);
-ssize_t dimensioneOfMessage(message_sending message);
 void printInfoMessage(int semID,message_sending message, struct tm timeArrival, char file[]);
 void printIntestazione(char FILE[]);
-void ordinaPerDel(message_group *messageG, char DEL[]);
-void appendInF10(char * buffer, ssize_t bufferLength);
+int stringLenght(message_sending message);
+
+//funzioni usate per scrivere su F10
+void appendInF10(char * buffer, ssize_t bufferLength,int);
 void completeInF10(char * searchBuffer); 
+void writeF10Header();
