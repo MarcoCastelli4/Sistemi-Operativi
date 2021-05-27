@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
 	myChildrenPid = malloc(sizeof(pids_manager));
-	pid_manager *pids_list = malloc(sizeof(pid_manager) * (15));
+	pid_manager *pids_list = malloc(sizeof(pid_manager) * (10));
 	myChildrenPid->length = 0;
 	myChildrenPid->pids = pids_list;
 
@@ -598,7 +598,7 @@ void messageHandler(message_sending message, char processo[])
 		semOp(semID, REQUEST, 1);
 		memcpy(&shMessages->messages[shMessages->cursorEnd], &message, sizeof(message));	
 		shMessages->messages[shMessages->cursorEnd] = message;
-		if(shMessages->cursorEnd < 4){
+		if(shMessages->cursorEnd < 5){
 			shMessages->cursorEnd++;
 		}else{
 			shMessages->cursorEnd = 0;

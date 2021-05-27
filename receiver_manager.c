@@ -486,13 +486,8 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 		// C'è un messaggio da leggere SH ed è per me(cioè processo)
 		else if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
-			printf("Start: %d - End: %d\n", shMessages->cursorStart, shMessages->cursorEnd);
-			// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura
-			if(shMessages->cursorEnd < shMessages->cursorStart && shMessages->cursorStart == 4){
-				shMessages->cursorStart = 0;
-			}
 			int i = shMessages->cursorStart;
-			for(; i < shMessages->cursorEnd; i++){
+			for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 5) ; i++){
 				if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
@@ -537,7 +532,14 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 						myChildrenPid->length = myChildrenPid->length +1;
 					}
 				}
-				shMessages->cursorStart++;
+				
+			}
+			// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura (se è arrivato all'ultimo messaggio)
+			//if(shMessages->cursorEnd > shMessages->cursorStart && shMessages->cursorStart < 5){
+			if(i <= 5){
+				shMessages->cursorStart = i;
+			} else{
+				shMessages->cursorStart = 0;
 			}
 			semOp(semID, DATAREADY, 1);
 			continue;
@@ -551,7 +553,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		//-------------------------------------------------- BLOCCO FIFO --------------------------------------------------
 
 		else if (strcmp("R3",  processo) == 0){
-			printf("Sono dentro R3");
 			int fd = open(FIFO, O_RDONLY);
 			message_sending message;
 			ssize_t nBys = read(fd,&message, sizeof(message));

@@ -287,7 +287,7 @@ action_group* carica_F7(char nomeFile[]) {
   }
 
   //allochiamo dinamicamente un array di azioni delle dimensioni opportune
-  action* actions = malloc(sizeof(action) * (rowNumber));
+  action* actions = malloc(sizeof(action) * (rowNumber + 1));
 
   //numero di action che inserisco
 
