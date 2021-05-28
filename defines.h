@@ -156,3 +156,4 @@ int stringLenght(message_sending message);
 void appendInF10(char * buffer, ssize_t bufferLength,int);
 void completeInF10(char * searchBuffer); 
 void writeF10Header();
+

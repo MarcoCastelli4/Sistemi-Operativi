@@ -1,8 +1,6 @@
 #include "defines.h"
 #include "shared_memory.h"
 
-void writeF9(int, int, int);
-void listen(int, int, int, char[]);
 int MSQID = -1;
 int SHMID = -1;
 int semID = -1;
@@ -13,6 +11,13 @@ int waitTime = 0;
 shared_memory_messages *shMessages = NULL;
 
 void deliverMessage(message_sending, char []);
+void writeF9(int, int, int);
+void listen(int, int, int, char[]);
+
+void sigHandlerChild(int);
+void sigHandlerReceiver(int);
+void initSignalFather();
+void initSignalChild();
 
 // Uccisione ricorsiva
 void recursiveKill(pid_t pid){
@@ -35,10 +40,13 @@ void customPause(int startingDelay){
 	if(startingDelay > 0){
 		alarm(startingDelay); //dormi per quanto ti manca
 		pause();
+		print_log("ESCO DALLA PRIMA ATTESA %d\n",waitTime);
 		while(waitTime != 0){
+			print_log("ENTRO IN SECONDA ATTESA %d\n",waitTime);
 			alarm(waitTime);
 			waitTime = 0;
 			pause();
+			print_log("SECONDA ATTESA TERMINATA\n");
 		}
 	}
 }
@@ -50,18 +58,17 @@ void sigHandlerReceiver(int sig){
 		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGUSR2){
-		print_log("INCREASE DELAY\n");
 		// PER INCREASE DELAY
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
-				kill(myChildrenPid->pids[i].pid, SIGPIPE);
+				kill(myChildrenPid->pids[i].pid, SIGUSR2);
 			}
 		}
 	} else if(sig == SIGUSR1){
 		// PER SEND MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
-				kill(myChildrenPid->pids[i].pid,SIGCONT);
+				kill(myChildrenPid->pids[i].pid,SIGUSR1);
 			}
 		}
 	} else if(sig == SIGINT){
@@ -71,34 +78,31 @@ void sigHandlerReceiver(int sig){
 				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
-		// PER PROCESSI MESSAGGI
-	} else if(sig == SIGPIPE){
-		print_log("PIPE DELAY\n");
+		return;
+	}
+}
+
+void sigHandlerChild(int sig){
+	// PER PROCESSI PADRI
+	if(sig == SIGTERM){
+		// SHUTDOWN
+		recursiveKill(getpid());
+		exit(0);
+	}else if(sig == SIGUSR2){
 		// INCREASE DELAY NEL MESSAGGIO
 		waitTime += 5;
 		pause();
-	} else if(sig == SIGCONT){
+	} else if(sig == SIGUSR1){
 		// SEND MSG NEL MESSAGGIO
 		waitTime = 0;
-	} else if(sig == SIGALRM){
+	} else if(sig ==  SIGALRM){
 		// GENERIC DETECTOR
 	} 
 	return;
 }
 
-
 int main(int argc, char *argv[]){
-	struct sigaction sigact;
-	sigemptyset(&sigact.sa_mask);
-	sigact.sa_flags = 0;
-	sigact.sa_handler = sigHandlerReceiver;
-	sigaction(SIGALRM, &sigact, NULL);
-	sigaction(SIGPIPE, &sigact, NULL);
-	sigaction(SIGINT, &sigact, NULL);
-	sigaction(SIGUSR1, &sigact, NULL);
-	sigaction(SIGUSR2, &sigact, NULL);
-	sigaction(SIGTERM, &sigact, NULL);
-	sigaction(SIGCONT, &sigact, NULL);
+	initSignalFather();
 
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
@@ -157,6 +161,7 @@ int main(int argc, char *argv[]){
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)	{
+		initSignalChild();
 
 		//stampo intestazione messaggio
 		printIntestazione(F6);
@@ -164,6 +169,7 @@ int main(int argc, char *argv[]){
 		//leggo dalla pipe R1
 		pid_t pidPIPER1 = fork();
 		if(pidPIPER1 == 0){
+			initSignalChild();
 			while(1){
 				message_sending messageIncoming;
 				semOp(semID, PIPE4READER, -1);
@@ -175,12 +181,15 @@ int main(int argc, char *argv[]){
 
 				pid_t pidPIPER1_1 = fork();
 				if(pidPIPER1_1==0){
+					initSignalChild();
 					//genero tempo attuale
 					time_t now = time(NULL);
 					struct tm timeArrival = *localtime(&now);
 
+					print_log("R1 attesa\n");
 					customPause(messageIncoming.DelS1);
 					printInfoMessage(semID,messageIncoming, timeArrival, F6);
+					print_log("R1 fine attesa\n");
 					exit(0);
 				} else if (pidPIPER1_1 == -1){
 					ErrExit("Fork");
@@ -219,12 +228,14 @@ int main(int argc, char *argv[]){
 	//genero processo R2
 	pidR2 = fork();
 	if (pidR2 == 0){
+		initSignalChild();
 
 		//stampo intestazione messaggio
 		printIntestazione(F5);
 
 		pid_t pidPIPER2 = fork();
 		if(pidPIPER2 == 0){
+			initSignalChild();
 			while(1){
 				message_sending messageIncoming;
 				semOp(semID, PIPE3READER, -1);
@@ -236,6 +247,7 @@ int main(int argc, char *argv[]){
 
 				pid_t pidPIPER2_1 = fork();
 				if(pidPIPER2_1==0){
+					initSignalChild();
 					//genero tempo attuale
 					time_t now = time(NULL);
 					struct tm timeArrival = *localtime(&now);
@@ -285,6 +297,7 @@ int main(int argc, char *argv[]){
 	//genero processo S3
 	pidR3 = fork();
 	if (pidR3 == 0)	{
+		initSignalChild();
 
 		//stampo intestazione messaggio
 		printIntestazione(F4);
@@ -309,7 +322,7 @@ int main(int argc, char *argv[]){
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
 	while ((waitPID = wait(&stato)) > 0);
-	
+
 	//dico al sender che può eliminare le IPC
 	semOp(semID, ELIMINATION, 1);
 
@@ -324,7 +337,7 @@ int main(int argc, char *argv[]){
 
 	//Segna chiuso PIPE4
 	completeInF10("PIPE4");
-	
+
 	//Segna chiuso Q
 	completeInF10("Q");
 
@@ -389,8 +402,7 @@ void writeF9(int pid1, int pid2, int pid3)
 }
 
 
-void listen(int MSQID, int SHMID, int semID, char processo[])
-{
+void listen(int MSQID, int SHMID, int semID, char processo[]){
 	struct message_queue messaggio;
 
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
@@ -407,13 +419,14 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
 		//prelevo il messaggio senza aspettare
 		msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
-		
+
 		//sei nel processo receiver corretto? ed è arrivato Q
 		if(strcmp(processo, messaggio.message.idReceiver) == 0){
 			if (strcmp(messaggio.message.idReceiver, "R1") == 0)
 			{
 				pid_t childS1 = fork();
 				if(childS1 == 0){
+					initSignalChild();
 					//dormi
 					customPause(messaggio.message.DelS1);
 					//stampa le info sul tuo file
@@ -431,6 +444,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			{
 				pid_t childS1 = fork();
 				if(childS1 == 0){
+					initSignalChild();
 					//dormi
 					customPause(messaggio.message.DelS2);
 					//stampa le info sul tuo file
@@ -449,6 +463,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			{
 				pid_t childS1 = fork();
 				if(childS1 == 0){
+					initSignalChild();
 					//dormi
 					customPause(messaggio.message.DelS3);
 					//stampa le info sul tuo file
@@ -489,6 +504,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
+						initSignalChild();
 						//dormi
 						customPause(shMessages->messages[i].DelS1);
 						//stampa le info sul tuo file
@@ -504,6 +520,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				} else if (strcmp(shMessages->messages[i].idReceiver, "R2") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
+						initSignalChild();
 						customPause(shMessages->messages[i].DelS2);
 						printInfoMessage(semID,shMessages->messages[i], timeArrival, F5);
 						deliverMessage(shMessages->messages[i], processo);
@@ -518,6 +535,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 				} else if (strcmp(shMessages->messages[i].idReceiver, "R3") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
+						initSignalChild();
 						customPause(shMessages->messages[i].DelS3);
 						printInfoMessage(semID,shMessages->messages[i], timeArrival, F4);
 						deliverMessage(shMessages->messages[i], processo);
@@ -530,7 +548,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 						myChildrenPid->length = myChildrenPid->length +1;
 					}
 				}
-				
+
 			}
 			// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura (se è arrivato all'ultimo messaggio)
 			//if(shMessages->cursorEnd > shMessages->cursorStart && shMessages->cursorStart < 5){
@@ -562,6 +580,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 
 			pid_t childFIFO = fork();
 			if(childFIFO == 0){
+				initSignalChild();
 				customPause(message.DelS3);
 				printInfoMessage(semID,message, timeArrival, F4);
 				deliverMessage(message, "R3");
@@ -586,23 +605,62 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			continue;
 		}
 		printf("SONO ALLA FINE");
+		}
 	}
-}
 
-void deliverMessage(message_sending message, char processo[]){
-	if (strcmp(processo, "R3") == 0){
-		//invia a R2 tramite PIPE
-		semOp(semID, PIPE3WRITER, -1);
-		ssize_t nBys = write(pipe3[1], &message, sizeof(message));
-		if(nBys != sizeof(message))
-			ErrExit("Messaggio inviato male");
-		semOp(semID, PIPE3READER, 1);
-	} else if (strcmp(processo, "R2") == 0){
-		//invia a R1 tramite PIPE
-		semOp(semID, PIPE4WRITER, -1);
-		ssize_t nBys = write(pipe4[1], &message, sizeof(message));
-		if(nBys != sizeof(message))
-			ErrExit("Messaggio inviato male");
-		semOp(semID, PIPE4READER, 1);
+	void deliverMessage(message_sending message, char processo[]){
+		if (strcmp(processo, "R3") == 0){
+			//invia a R2 tramite PIPE
+			semOp(semID, PIPE3WRITER, -1);
+			ssize_t nBys = write(pipe3[1], &message, sizeof(message));
+			if(nBys != sizeof(message))
+				ErrExit("Messaggio inviato male");
+			semOp(semID, PIPE3READER, 1);
+		} else if (strcmp(processo, "R2") == 0){
+			//invia a R1 tramite PIPE
+			semOp(semID, PIPE4WRITER, -1);
+			ssize_t nBys = write(pipe4[1], &message, sizeof(message));
+			if(nBys != sizeof(message))
+				ErrExit("Messaggio inviato male");
+			semOp(semID, PIPE4READER, 1);
+		}
 	}
-}
+
+
+	void initSignalFather ( ){
+		sigset_t mySet;
+		sigfillset(&mySet);
+		sigdelset(&mySet, SIGINT);
+		sigdelset(&mySet, SIGUSR1);
+		sigdelset(&mySet, SIGUSR2);
+		sigdelset(&mySet, SIGTERM);
+		sigprocmask(SIG_SETMASK, &mySet, NULL);
+
+		struct sigaction sigact;
+		sigemptyset(&sigact.sa_mask);
+		sigact.sa_flags = 0;
+		sigact.sa_handler = sigHandlerReceiver;
+		sigaction(SIGINT, &sigact, NULL);
+		sigaction(SIGUSR1, &sigact, NULL);
+		sigaction(SIGUSR2, &sigact, NULL);
+		sigaction(SIGTERM, &sigact, NULL);
+	};
+
+	void initSignalChild ( ){
+		sigset_t mySet;
+		sigfillset(&mySet);
+		sigdelset(&mySet, SIGALRM);
+		sigdelset(&mySet, SIGCONT);
+		sigdelset(&mySet, SIGUSR2);
+		sigdelset(&mySet, SIGTERM);
+		sigprocmask(SIG_SETMASK, &mySet, NULL);
+
+		struct sigaction sigact;
+		sigemptyset(&sigact.sa_mask);
+		sigact.sa_flags = 0;
+		sigact.sa_handler = sigHandlerChild;
+		sigaction(SIGALRM, &sigact, NULL);
+		sigaction(SIGCONT, &sigact, NULL);
+		sigaction(SIGUSR2, &sigact, NULL);
+		sigaction(SIGTERM, &sigact, NULL);
+	};
