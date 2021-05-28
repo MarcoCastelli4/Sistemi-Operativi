@@ -18,8 +18,6 @@ shared_memory_messages *shMessages = 0;
 
 void sigHandlerChild(int);
 void sigHandlerSender(int);
-void initSignalFather();
-void initSignalChild();
 void writeF8(int, int, int);
 void writeF10Header();
 message_group *carica_F0(char[]);
@@ -78,9 +76,11 @@ void sigHandlerSender(int sig){
 			}
 		}
 	} else if(sig == SIGINT){
+		print_log("RIMUOVO MESSAGGIO\n");
 		// REMOVE MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
+				print_log("MESSAGGIO TROVATO: %d\n", myChildrenPid->pids[i].pid);
 				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
@@ -91,6 +91,7 @@ void sigHandlerSender(int sig){
 void sigHandlerChild(int sig){
 	// PER PROCESSI PADRI
 	if(sig == SIGTERM){
+		print_log("SONO STATO UCCISO\n");
 		// SHUTDOWN
 		recursiveKill(getpid());
 		exit(0);
@@ -111,8 +112,6 @@ void sigHandlerChild(int sig){
 
 int main(int argc, char *argv[])
 {
-	initSignalFather();
-
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
 	myChildrenPid = malloc(sizeof(pids_manager));
@@ -233,7 +232,7 @@ int main(int argc, char *argv[])
 	pidS1 = fork();
 	if (pidS1 == 0)
 	{
-		initSignalChild();
+		initSignalFather(sigHandlerSender);
 		//inizializzo la struttura con la dimensione di un messaggio
 
 		messages = carica_F0(F0);
@@ -263,7 +262,7 @@ int main(int argc, char *argv[])
 	pidS2 = fork();
 	if (pidS2 == 0)
 	{
-		initSignalChild();
+		initSignalFather(sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F2);
 
@@ -305,7 +304,7 @@ int main(int argc, char *argv[])
 	pidS3 = fork();
 	if (pidS3 == 0)
 	{
-		initSignalChild();
+		initSignalFather(sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F3);
 
@@ -521,7 +520,7 @@ void sendMessage(message_group *messageG, char processo[])
 
 			pid_t childS1 = fork();
 			if(childS1 == 0){
-				initSignalChild();
+				initSignalChild(sigHandlerChild);
 				print_log("PRIMA ATTESA\n");
 				customPause(messageG->messages[i].DelS1);
 
@@ -543,7 +542,7 @@ void sendMessage(message_group *messageG, char processo[])
 		{
 			pid_t childS1 = fork();
 			if(childS1 == 0){
-				initSignalChild();
+				initSignalChild(sigHandlerChild);
 				customPause(messageG->messages[i].DelS2);
 
 				//stampa su file F2
@@ -564,7 +563,7 @@ void sendMessage(message_group *messageG, char processo[])
 		{
 			pid_t childS1 = fork();
 			if(childS1 == 0){
-				initSignalChild();
+				initSignalChild(sigHandlerChild);
 				customPause(messageG->messages[i].DelS3);
 
 				//stampa su file F3
@@ -649,40 +648,3 @@ void messageHandler(message_sending message, char processo[])
 }
 
 
-void initSignalFather ( ){
-	sigset_t mySet;
-	sigfillset(&mySet);
-	sigdelset(&mySet, SIGINT);
-	sigdelset(&mySet, SIGUSR1);
-	sigdelset(&mySet, SIGUSR2);
-	sigdelset(&mySet, SIGTERM);
-	sigprocmask(SIG_SETMASK, &mySet, NULL);
-
-	struct sigaction sigact;
-	sigemptyset(&sigact.sa_mask);
-	sigact.sa_flags = 0;
-	sigact.sa_handler = sigHandlerSender;
-	sigaction(SIGINT, &sigact, NULL);
-	sigaction(SIGUSR1, &sigact, NULL);
-	sigaction(SIGUSR2, &sigact, NULL);
-	sigaction(SIGTERM, &sigact, NULL);
-};
-
-void initSignalChild ( ){
-	sigset_t mySet;
-	sigfillset(&mySet);
-	sigdelset(&mySet, SIGALRM);
-	sigdelset(&mySet, SIGCONT);
-	sigdelset(&mySet, SIGUSR2);
-	sigdelset(&mySet, SIGTERM);
-	sigprocmask(SIG_SETMASK, &mySet, NULL);
-
-	struct sigaction sigact;
-	sigemptyset(&sigact.sa_mask);
-	sigact.sa_flags = 0;
-	sigact.sa_handler = sigHandlerChild;
-	sigaction(SIGALRM, &sigact, NULL);
-	sigaction(SIGCONT, &sigact, NULL);
-	sigaction(SIGUSR2, &sigact, NULL);
-	sigaction(SIGTERM, &sigact, NULL);
-};

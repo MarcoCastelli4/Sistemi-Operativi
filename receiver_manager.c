@@ -16,8 +16,6 @@ void listen(int, int, int, char[]);
 
 void sigHandlerChild(int);
 void sigHandlerReceiver(int);
-void initSignalFather();
-void initSignalChild();
 
 // Uccisione ricorsiva
 void recursiveKill(pid_t pid){
@@ -102,8 +100,6 @@ void sigHandlerChild(int sig){
 }
 
 int main(int argc, char *argv[]){
-	initSignalFather();
-
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 	myChildrenPid = malloc(sizeof(pids_manager));
@@ -161,7 +157,7 @@ int main(int argc, char *argv[]){
 	//genero processo R1
 	pidR1 = fork();
 	if (pidR1 == 0)	{
-		initSignalChild();
+		initSignalFather(sigHandlerReceiver);
 
 		//stampo intestazione messaggio
 		printIntestazione(F6);
@@ -169,7 +165,7 @@ int main(int argc, char *argv[]){
 		//leggo dalla pipe R1
 		pid_t pidPIPER1 = fork();
 		if(pidPIPER1 == 0){
-			initSignalChild();
+			initSignalChild(sigHandlerChild);
 			while(1){
 				message_sending messageIncoming;
 				semOp(semID, PIPE4READER, -1);
@@ -181,7 +177,7 @@ int main(int argc, char *argv[]){
 
 				pid_t pidPIPER1_1 = fork();
 				if(pidPIPER1_1==0){
-					initSignalChild();
+					initSignalChild(sigHandlerChild);
 					//genero tempo attuale
 					time_t now = time(NULL);
 					struct tm timeArrival = *localtime(&now);
@@ -228,14 +224,14 @@ int main(int argc, char *argv[]){
 	//genero processo R2
 	pidR2 = fork();
 	if (pidR2 == 0){
-		initSignalChild();
+		initSignalFather(sigHandlerReceiver);
 
 		//stampo intestazione messaggio
 		printIntestazione(F5);
 
 		pid_t pidPIPER2 = fork();
 		if(pidPIPER2 == 0){
-			initSignalChild();
+			initSignalChild(sigHandlerChild);
 			while(1){
 				message_sending messageIncoming;
 				semOp(semID, PIPE3READER, -1);
@@ -247,7 +243,7 @@ int main(int argc, char *argv[]){
 
 				pid_t pidPIPER2_1 = fork();
 				if(pidPIPER2_1==0){
-					initSignalChild();
+					initSignalChild(sigHandlerChild);
 					//genero tempo attuale
 					time_t now = time(NULL);
 					struct tm timeArrival = *localtime(&now);
@@ -297,7 +293,7 @@ int main(int argc, char *argv[]){
 	//genero processo S3
 	pidR3 = fork();
 	if (pidR3 == 0)	{
-		initSignalChild();
+		initSignalFather(sigHandlerReceiver);
 
 		//stampo intestazione messaggio
 		printIntestazione(F4);
@@ -426,7 +422,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 			{
 				pid_t childS1 = fork();
 				if(childS1 == 0){
-					initSignalChild();
+					initSignalChild(sigHandlerChild);
 					//dormi
 					customPause(messaggio.message.DelS1);
 					//stampa le info sul tuo file
@@ -444,7 +440,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 			{
 				pid_t childS1 = fork();
 				if(childS1 == 0){
-					initSignalChild();
+					initSignalChild(sigHandlerChild);
 					//dormi
 					customPause(messaggio.message.DelS2);
 					//stampa le info sul tuo file
@@ -463,7 +459,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 			{
 				pid_t childS1 = fork();
 				if(childS1 == 0){
-					initSignalChild();
+					initSignalChild(sigHandlerChild);
 					//dormi
 					customPause(messaggio.message.DelS3);
 					//stampa le info sul tuo file
@@ -501,11 +497,10 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 		else if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
 			int i = shMessages->cursorStart;
 			for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 9) ; i++){
-				printf("\ncurosrStart, end %d - %d\n", i, shMessages->cursorEnd);
 				if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
-						initSignalChild();
+						initSignalChild(sigHandlerChild);
 						//dormi
 						customPause(shMessages->messages[i].DelS1);
 						//stampa le info sul tuo file
@@ -521,7 +516,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 				} else if (strcmp(shMessages->messages[i].idReceiver, "R2") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
-						initSignalChild();
+						initSignalChild(sigHandlerChild);
 						customPause(shMessages->messages[i].DelS2);
 						printInfoMessage(semID,shMessages->messages[i], timeArrival, F5);
 						deliverMessage(shMessages->messages[i], processo);
@@ -536,7 +531,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 				} else if (strcmp(shMessages->messages[i].idReceiver, "R3") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
-						initSignalChild();
+						initSignalChild(sigHandlerChild);
 						customPause(shMessages->messages[i].DelS3);
 						printInfoMessage(semID,shMessages->messages[i], timeArrival, F4);
 						deliverMessage(shMessages->messages[i], processo);
@@ -581,7 +576,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 
 			pid_t childFIFO = fork();
 			if(childFIFO == 0){
-				initSignalChild();
+				initSignalChild(sigHandlerChild);
 				customPause(message.DelS3);
 				printInfoMessage(semID,message, timeArrival, F4);
 				deliverMessage(message, "R3");
@@ -626,42 +621,3 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 			semOp(semID, PIPE4READER, 1);
 		}
 	}
-
-
-	void initSignalFather ( ){
-		sigset_t mySet;
-		sigfillset(&mySet);
-		sigdelset(&mySet, SIGINT);
-		sigdelset(&mySet, SIGUSR1);
-		sigdelset(&mySet, SIGUSR2);
-		sigdelset(&mySet, SIGTERM);
-		sigprocmask(SIG_SETMASK, &mySet, NULL);
-
-		struct sigaction sigact;
-		sigemptyset(&sigact.sa_mask);
-		sigact.sa_flags = 0;
-		sigact.sa_handler = sigHandlerReceiver;
-		sigaction(SIGINT, &sigact, NULL);
-		sigaction(SIGUSR1, &sigact, NULL);
-		sigaction(SIGUSR2, &sigact, NULL);
-		sigaction(SIGTERM, &sigact, NULL);
-	};
-
-	void initSignalChild ( ){
-		sigset_t mySet;
-		sigfillset(&mySet);
-		sigdelset(&mySet, SIGALRM);
-		sigdelset(&mySet, SIGCONT);
-		sigdelset(&mySet, SIGUSR2);
-		sigdelset(&mySet, SIGTERM);
-		sigprocmask(SIG_SETMASK, &mySet, NULL);
-
-		struct sigaction sigact;
-		sigemptyset(&sigact.sa_mask);
-		sigact.sa_flags = 0;
-		sigact.sa_handler = sigHandlerChild;
-		sigaction(SIGALRM, &sigact, NULL);
-		sigaction(SIGCONT, &sigact, NULL);
-		sigaction(SIGUSR2, &sigact, NULL);
-		sigaction(SIGTERM, &sigact, NULL);
-	};
