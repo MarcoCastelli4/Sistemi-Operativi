@@ -103,7 +103,7 @@ int main(int argc, char *argv[]){
 	pid_t pidR1, pidR2, pidR3;
 	pid_t waitPID;
 	myChildrenPid = malloc(sizeof(pids_manager));
-	pid_manager *pids_list = malloc(sizeof(pid_manager) * (15));
+	pid_manager *pids_list = malloc(sizeof(pid_manager) * (30));
 	myChildrenPid->length = 0;
 	myChildrenPid->pids = pids_list;
 
@@ -485,7 +485,8 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		// C'è un messaggio da leggere SH ed è per me(cioè processo)
 		else if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
 			int i = shMessages->cursorStart;
-			for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 15) ; i++){
+			for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 9) ; i++){
+				printf("\ncurosrStart, end %d - %d\n", i, shMessages->cursorEnd);
 				if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
@@ -534,7 +535,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			}
 			// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura (se è arrivato all'ultimo messaggio)
 			//if(shMessages->cursorEnd > shMessages->cursorStart && shMessages->cursorStart < 5){
-			if(i <= 15){
+			if(i <= 9){
 				shMessages->cursorStart = i;
 			} else{
 				shMessages->cursorStart = 0;
