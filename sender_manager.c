@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 	pid_t pidS1, pidS2, pidS3;
 	pid_t waitPID;
 	myChildrenPid = malloc(sizeof(pids_manager));
-	pid_manager *pids_list = malloc(sizeof(pid_manager) * (10));
+	pid_manager *pids_list = malloc(sizeof(pid_manager) * (15));
 	myChildrenPid->length = 0;
 	myChildrenPid->pids = pids_list;
 
@@ -389,115 +389,115 @@ void writeF8(int pid1, int pid2, int pid3)
 message_group *carica_F0(char nomeFile[])
 {
 
-	//apro il file
-	int fp = open(nomeFile, O_RDONLY);
-	if (fp == -1)
-		ErrExit("Open");
+    //apro il file
+    int fp = open(nomeFile, O_RDONLY);
+    if (fp == -1)
+        ErrExit("Open");
 
-	// utilizzo lseek per calcolarne le dimensioni
-	int fileSize = lseek(fp, (size_t)0, SEEK_END);
-	if (fileSize == -1)
-	{
-		ErrExit("Lseek");
-	}
+    // utilizzo lseek per calcolarne le dimensioni
+    int fileSize = lseek(fp, (size_t)0, SEEK_END);
+    if (fileSize == -1)
+    {
+        ErrExit("Lseek");
+    }
 
-	// posiziono l'offset alla prima riga dei messaggi (salto i titoli)
-	if (lseek(fp, (size_t)(MessageSendingHeader + 1) * sizeof(char), SEEK_SET) == -1){
-		ErrExit("Lseek");
-	}
+    // posiziono l'offset alla prima riga dei messaggi (salto i titoli)
+    if (lseek(fp, (size_t)(MessageSendingHeader + 1) * sizeof(char), SEEK_SET) == -1){
+        ErrExit("Lseek");
+    }
 
-	//calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
-	int bufferLength = fileSize / sizeof(char) - MessageSendingHeader - 1;
-	//inizializzo il buffer
-	char buf[bufferLength];
-	//leggo dal file e salvo ciò che ho letto nel buf
-	if ((read(fp, buf, bufferLength * sizeof(char)) == -1))
-	{
-		ErrExit("Read");
-	}
-	buf[bufferLength] = '\0';
+    //calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
+    int bufferLength = fileSize / sizeof(char) - MessageSendingHeader - 1;
+    //inizializzo il buffer
+    char buf[bufferLength];
+    //leggo dal file e salvo ciò che ho letto nel buf
+    if ((read(fp, buf, bufferLength * sizeof(char)) == -1))
+    {
+        ErrExit("Read");
+    }
+    buf[bufferLength] = '\0';
 
-	//contatore delle righe
-	int rowNumber = 0;
+    //contatore delle righe
+    int rowNumber = 0;
 
-	// Contiamo il numero di righe presenti nel F0 (corrispondono al numero di messaggi presenti)
-	for (int i = 0; i < bufferLength; i++)
-	{
-		if (buf[i] == '\n')
-		{
-			rowNumber++;
-		}
-	}
+    // Contiamo il numero di righe presenti nel F0 (corrispondono al numero di messaggi presenti)
+    for (int i = 0; i < bufferLength; i++)
+    {
+        if (buf[i] == '\n')
+        {
+            rowNumber++;
+        }
+    }
 
-	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
-	// TODO MALLOC DIFETTOSA
-	message_sending *messageList = malloc(sizeof(message_sending) * (rowNumber + 1));
-	//numero di messaggi che inserisco
-	int messageNumber = 0;
+    //allochiamo dinamicamente un array di azioni delle dimensioni opportune
+    // TODO MALLOC DIFETTOSA
+    message_sending *messageList = malloc(sizeof(message_sending) * (rowNumber));
+    //numero di messaggi che inserisco
+    int messageNumber = 0;
 
-	char *end_str;
-	//prendo la riga che è delimitata dal carattere \n
-	char *row = strtok_r(buf, "\n", &end_str);
-	//scorro finchè la riga non è finita
-	while (row != NULL)
-	{
+    char *end_str;
+    //prendo la riga che è delimitata dal carattere \n
+    char *row = strtok_r(buf, "\n", &end_str);
+    //scorro finchè la riga non è finita
+    while (row != NULL)
+    {
 
-		char *end_segment;
-		//prendo il singolo campo/segmento che è delimitato dal ;
-		char *segment = strtok_r(row, ";", &end_segment);
-		int campo = 0; //(0..7, id, message..)
-		//scorro finchè il campo non è finito (la casella)
-		while (segment != NULL)
-		{
+        char *end_segment;
+        //prendo il singolo campo/segmento che è delimitato dal ;
+        char *segment = strtok_r(row, ";", &end_segment);
+        int campo = 0; //(0..7, id, message..)
+        //scorro finchè il campo non è finito (la casella)
+        while (segment != NULL)
+        {
 
-			//memorizzo il segmento ne rispettivo campo della struttura
-			switch (campo)
-			{
-				case 0:
-					messageList[messageNumber].id = atoi(segment);
-					break;
-				case 1:
+            //memorizzo il segmento ne rispettivo campo della struttura
+            switch (campo)
+            {
+                case 0:
+                    messageList[messageNumber].id = atoi(segment);
+                    break;
+                case 1:
 
-					strcpy(messageList[messageNumber].message, segment);
-					break;
-				case 2:
-					strcpy(messageList[messageNumber].idSender, segment);
-					break;
-				case 3:
+                    strcpy(messageList[messageNumber].message, segment);
+                    break;
+                case 2:
+                    strcpy(messageList[messageNumber].idSender, segment);
+                    break;
+                case 3:
 
-					strcpy(messageList[messageNumber].idReceiver, segment);
-					break;
-				case 4:
-					messageList[messageNumber].DelS1 = atoi(segment);
-					break;
-				case 5:
-					messageList[messageNumber].DelS2 = atoi(segment);
-					break;
-				case 6:
-					messageList[messageNumber].DelS3 = atoi(segment);
-					break;
-				case 7:
-					segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
-					strcpy(messageList[messageNumber].Type, segment);
-					break;
-				default:
-					break;
-			}
-			//vado al campo successivo
-			campo++;
-			segment = strtok_r(NULL, ";", &end_segment);
-		}
-		//vado alla riga successiva
-		messageNumber++;
-		row = strtok_r(NULL, "\n", &end_str);
-	}
+                    strcpy(messageList[messageNumber].idReceiver, segment);
+                    break;
+                case 4:
+                    messageList[messageNumber].DelS1 = atoi(segment);
+                    break;
+                case 5:
+                    messageList[messageNumber].DelS2 = atoi(segment);
+                    break;
+                case 6:
+                    messageList[messageNumber].DelS3 = atoi(segment);
+                    break;
+                case 7:
+                    segment[strlen(segment) - 1] = '\0'; //perchè altrimenti mi rimane un carattere spazzatura in più
+                    strcpy(messageList[messageNumber].Type, segment);
+                    break;
+                default:
+                    break;
+            }
+            //vado al campo successivo
+            campo++;
+            segment = strtok_r(NULL, ";", &end_segment);
+        }
+        //vado alla riga successiva
+        messageNumber++;
+        row = strtok_r(NULL, "\n", &end_str);
+    }
 
-	//inserisco nella mia struttura l'array di messaggi e quanti messaggi sono stati inseriti
-	message_group *messageG = malloc(sizeof(messageG));
-	messageG->length = messageNumber;
-	messageG->messages = messageList;
+    //inserisco nella mia struttura l'array di messaggi e quanti messaggi sono stati inseriti
+    message_group *messageG = malloc(sizeof(messageG));
+    messageG->length = messageNumber;
+    messageG->messages = messageList;
 
-	return messageG;
+    return messageG;
 }
 
 void sendMessage(message_group *messageG, char processo[])
@@ -598,7 +598,7 @@ void messageHandler(message_sending message, char processo[])
 		semOp(semID, REQUEST, 1);
 		memcpy(&shMessages->messages[shMessages->cursorEnd], &message, sizeof(message));	
 		shMessages->messages[shMessages->cursorEnd] = message;
-		if(shMessages->cursorEnd < 5){
+		if(shMessages->cursorEnd < 15){
 			shMessages->cursorEnd++;
 		}else{
 			shMessages->cursorEnd = 0;

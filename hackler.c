@@ -46,7 +46,7 @@ int main(int argc, char * argv[]) {
   carica_PIDS(F9,ReceiverPIDHeader,receiverPids);
   //scorro le azioni dell'hackler
 
-  for(i=0; i < action_group->length - 1; i++){
+  for(i=0; i < action_group->length; i++){
 
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
       pid_t actionProcess= fork();
@@ -152,7 +152,7 @@ int main(int argc, char * argv[]) {
 
   // Eliminazione della struttura dei messaggi di hackler
 
-  for(i = 0; i < action_group->length-1; i++){
+  for(i = 0; i < action_group->length; i++){
     free(action_group->actions[i].target);
     free(action_group->actions[i].action);
   }
@@ -257,37 +257,38 @@ action_group* carica_F7(char nomeFile[]) {
 
   // utilizzo lseek per calcolarne le dimensioni 
   int fileSize = lseek(fp, (size_t)0, SEEK_END);
-  if (fileSize == -1) { ErrExit("Lseek"); }
+  if (fileSize == -1) {  ErrExit("Lseek"); }
 
   // posiziono l'offset alla prima riga delle azioni (salto i titoli) 
-  if (lseek(fp, (size_t)ActionSendingHeader * sizeof(char), SEEK_SET) == -1) {
+  if (lseek(fp, (size_t)(ActionSendingHeader+1) * sizeof(char), SEEK_SET) == -1) {
     ErrExit("Lseek");
   }
 
   //calcolo la dimensione del file da leggere a cui tolgo i "titoli" dei vari campi
-  int bufferLength = fileSize / sizeof(char) - ActionSendingHeader;
+  int bufferLength = fileSize / sizeof(char) - ActionSendingHeader-1;
 
   //inizializzo il buffer
   char buf[bufferLength];
 
   //leggo dal file e salvo ciò che ho letto nel buf
   if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
-    ErrExit("Read");
+   ErrExit("Read");
   }
 
+    buf[bufferLength]='\0';
   //contatore delle righe
 
   int rowNumber = 0;
 
   // Contiamo il numero di righe presenti nel F7 (corrispondono al numero di azioni hackler presenti)
   for (int i = 0; i < bufferLength; i++) {
-    if (buf[i] == '\n' || buf[i] == '\0' || i == bufferLength - 1) {
+    if (buf[i] == '\n') {
       rowNumber++;
     }
   }
-
+    
   //allochiamo dinamicamente un array di azioni delle dimensioni opportune
-  action* actions = malloc(sizeof(action) * (rowNumber + 1));
+  action* actions = malloc(sizeof(action) * (rowNumber));
 
   //numero di action che inserisco
 
@@ -307,7 +308,7 @@ action_group* carica_F7(char nomeFile[]) {
     int campo=0; //0->id , 1->delay
     //scorro finchè non ho aggiunto i 4 campi
     while (segment!=NULL)
-    {	
+    {    
       //se il segmento è vuoto, faccio inserire una stringa vuota
       //memorizzo il segmento ne rispettivo campo della struttura
 

@@ -309,7 +309,7 @@ int main(int argc, char *argv[]){
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
 	while ((waitPID = wait(&stato)) > 0);
-
+	
 	//dico al sender che può eliminare le IPC
 	semOp(semID, ELIMINATION, 1);
 
@@ -351,13 +351,11 @@ int main(int argc, char *argv[]){
 	//Segna chiuso S
 	completeInF10("S");
 
-
-
 	// Eliminazione della struttura dei messaggi di pids
 	free(myChildrenPid->pids);
 	free(myChildrenPid);
 
-
+	//printf("Sono padre receiver e sto morendo\n");
 	//termino il processo padre
 	exit(0);
 }
@@ -487,7 +485,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 		// C'è un messaggio da leggere SH ed è per me(cioè processo)
 		else if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
 			int i = shMessages->cursorStart;
-			for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 5) ; i++){
+			for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 15) ; i++){
 				if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
@@ -536,7 +534,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[])
 			}
 			// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura (se è arrivato all'ultimo messaggio)
 			//if(shMessages->cursorEnd > shMessages->cursorStart && shMessages->cursorStart < 5){
-			if(i <= 5){
+			if(i <= 15){
 				shMessages->cursorStart = i;
 			} else{
 				shMessages->cursorStart = 0;

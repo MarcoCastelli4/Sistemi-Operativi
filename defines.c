@@ -130,21 +130,21 @@ void completeInF10(char * searchBuffer) {
 	//apro il file 
 	int fp = open(F10, O_RDONLY);
 	if (fp == -1)
-		printf("error");
+		ErrExit("Open failed");
 
 	// utilizzo lseek per calcolarne le dimensioni 
 	int fileSize = lseek(fp, (size_t)0, SEEK_END);
-	if (fileSize == -1) { printf("error"); }
+	if (fileSize == -1) { ErrExit("Lseek failed"); }
 
 	// posiziono l'offset alla prima riga (salto i titoli) 
 	if (lseek(fp, (size_t)F10Header * sizeof(char), SEEK_SET) == -1) {
-		printf("error");
+		ErrExit("Lseek failed");
 	}
 
 	int bufferLength = fileSize / sizeof(char) - F10Header;
 	char buf[bufferLength];
 	if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
-		printf("error");
+		ErrExit("Read failed");
 	}
 	
 
@@ -206,15 +206,13 @@ void completeInF10(char * searchBuffer) {
 
 	fp = open(F10, O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fp == -1)
-		printf("error");
+		ErrExit("Open failed");
 	if (lseek(fp, (size_t)(offsetLength) * sizeof(char) , SEEK_SET) == -1)
-		printf("error");
+		ErrExit("Lseek failed");
 
-	printf("%s",appendString);
 	if (write(fp, appendString, strlen(appendString)) != strlen(appendString))
 	{
-		
-		printf("Error");
+		ErrExit("Write failed");
 	}
 	close(fp);
 	free(appendString);
@@ -224,7 +222,7 @@ void completeInF10(char * searchBuffer) {
 char * timestamp(){
 	time_t now = time(NULL); 
 	char * time = asctime(gmtime(&now));
-	time[strlen(time)-1] = '\0';    // Remove \n
+	time[strlen(time)-1] = '\0';
 	int spaceCounter = 0;
 	for(int i = 0; i<strlen(time); i++){
 		if(time[i] == ' '){

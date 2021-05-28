@@ -131,7 +131,7 @@ typedef struct
 {
   int cursorEnd;
   int cursorStart;
-  message_sending messages[6];
+  message_sending messages[16];
 } shared_memory_messages;
 
 //struttura per messaggio inviato attraverso message queue
