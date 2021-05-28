@@ -72,15 +72,13 @@ void sigHandlerSender(int sig){
 		// PER SEND MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
-				kill(myChildrenPid->pids[i].pid,SIGCONT);
+				kill(myChildrenPid->pids[i].pid,SIGUSR1);
 			}
 		}
 	} else if(sig == SIGINT){
-		print_log("RIMUOVO MESSAGGIO\n");
 		// REMOVE MESSAGE
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
-				print_log("MESSAGGIO TROVATO: %d\n", myChildrenPid->pids[i].pid);
 				recursiveKill(myChildrenPid->pids[i].pid);
 			}
 		}
@@ -91,17 +89,14 @@ void sigHandlerSender(int sig){
 void sigHandlerChild(int sig){
 	// PER PROCESSI PADRI
 	if(sig == SIGTERM){
-		print_log("SONO STATO UCCISO\n");
 		// SHUTDOWN
 		recursiveKill(getpid());
 		exit(0);
 	}else if(sig == SIGUSR2){
 		// INCREASE DELAY NEL MESSAGGIO
-		print_log("SONO INCREASE DELAY\n");
 		waitTime += 5;
 		pause();
-	} else if(sig == SIGCONT){
-		print_log("SONO SIG CONT\n");
+	} else if(sig == SIGUSR1){
 		// SEND MSG NEL MESSAGGIO
 		waitTime = 0;
 	} else if(sig ==  SIGALRM){
@@ -521,7 +516,6 @@ void sendMessage(message_group *messageG, char processo[])
 			pid_t childS1 = fork();
 			if(childS1 == 0){
 				initSignalChild(sigHandlerChild);
-				print_log("PRIMA ATTESA\n");
 				customPause(messageG->messages[i].DelS1);
 
 				//stampa su file F1

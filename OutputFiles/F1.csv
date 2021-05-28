@@ -1,4 +1,2 @@
 ID;Message;IDSender;IDReceiver;TimeArrival;TimeDeparture
-1;Ciao;3;2;11:34:46;11:34:54
-3;MyMsg;3;3;11:34:46;11:34:54
-2;Come va?;2;2;11:34:46;11:34:54
+2;Come va?;2;2;12:12:08;12:12:11

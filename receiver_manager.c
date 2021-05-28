@@ -38,13 +38,10 @@ void customPause(int startingDelay){
 	if(startingDelay > 0){
 		alarm(startingDelay); //dormi per quanto ti manca
 		pause();
-		print_log("ESCO DALLA PRIMA ATTESA %d\n",waitTime);
 		while(waitTime != 0){
-			print_log("ENTRO IN SECONDA ATTESA %d\n",waitTime);
 			alarm(waitTime);
 			waitTime = 0;
 			pause();
-			print_log("SECONDA ATTESA TERMINATA\n");
 		}
 	}
 }
@@ -165,7 +162,7 @@ int main(int argc, char *argv[]){
 		//leggo dalla pipe R1
 		pid_t pidPIPER1 = fork();
 		if(pidPIPER1 == 0){
-			initSignalChild(sigHandlerChild);
+			initSignalFather(sigHandlerReceiver);
 			while(1){
 				message_sending messageIncoming;
 				semOp(semID, PIPE4READER, -1);
@@ -182,10 +179,8 @@ int main(int argc, char *argv[]){
 					time_t now = time(NULL);
 					struct tm timeArrival = *localtime(&now);
 
-					print_log("R1 attesa\n");
 					customPause(messageIncoming.DelS1);
 					printInfoMessage(semID,messageIncoming, timeArrival, F6);
-					print_log("R1 fine attesa\n");
 					exit(0);
 				} else if (pidPIPER1_1 == -1){
 					ErrExit("Fork");
@@ -202,6 +197,7 @@ int main(int argc, char *argv[]){
 		} else {
 			myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
 			myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER1;		
+			myChildrenPid->pids[myChildrenPid->length].isFather = 1;		
 			myChildrenPid->length = myChildrenPid->length +1;
 		}
 
@@ -210,7 +206,6 @@ int main(int argc, char *argv[]){
 
 		while(1)
 			sleep(1);
-		print_log("R2 morto\n");
 		exit(0);
 	} else if (pidR1 == -1){
 		ErrExit("Fork");
@@ -231,7 +226,7 @@ int main(int argc, char *argv[]){
 
 		pid_t pidPIPER2 = fork();
 		if(pidPIPER2 == 0){
-			initSignalChild(sigHandlerChild);
+			initSignalFather(sigHandlerReceiver);
 			while(1){
 				message_sending messageIncoming;
 				semOp(semID, PIPE3READER, -1);
@@ -265,13 +260,13 @@ int main(int argc, char *argv[]){
 
 			while(1)
 				sleep(1);
-			print_log("R3 morto\n");
 			exit(0);
 		} else if (pidPIPER2 == -1){
 			ErrExit("Fork");
 		} else {
 			myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
 			myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER2;		
+			myChildrenPid->pids[myChildrenPid->length].isFather = 1;		
 			myChildrenPid->length = myChildrenPid->length +1;
 		}
 

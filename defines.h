@@ -70,7 +70,7 @@ typedef struct
 //struttura PIDS
 typedef struct
 {
-  int increaseDelay;
+  int isFather;
   ssize_t pid;
   ssize_t pid_parent;
 } pid_manager;
