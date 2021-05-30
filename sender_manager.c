@@ -39,7 +39,6 @@ void recursiveKill(pid_t pid){
 		// Altrimenti manda un sigterm in modo che uccida tutta la sua catena di figli
 		kill(pid,SIGTERM);
 	}
-	exit(0);
 }
 
 void customPause(int startingDelay){

@@ -260,6 +260,25 @@ void initSignalFather(void (*handler)(int)){
 	sigaction(SIGTERM, &sigact, NULL);
 };
 
+void initSignalMedium(void (*handler)(int)){
+	sigset_t mySet;
+	sigfillset(&mySet);
+	sigdelset(&mySet, SIGINT);
+	sigdelset(&mySet, SIGUSR1);
+	sigdelset(&mySet, SIGUSR2);
+	sigdelset(&mySet, SIGTERM);
+	sigprocmask(SIG_SETMASK, &mySet, NULL);
+
+	struct sigaction sigact;
+	sigemptyset(&sigact.sa_mask);
+	sigact.sa_flags = 0;
+	sigact.sa_handler = handler;
+	sigaction(SIGINT, &sigact, NULL);
+	sigaction(SIGUSR1, &sigact, NULL);
+	sigaction(SIGUSR2, &sigact, NULL);
+	sigaction(SIGTERM, &sigact, NULL);
+};
+
 void initSignalChild(void (*handler)(int)){
 	sigset_t mySet;
 	sigfillset(&mySet);

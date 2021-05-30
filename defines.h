@@ -157,4 +157,5 @@ void appendInF10(char * buffer, ssize_t bufferLength,int);
 void completeInF10(char * searchBuffer); 
 void writeF10Header();
 void initSignalChild(void (*handler)(int));
+void initSignalMedium(void (*handler)(int));
 void initSignalFather(void (*handler)(int));

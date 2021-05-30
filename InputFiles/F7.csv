@@ -1,3 +1,2 @@
 Id;Delay;Target;Action
-1;9;R2;RemoveMsg
-3;35;all;ShutDown
+3;9;all;ShutDown

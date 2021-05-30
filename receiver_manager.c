@@ -31,7 +31,6 @@ void recursiveKill(pid_t pid){
 		// Altrimenti manda un sigterm in modo che uccida tutta la sua catena di figli
 		kill(pid,SIGTERM);
 	}
-	exit(0);
 }
 
 void customPause(int startingDelay){
@@ -51,7 +50,38 @@ void sigHandlerReceiver(int sig){
 	if(sig == SIGTERM){
 		// SHUTDOWN
 		recursiveKill(getpid());
-		exit(0);
+		//exit(0);
+	} else if(sig == SIGUSR2){
+		// PER INCREASE DELAY
+		for(int i=0; i<myChildrenPid->length; i++){
+			if(myChildrenPid->pids[i].pid_parent == getpid()){
+				kill(myChildrenPid->pids[i].pid, SIGUSR2);
+			}
+		}
+	} else if(sig == SIGUSR1){
+		// PER SEND MESSAGE
+		for(int i=0; i<myChildrenPid->length; i++){
+			if(myChildrenPid->pids[i].pid_parent == getpid()){
+				kill(myChildrenPid->pids[i].pid,SIGUSR1);
+			}
+		}
+	} else if(sig == SIGINT){
+		// REMOVE MESSAGE
+		for(int i=0; i<myChildrenPid->length; i++){
+			if(myChildrenPid->pids[i].pid_parent == getpid()){
+				kill(myChildrenPid->pids[i].pid, SIGINT);
+			}
+		}
+		return;
+	}
+}
+
+void sigHandlerMedium(int sig){
+	// PER PROCESSI MEDIUM
+	if(sig == SIGTERM){
+		// SHUTDOWN
+		recursiveKill(getpid());
+		//exit(0);
 	} else if(sig == SIGUSR2){
 		// PER INCREASE DELAY
 		for(int i=0; i<myChildrenPid->length; i++){
@@ -315,7 +345,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 	//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
 	pid_t childMQ = fork();
 	if(childMQ == 0){
-		initSignalFather(sigHandlerReceiver);
+		initSignalMedium(sigHandlerMedium);
 		while(1){
 			semOp(semID, ACCESSTOQ, -1);
 			//printf("Sono: %s e sto ascoltando\n", processo);
@@ -411,7 +441,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 	//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 	pid_t childSM = fork();
 	if(childSM == 0){
-		initSignalFather(sigHandlerReceiver);
+		initSignalMedium(sigHandlerMedium);
 		while(1){
 			semOp(semID, ACCESSTOSH, -1);
 			time_t now = time(NULL);
@@ -494,7 +524,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 		if (strcmp("R3",  processo) == 0){
 			pid_t childFIFO = fork();
 			if(childFIFO == 0){
-				initSignalFather(sigHandlerReceiver);
+				initSignalMedium(sigHandlerMedium);
 				while(1){
 					semOp(semID, ACCESSTOFIFO, -1);
 					time_t now = time(NULL);
@@ -524,7 +554,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					}
 
 					semOp(semID, DATAREADY, 1);
-					continue;
 				}
 			} else if (childFIFO == -1) {
 				ErrExit("Fork");
@@ -535,11 +564,12 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 			}
 		}
 
+		//-------------------------------------------------- BLOCCO PIPE R1 --------------------------------------------------
 		if (strcmp("R1",  processo) == 0){
 			//leggo dalla pipe R1
 			pid_t pidPIPER1 = fork();
 			if(pidPIPER1 == 0){
-				initSignalFather(sigHandlerReceiver);
+				initSignalMedium(sigHandlerMedium);
 				while(1){
 					message_sending messageIncoming;
 					semOp(semID, PIPE4READER, -1);
@@ -574,16 +604,16 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 			} else {
 				myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
 				myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER1;		
-				myChildrenPid->pids[myChildrenPid->length].isFather = 1;		
 				myChildrenPid->length = myChildrenPid->length +1;
 			}
 		}
 
+		//-------------------------------------------------- BLOCCO PIPE R2 --------------------------------------------------
 		if (strcmp("R2",  processo) == 0){
 			//leggo dalla pipe R2
 			pid_t pidPIPER2 = fork();
 			if(pidPIPER2 == 0){
-				initSignalFather(sigHandlerReceiver);
+				initSignalMedium(sigHandlerMedium);
 				while(1){
 					message_sending messageIncoming;
 					semOp(semID, PIPE3READER, -1);
@@ -614,16 +644,11 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 
 					semOp(semID, PIPE3WRITER, 1);
 				}
-
-				while(1)
-					sleep(1);
-				exit(0);
 			} else if (pidPIPER2 == -1){
 				ErrExit("Fork");
 			} else {
 				myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
 				myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER2;		
-				myChildrenPid->pids[myChildrenPid->length].isFather = 1;		
 				myChildrenPid->length = myChildrenPid->length +1;
 			}
 		}
