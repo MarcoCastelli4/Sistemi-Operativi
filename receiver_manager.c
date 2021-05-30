@@ -21,16 +21,13 @@ void sigHandlerReceiver(int);
 void recursiveKill(pid_t pid){
 	for(int i=0; i<myChildrenPid->length; i++){
 		if(myChildrenPid->pids[i].pid_parent == pid){
-			print_log("RECURSIVE KILL ON %d\n", myChildrenPid->pids[i].pid);
 			recursiveKill(myChildrenPid->pids[i].pid);
 		}
 	}
 	// Se sei te stesso ucciditi
 	if(pid == getpid()){
-		print_log("KILL ON %d\n", pid);
 		kill(pid,SIGKILL);
 	} else {
-		print_log("RECURSIVE ON %d\n", pid);
 		// Altrimenti manda un sigterm in modo che uccida tutta la sua catena di figli
 		kill(pid,SIGTERM);
 	}
@@ -186,6 +183,8 @@ int main(int argc, char *argv[]){
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R2");
 
+		while(1)
+			sleep(1);
 		//termino il processo
 		exit(0);
 	}
@@ -207,6 +206,8 @@ int main(int argc, char *argv[]){
 		printIntestazione(F4);
 		listen(MSQID, SHMID, semID, "R3");
 
+		while(1)
+			sleep(1);
 		//termino il processo
 		exit(0);
 	}
@@ -326,7 +327,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 
 			//sei nel processo receiver corretto? ed è arrivato Q
 			if(strcmp(processo, messaggio.message.idReceiver) == 0){
-				print_log("SONOIL PROCESSO CORRETTO %s %s \n", processo, messaggio.message.idReceiver);
 				if (strcmp(messaggio.message.idReceiver, "R1") == 0)
 				{
 					pid_t childS1 = fork();
@@ -389,7 +389,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 				continue;
 			} 
 			else if((strcmp("Q", messaggio.message.Type) == 0)){
-				print_log("SOno QUI DA");
 				if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
 					ErrExit("re-msgsnd failed");
 				} else {
@@ -414,9 +413,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 	if(childSM == 0){
 		initSignalFather(sigHandlerReceiver);
 		while(1){
+			semOp(semID, ACCESSTOSH, -1);
 			time_t now = time(NULL);
 			struct tm timeArrival = *localtime(&now);
-			semOp(semID, ACCESSTOSH, -1);
 			if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
 				int i = shMessages->cursorStart;
 				for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 9) ; i++){

@@ -1,2 +1,4 @@
 Id;Message;IdSender;IdReceiver;DelS1;DelS2;DelS3;Type
-2;Come va?;S2;R2;3;1;2;SH
+3;CCome vaFIFOVeloce?;S3;R3;2;2;2;SH
+3;CCome vaFIFOVeloce?;S3;R3;2;2;2;Q
+3;CCome vaFIFOVeloce?;S3;R3;2;2;2;FIFO
