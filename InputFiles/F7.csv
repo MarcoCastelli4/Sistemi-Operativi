@@ -1,2 +1,3 @@
 Id;Delay;Target;Action
+3;6;R1;SendMsg
 3;30;all;ShutDown

@@ -21,13 +21,16 @@ void sigHandlerReceiver(int);
 void recursiveKill(pid_t pid){
 	for(int i=0; i<myChildrenPid->length; i++){
 		if(myChildrenPid->pids[i].pid_parent == pid){
+			print_log("RECURSIVE KILL ON %d\n", myChildrenPid->pids[i].pid);
 			recursiveKill(myChildrenPid->pids[i].pid);
 		}
 	}
-	// Se sei testo ucciditi
+	// Se sei te stesso ucciditi
 	if(pid == getpid()){
+		print_log("KILL ON %d\n", pid);
 		kill(pid,SIGKILL);
 	} else {
+		print_log("RECURSIVE ON %d\n", pid);
 		// Altrimenti manda un sigterm in modo che uccida tutta la sua catena di figli
 		kill(pid,SIGTERM);
 	}
@@ -158,49 +161,6 @@ int main(int argc, char *argv[]){
 
 		//stampo intestazione messaggio
 		printIntestazione(F6);
-
-		//leggo dalla pipe R1
-		pid_t pidPIPER1 = fork();
-		if(pidPIPER1 == 0){
-			initSignalFather(sigHandlerReceiver);
-			while(1){
-				message_sending messageIncoming;
-				semOp(semID, PIPE4READER, -1);
-				ssize_t nBys = read(pipe4[0],&messageIncoming, sizeof(messageIncoming));
-				if(nBys < 1){
-					ErrExit("Errore uscito\n");
-				}
-
-
-				pid_t pidPIPER1_1 = fork();
-				if(pidPIPER1_1==0){
-					initSignalChild(sigHandlerChild);
-					//genero tempo attuale
-					time_t now = time(NULL);
-					struct tm timeArrival = *localtime(&now);
-
-					customPause(messageIncoming.DelS1);
-					printInfoMessage(semID,messageIncoming, timeArrival, F6);
-					exit(0);
-				} else if (pidPIPER1_1 == -1){
-					ErrExit("Fork");
-				} else {
-					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-					myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER1_1;		
-					myChildrenPid->length = myChildrenPid->length +1;
-				}
-
-				semOp(semID, PIPE4WRITER, 1);
-			}
-		} else if (pidPIPER1 == -1){
-			ErrExit("Fork");
-		} else {
-			myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-			myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER1;		
-			myChildrenPid->pids[myChildrenPid->length].isFather = 1;		
-			myChildrenPid->length = myChildrenPid->length +1;
-		}
-
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R1");
 
@@ -223,53 +183,6 @@ int main(int argc, char *argv[]){
 
 		//stampo intestazione messaggio
 		printIntestazione(F5);
-
-		pid_t pidPIPER2 = fork();
-		if(pidPIPER2 == 0){
-			initSignalFather(sigHandlerReceiver);
-			while(1){
-				message_sending messageIncoming;
-				semOp(semID, PIPE3READER, -1);
-				ssize_t nBys = read(pipe3[0],&messageIncoming, sizeof(messageIncoming));
-				if(nBys < 1){
-					ErrExit("Errore uscito\n");
-				}
-
-
-				pid_t pidPIPER2_1 = fork();
-				if(pidPIPER2_1==0){
-					initSignalChild(sigHandlerChild);
-					//genero tempo attuale
-					time_t now = time(NULL);
-					struct tm timeArrival = *localtime(&now);
-
-					customPause(messageIncoming.DelS2);
-					printInfoMessage(semID,messageIncoming, timeArrival, F5);
-					deliverMessage(messageIncoming, "R2");
-					exit(0);
-				} else if (pidPIPER2_1 == -1){
-					ErrExit("Fork");
-				} else {
-					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-					myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER2_1;		
-					myChildrenPid->length = myChildrenPid->length +1;
-				}
-
-				semOp(semID, PIPE3WRITER, 1);
-			}
-
-			while(1)
-				sleep(1);
-			exit(0);
-		} else if (pidPIPER2 == -1){
-			ErrExit("Fork");
-		} else {
-			myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-			myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER2;		
-			myChildrenPid->pids[myChildrenPid->length].isFather = 1;		
-			myChildrenPid->length = myChildrenPid->length +1;
-		}
-
 		//leggo dalla coda
 		listen(MSQID, SHMID, semID, "R2");
 
@@ -397,139 +310,32 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 	struct message_queue messaggio;
 
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
-	while (1)
-	{
-		// C'è un messaggio in arrivo
-		semOp(semID, REQUEST, -1);
 
-		//printf("Sono: %s e sto ascoltando\n", processo);
-		//genero tempo attuale
-		time_t now = time(NULL);
-		struct tm timeArrival = *localtime(&now);
+	//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
+	pid_t childMQ = fork();
+	if(childMQ == 0){
+		initSignalFather(sigHandlerReceiver);
+		while(1){
+			semOp(semID, ACCESSTOQ, -1);
+			//printf("Sono: %s e sto ascoltando\n", processo);
+			//genero tempo attuale
+			time_t now = time(NULL);
+			struct tm timeArrival = *localtime(&now);
+			//prelevo il messaggio senza aspettare
+			msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
 
-		//-------------------------------------------------- BLOCCO MESSAGE QUEUE --------------------------------------------------
-		//prelevo il messaggio senza aspettare
-		msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
-
-		//sei nel processo receiver corretto? ed è arrivato Q
-		if(strcmp(processo, messaggio.message.idReceiver) == 0){
-			if (strcmp(messaggio.message.idReceiver, "R1") == 0)
-			{
-				pid_t childS1 = fork();
-				if(childS1 == 0){
-					initSignalChild(sigHandlerChild);
-					//dormi
-					customPause(messaggio.message.DelS1);
-					//stampa le info sul tuo file
-					printInfoMessage(semID,messaggio.message, timeArrival, F6);
-					exit(0);
-				} else if (childS1 == -1) {
-					ErrExit("Fork");
-				} else {
-					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
-					myChildrenPid->length = myChildrenPid->length +1;
-				}
-			}
-			else if (strcmp(messaggio.message.idReceiver, "R2") == 0)
-			{
-				pid_t childS1 = fork();
-				if(childS1 == 0){
-					initSignalChild(sigHandlerChild);
-					//dormi
-					customPause(messaggio.message.DelS2);
-					//stampa le info sul tuo file
-					printInfoMessage(semID,messaggio.message, timeArrival, F5);
-					deliverMessage(messaggio.message, processo);
-					exit(0);
-				} else if (childS1 == -1) {
-					ErrExit("Fork");
-				} else {
-					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
-					myChildrenPid->length = myChildrenPid->length +1;
-				}
-			}
-			else if (strcmp(messaggio.message.idReceiver, "R3") == 0)
-			{
-				pid_t childS1 = fork();
-				if(childS1 == 0){
-					initSignalChild(sigHandlerChild);
-					//dormi
-					customPause(messaggio.message.DelS3);
-					//stampa le info sul tuo file
-					printInfoMessage(semID,messaggio.message, timeArrival, F4);
-					deliverMessage(messaggio.message, processo);
-					exit(0);
-				} else if (childS1 == -1) {
-					ErrExit("Fork");
-				} else {
-					myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-					myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
-					myChildrenPid->length = myChildrenPid->length +1;
-				}
-			}
-			// Pulisco la variabile message
-			memset(&messaggio, 0, sizeof(messaggio));
-			semOp(semID, DATAREADY, 1);
-			continue;
-		} 
-		else if((strcmp("Q", messaggio.message.Type) == 0)){
-			if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
-				ErrExit("re-msgsnd failed");
-			} else {
-				// Pulisco la variabile message
-				memset(&messaggio, 0, sizeof(messaggio));
-				semOp(semID, REQUEST, 1);
-				continue;
-			}
-		}
-		//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
-
-		//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
-
-		// C'è un messaggio da leggere SH ed è per me(cioè processo)
-		else if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
-			int i = shMessages->cursorStart;
-			for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 9) ; i++){
-				if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
+			//sei nel processo receiver corretto? ed è arrivato Q
+			if(strcmp(processo, messaggio.message.idReceiver) == 0){
+				print_log("SONOIL PROCESSO CORRETTO %s %s \n", processo, messaggio.message.idReceiver);
+				if (strcmp(messaggio.message.idReceiver, "R1") == 0)
+				{
 					pid_t childS1 = fork();
 					if(childS1 == 0){
 						initSignalChild(sigHandlerChild);
 						//dormi
-						customPause(shMessages->messages[i].DelS1);
+						customPause(messaggio.message.DelS1);
 						//stampa le info sul tuo file
-						printInfoMessage(semID,shMessages->messages[i], timeArrival, F6);
-						exit(0);
-					} else if (childS1 == -1) {
-						ErrExit("Fork");
-					} else {
-						myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-						myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
-						myChildrenPid->length = myChildrenPid->length +1;
-					}
-				} else if (strcmp(shMessages->messages[i].idReceiver, "R2") == 0){
-					pid_t childS1 = fork();
-					if(childS1 == 0){
-						initSignalChild(sigHandlerChild);
-						customPause(shMessages->messages[i].DelS2);
-						printInfoMessage(semID,shMessages->messages[i], timeArrival, F5);
-						deliverMessage(shMessages->messages[i], processo);
-						exit(0);
-					} else if (childS1 == -1) {
-						ErrExit("Fork");
-					} else {
-						myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
-						myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
-						myChildrenPid->length = myChildrenPid->length +1;
-					}
-				} else if (strcmp(shMessages->messages[i].idReceiver, "R3") == 0){
-					pid_t childS1 = fork();
-					if(childS1 == 0){
-						initSignalChild(sigHandlerChild);
-						customPause(shMessages->messages[i].DelS3);
-						printInfoMessage(semID,shMessages->messages[i], timeArrival, F4);
-						deliverMessage(shMessages->messages[i], processo);
+						printInfoMessage(semID,messaggio.message, timeArrival, F6);
 						exit(0);
 					} else if (childS1 == -1) {
 						ErrExit("Fork");
@@ -539,43 +345,188 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 						myChildrenPid->length = myChildrenPid->length +1;
 					}
 				}
+				else if (strcmp(messaggio.message.idReceiver, "R2") == 0)
+				{
+					pid_t childS1 = fork();
+					if(childS1 == 0){
+						initSignalChild(sigHandlerChild);
+						//dormi
+						customPause(messaggio.message.DelS2);
+						//stampa le info sul tuo file
+						printInfoMessage(semID,messaggio.message, timeArrival, F5);
+						deliverMessage(messaggio.message, processo);
+						exit(0);
+					} else if (childS1 == -1) {
+						ErrExit("Fork");
+					} else {
+						myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+						myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+						myChildrenPid->length = myChildrenPid->length +1;
+					}
+				}
+				else if (strcmp(messaggio.message.idReceiver, "R3") == 0)
+				{
+					pid_t childS1 = fork();
+					if(childS1 == 0){
+						initSignalChild(sigHandlerChild);
+						//dormi
+						customPause(messaggio.message.DelS3);
+						//stampa le info sul tuo file
+						printInfoMessage(semID,messaggio.message, timeArrival, F4);
+						deliverMessage(messaggio.message, processo);
+						exit(0);
+					} else if (childS1 == -1) {
+						ErrExit("Fork");
+					} else {
+						myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+						myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+						myChildrenPid->length = myChildrenPid->length +1;
+					}
+				}
+				// Pulisco la variabile message
+				memset(&messaggio, 0, sizeof(messaggio));
+				semOp(semID, DATAREADY, 1);
+				continue;
+			} 
+			else if((strcmp("Q", messaggio.message.Type) == 0)){
+				print_log("SOno QUI DA");
+				if (msgsnd(MSQID, &messaggio, mSize, 0) == -1){
+					ErrExit("re-msgsnd failed");
+				} else {
+					// Pulisco la variabile message
+					memset(&messaggio, 0, sizeof(messaggio));
+					semOp(semID, ACCESSTOQ, 1);
+					continue;
+				}
+			}
+			//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
+		}
+	} else if (childMQ == -1) {
+		ErrExit("Fork");
+	} else {
+		myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+		myChildrenPid->pids[myChildrenPid->length].pid = childMQ;		
+		myChildrenPid->length = myChildrenPid->length +1;
+	}
 
+	//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
+	pid_t childSM = fork();
+	if(childSM == 0){
+		initSignalFather(sigHandlerReceiver);
+		while(1){
+			time_t now = time(NULL);
+			struct tm timeArrival = *localtime(&now);
+			semOp(semID, ACCESSTOSH, -1);
+			if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
+				int i = shMessages->cursorStart;
+				for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 9) ; i++){
+					if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
+						pid_t childS1 = fork();
+						if(childS1 == 0){
+							initSignalChild(sigHandlerChild);
+							//dormi
+							customPause(shMessages->messages[i].DelS1);
+							//stampa le info sul tuo file
+							printInfoMessage(semID,shMessages->messages[i], timeArrival, F6);
+							exit(0);
+						} else if (childS1 == -1) {
+							ErrExit("Fork");
+						} else {
+							myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+							myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+							myChildrenPid->length = myChildrenPid->length +1;
+						}
+					} else if (strcmp(shMessages->messages[i].idReceiver, "R2") == 0){
+						pid_t childS1 = fork();
+						if(childS1 == 0){
+							initSignalChild(sigHandlerChild);
+							customPause(shMessages->messages[i].DelS2);
+							printInfoMessage(semID,shMessages->messages[i], timeArrival, F5);
+							deliverMessage(shMessages->messages[i], processo);
+							exit(0);
+						} else if (childS1 == -1) {
+							ErrExit("Fork");
+						} else {
+							myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+							myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+							myChildrenPid->length = myChildrenPid->length +1;
+						}
+					} else if (strcmp(shMessages->messages[i].idReceiver, "R3") == 0){
+						pid_t childS1 = fork();
+						if(childS1 == 0){
+							initSignalChild(sigHandlerChild);
+							customPause(shMessages->messages[i].DelS3);
+							printInfoMessage(semID,shMessages->messages[i], timeArrival, F4);
+							deliverMessage(shMessages->messages[i], processo);
+							exit(0);
+						} else if (childS1 == -1) {
+							ErrExit("Fork");
+						} else {
+							myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+							myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+							myChildrenPid->length = myChildrenPid->length +1;
+						}
+					}
+
+				}
+				// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura (se è arrivato all'ultimo messaggio)
+				//if(shMessages->cursorEnd > shMessages->cursorStart && shMessages->cursorStart < 5){
+				if(i <= 9){
+					shMessages->cursorStart = i;
+				} else{
+					shMessages->cursorStart = 0;
+				}
+				semOp(semID, DATAREADY, 1);
+				continue;
+			} else if(strcmp("SH", shMessages->messages[shMessages->cursorStart].Type) == 0 ){
+				semOp(semID, ACCESSTOSH, 1);
+				continue;
 			}
-			// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura (se è arrivato all'ultimo messaggio)
-			//if(shMessages->cursorEnd > shMessages->cursorStart && shMessages->cursorStart < 5){
-			if(i <= 9){
-				shMessages->cursorStart = i;
-			} else{
-				shMessages->cursorStart = 0;
 			}
-			semOp(semID, DATAREADY, 1);
-			continue;
-		} else if(strcmp("SH", shMessages->messages[shMessages->cursorStart].Type) == 0 ){
-			semOp(semID, REQUEST, 1);
-			continue;
+		} else if (childSM == -1) {
+			ErrExit("Fork");
+		} else {
+			myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+			myChildrenPid->pids[myChildrenPid->length].pid = childSM;		
+			myChildrenPid->length = myChildrenPid->length +1;
 		}
 
-		//-------------------------------------------------- FINE BLOCCO SHARED MEMORY --------------------------------------------------
-
 		//-------------------------------------------------- BLOCCO FIFO --------------------------------------------------
-
-		else if (strcmp("R3",  processo) == 0){
-			int fd = open(FIFO, O_RDONLY);
-			message_sending message;
-			ssize_t nBys = read(fd,&message, sizeof(message));
-			close(fd);
-
-			if(nBys < 1){
-				ErrExit("Errore uscito\n");
-			}
-
+		if (strcmp("R3",  processo) == 0){
 			pid_t childFIFO = fork();
 			if(childFIFO == 0){
-				initSignalChild(sigHandlerChild);
-				customPause(message.DelS3);
-				printInfoMessage(semID,message, timeArrival, F4);
-				deliverMessage(message, "R3");
-				exit(0);
+				initSignalFather(sigHandlerReceiver);
+				while(1){
+					semOp(semID, ACCESSTOFIFO, -1);
+					time_t now = time(NULL);
+					struct tm timeArrival = *localtime(&now);
+					int fd = open(FIFO, O_RDONLY);
+					message_sending message;
+					ssize_t nBys = read(fd,&message, sizeof(message));
+					close(fd);
+
+					if(nBys < 1){
+						ErrExit("Errore uscito\n");
+					}
+
+					pid_t childS1 = fork();
+					if(childS1 == 0){
+						initSignalChild(sigHandlerChild);
+						customPause(message.DelS3);
+						printInfoMessage(semID,message, timeArrival, F4);
+						deliverMessage(message, "R3");
+						exit(0);
+					} else if (childS1 == -1) {
+						ErrExit("Fork");
+					} else {
+						myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+						myChildrenPid->pids[myChildrenPid->length].pid = childS1;		
+						myChildrenPid->length = myChildrenPid->length +1;
+					}
+
+					semOp(semID, DATAREADY, 1);
+					continue;
+				}
 			} else if (childFIFO == -1) {
 				ErrExit("Fork");
 			} else {
@@ -583,19 +534,99 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 				myChildrenPid->pids[myChildrenPid->length].pid = childFIFO;		
 				myChildrenPid->length = myChildrenPid->length +1;
 			}
-
-			semOp(semID, DATAREADY, 1);
-			continue;
 		}
 
-		//-------------------------------------------------- FINE BLOCCO FIFO --------------------------------------------------
+		if (strcmp("R1",  processo) == 0){
+			//leggo dalla pipe R1
+			pid_t pidPIPER1 = fork();
+			if(pidPIPER1 == 0){
+				initSignalFather(sigHandlerReceiver);
+				while(1){
+					message_sending messageIncoming;
+					semOp(semID, PIPE4READER, -1);
+					ssize_t nBys = read(pipe4[0],&messageIncoming, sizeof(messageIncoming));
+					if(nBys < 1){
+						ErrExit("Errore uscito\n");
+					}
 
-		else {
-			//non sono nel receiver corretto
-			semOp(semID, REQUEST, 1);
-			continue;
+
+					pid_t pidPIPER1_1 = fork();
+					if(pidPIPER1_1==0){
+						initSignalChild(sigHandlerChild);
+						//genero tempo attuale
+						time_t now = time(NULL);
+						struct tm timeArrival = *localtime(&now);
+
+						customPause(messageIncoming.DelS1);
+						printInfoMessage(semID,messageIncoming, timeArrival, F6);
+						exit(0);
+					} else if (pidPIPER1_1 == -1){
+						ErrExit("Fork");
+					} else {
+						myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+						myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER1_1;		
+						myChildrenPid->length = myChildrenPid->length +1;
+					}
+
+					semOp(semID, PIPE4WRITER, 1);
+				}
+			} else if (pidPIPER1 == -1){
+				ErrExit("Fork");
+			} else {
+				myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+				myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER1;		
+				myChildrenPid->pids[myChildrenPid->length].isFather = 1;		
+				myChildrenPid->length = myChildrenPid->length +1;
+			}
 		}
-		printf("SONO ALLA FINE");
+
+		if (strcmp("R2",  processo) == 0){
+			//leggo dalla pipe R2
+			pid_t pidPIPER2 = fork();
+			if(pidPIPER2 == 0){
+				initSignalFather(sigHandlerReceiver);
+				while(1){
+					message_sending messageIncoming;
+					semOp(semID, PIPE3READER, -1);
+					ssize_t nBys = read(pipe3[0],&messageIncoming, sizeof(messageIncoming));
+					if(nBys < 1){
+						ErrExit("Errore uscito\n");
+					}
+
+
+					pid_t pidPIPER2_1 = fork();
+					if(pidPIPER2_1==0){
+						initSignalChild(sigHandlerChild);
+						//genero tempo attuale
+						time_t now = time(NULL);
+						struct tm timeArrival = *localtime(&now);
+
+						customPause(messageIncoming.DelS2);
+						printInfoMessage(semID,messageIncoming, timeArrival, F5);
+						deliverMessage(messageIncoming, "R2");
+						exit(0);
+					} else if (pidPIPER2_1 == -1){
+						ErrExit("Fork");
+					} else {
+						myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+						myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER2_1;		
+						myChildrenPid->length = myChildrenPid->length +1;
+					}
+
+					semOp(semID, PIPE3WRITER, 1);
+				}
+
+				while(1)
+					sleep(1);
+				exit(0);
+			} else if (pidPIPER2 == -1){
+				ErrExit("Fork");
+			} else {
+				myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
+				myChildrenPid->pids[myChildrenPid->length].pid = pidPIPER2;		
+				myChildrenPid->pids[myChildrenPid->length].isFather = 1;		
+				myChildrenPid->length = myChildrenPid->length +1;
+			}
 		}
 	}
 

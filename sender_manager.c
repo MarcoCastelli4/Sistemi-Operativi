@@ -589,7 +589,7 @@ void messageHandler(message_sending message, char processo[])
 	if (strcmp(message.Type, "Q") == 0 && strcmp(processo, message.idSender) == 0)
 	{
 		// sending the message in the queue
-		semOp(semID, REQUEST, 1);
+		semOp(semID, ACCESSTOQ, 1);
 		if (msgsnd(MSQID, &m, mSize, 0) == -1)
 			ErrExit("msgsnd failed");
 		semOp(semID, DATAREADY, -1);
@@ -598,7 +598,7 @@ void messageHandler(message_sending message, char processo[])
 	else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0)
 	{
 
-		semOp(semID, REQUEST, 1);
+		semOp(semID, ACCESSTOSH, 1);
 		memcpy(&shMessages->messages[shMessages->cursorEnd], &message, sizeof(message));	
 		shMessages->messages[shMessages->cursorEnd] = message;
 		if(shMessages->cursorEnd < 9){
@@ -612,7 +612,7 @@ void messageHandler(message_sending message, char processo[])
 	else if ((strcmp(processo, "S3") == 0) && (strcmp(message.Type, "FIFO") == 0))
 	{
 		//invia a R3 tramite FIFO
-		semOp(semID, REQUEST, 1);
+		semOp(semID, ACCESSTOFIFO, 1);
 		int fd = open(FIFO, O_WRONLY);
 		write(fd, &message, sizeof(message));
 		close(fd);

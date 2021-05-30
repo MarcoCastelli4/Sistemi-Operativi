@@ -4,13 +4,21 @@
 
 #include "err_exit.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include "semaphore.h"
+#include <errno.h>
 
 void semOp (int semid, unsigned short sem_num, short sem_op) {
-   struct sembuf sop = {.sem_num = sem_num, .sem_op = sem_op, .sem_flg = 0};
-    if (semop(semid,&sop,1) == -1){
-        printf("\nSEMAFORO DEVE USCIRE %d %d %s: %d\n",sem_num,sem_op, __FILE__,__LINE__);
-        //ErrExit("semop failed");
+    int rc;
+    struct sembuf sop = {.sem_num = sem_num, .sem_op = sem_op, .sem_flg = 0};
+    while ((rc = semop(semid,&sop,1) == -1)) {
+        if (errno != EINTR) {
+            printf("\nSEMAFORO DEVE USCIRE %d %d pid: %d ppid: %d\n",sem_num,sem_op, getpid(), getppid());
+            perror("");
+            exit(0);
+            break;
+        }     
+        // Interrupted system call handler ignore it
     }
 }
 
@@ -22,12 +30,12 @@ int create_sem_set(int nSem) {
 
     // Initialize the semaphore set with semctl
     union semun arg;
-    unsigned short values[] = {0,0,0,0,0,0,1,0,1,0,1,0,1,0,1};
+    unsigned short values[] = {0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0};
     arg.array = values;
 
     // inserisci con setALL...
-     if (semctl(semid,0,SETALL,arg)==-1)
+    if (semctl(semid,0,SETALL,arg)==-1)
         ErrExit("semctl SETALL failed");
-        
+
     return semid;
 }

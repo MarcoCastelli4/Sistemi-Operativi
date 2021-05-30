@@ -7,7 +7,7 @@
 #define CREATION 0
 #define ELIMINATION 1
 //Mutex per bloccare processi che vogliono leggere quando non ci sono messaggi nuovi
-#define REQUEST 2
+#define ACCESSTOFIFO 2
 #define DATAREADY 3
 #define HACKLERRECEIVER 4
 #define HACKLERSENDER 5
@@ -20,8 +20,10 @@
 #define PIPE4WRITER 12
 #define PIPE4READER 13
 #define INFOMESSAGEFILE 14
+#define ACCESSTOQ 15
+#define ACCESSTOSH 16
 
-#define SEMNUMBER 15
+#define SEMNUMBER 17
 #define SKey 01110011
 #include <sys/sem.h>
 #include <sys/shm.h>
