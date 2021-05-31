@@ -502,12 +502,9 @@ message_group *carica_F0(char nomeFile[])
 
 void sendMessage(message_group *messageG, char processo[])
 {
-	time_t now = time(NULL);
 	int i;
 	for (i = 0; i < messageG->length; i++)
 	{
-		//genero tempo attuale
-		struct tm timeArrival = *localtime(&now);
 
 		//ritardo il messaggio
 		if (strcmp(processo, "S1") == 0){
@@ -515,10 +512,11 @@ void sendMessage(message_group *messageG, char processo[])
 			pid_t childS1 = fork();
 			if(childS1 == 0){
 				initSignalChild(sigHandlerChild);
+				printInfoMessage(semID,messageG->messages[i], F1);
 				customPause(messageG->messages[i].DelS1);
 
 				//stampa su file F1
-				printInfoMessage(semID,messageG->messages[i], timeArrival, F1);
+				completeInfoMessage(semID,messageG->messages[i], F1);
 				messageHandler(messageG->messages[i], "S1");
 				exit(0);
 			}
@@ -536,10 +534,11 @@ void sendMessage(message_group *messageG, char processo[])
 			pid_t childS1 = fork();
 			if(childS1 == 0){
 				initSignalChild(sigHandlerChild);
+				printInfoMessage(semID,messageG->messages[i], F2);
 				customPause(messageG->messages[i].DelS2);
 
 				//stampa su file F2
-				printInfoMessage(semID,messageG->messages[i], timeArrival, F2);
+				completeInfoMessage(semID,messageG->messages[i], F2);
 				messageHandler(messageG->messages[i], "S2");
 				exit(0);
 			}
@@ -557,10 +556,11 @@ void sendMessage(message_group *messageG, char processo[])
 			pid_t childS1 = fork();
 			if(childS1 == 0){
 				initSignalChild(sigHandlerChild);
+				//stampa su file F3
+				printInfoMessage(semID,messageG->messages[i], F3);
 				customPause(messageG->messages[i].DelS3);
 
-				//stampa su file F3
-				printInfoMessage(semID,messageG->messages[i], timeArrival, F3);
+				completeInfoMessage(semID,messageG->messages[i], F3);
 				messageHandler(messageG->messages[i], "S3");
 				exit(0);
 			}

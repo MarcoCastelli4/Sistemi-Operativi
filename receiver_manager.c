@@ -348,10 +348,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 		initSignalMedium(sigHandlerMedium);
 		while(1){
 			semOp(semID, ACCESSTOQ, -1);
-			//printf("Sono: %s e sto ascoltando\n", processo);
-			//genero tempo attuale
-			time_t now = time(NULL);
-			struct tm timeArrival = *localtime(&now);
 			//prelevo il messaggio senza aspettare
 			msgrcv(MSQID, &messaggio, mSize, 0, IPC_NOWAIT);
 
@@ -362,10 +358,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
 						initSignalChild(sigHandlerChild);
-						//dormi
+						printInfoMessage(semID,messaggio.message, F6);
 						customPause(messaggio.message.DelS1);
-						//stampa le info sul tuo file
-						printInfoMessage(semID,messaggio.message, timeArrival, F6);
+						completeInfoMessage(semID,messaggio.message, F6);
 						exit(0);
 					} else if (childS1 == -1) {
 						ErrExit("Fork");
@@ -380,10 +375,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
 						initSignalChild(sigHandlerChild);
-						//dormi
+						printInfoMessage(semID,messaggio.message, F5);
 						customPause(messaggio.message.DelS2);
-						//stampa le info sul tuo file
-						printInfoMessage(semID,messaggio.message, timeArrival, F5);
+						completeInfoMessage(semID,messaggio.message, F5);
 						deliverMessage(messaggio.message, processo);
 						exit(0);
 					} else if (childS1 == -1) {
@@ -399,10 +393,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
 						initSignalChild(sigHandlerChild);
-						//dormi
+						printInfoMessage(semID,messaggio.message, F4);
 						customPause(messaggio.message.DelS3);
-						//stampa le info sul tuo file
-						printInfoMessage(semID,messaggio.message, timeArrival, F4);
+						completeInfoMessage(semID,messaggio.message, F4);
 						deliverMessage(messaggio.message, processo);
 						exit(0);
 					} else if (childS1 == -1) {
@@ -444,8 +437,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 		initSignalMedium(sigHandlerMedium);
 		while(1){
 			semOp(semID, ACCESSTOSH, -1);
-			time_t now = time(NULL);
-			struct tm timeArrival = *localtime(&now);
 			if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
 				int i = shMessages->cursorStart;
 				for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 9) ; i++){
@@ -453,10 +444,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 						pid_t childS1 = fork();
 						if(childS1 == 0){
 							initSignalChild(sigHandlerChild);
-							//dormi
+							printInfoMessage(semID,shMessages->messages[i], F6);
 							customPause(shMessages->messages[i].DelS1);
-							//stampa le info sul tuo file
-							printInfoMessage(semID,shMessages->messages[i], timeArrival, F6);
+							completeInfoMessage(semID,shMessages->messages[i], F6);
 							exit(0);
 						} else if (childS1 == -1) {
 							ErrExit("Fork");
@@ -469,8 +459,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 						pid_t childS1 = fork();
 						if(childS1 == 0){
 							initSignalChild(sigHandlerChild);
+							printInfoMessage(semID,shMessages->messages[i], F5);
 							customPause(shMessages->messages[i].DelS2);
-							printInfoMessage(semID,shMessages->messages[i], timeArrival, F5);
+							completeInfoMessage(semID,shMessages->messages[i], F5);
 							deliverMessage(shMessages->messages[i], processo);
 							exit(0);
 						} else if (childS1 == -1) {
@@ -484,8 +475,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 						pid_t childS1 = fork();
 						if(childS1 == 0){
 							initSignalChild(sigHandlerChild);
+							printInfoMessage(semID,shMessages->messages[i], F4);
 							customPause(shMessages->messages[i].DelS3);
-							printInfoMessage(semID,shMessages->messages[i], timeArrival, F4);
+							completeInfoMessage(semID,shMessages->messages[i], F4);
 							deliverMessage(shMessages->messages[i], processo);
 							exit(0);
 						} else if (childS1 == -1) {
@@ -527,8 +519,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 				initSignalMedium(sigHandlerMedium);
 				while(1){
 					semOp(semID, ACCESSTOFIFO, -1);
-					time_t now = time(NULL);
-					struct tm timeArrival = *localtime(&now);
 					int fd = open(FIFO, O_RDONLY);
 					message_sending message;
 					ssize_t nBys = read(fd,&message, sizeof(message));
@@ -541,8 +531,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
 						initSignalChild(sigHandlerChild);
+						printInfoMessage(semID,message, F4);
 						customPause(message.DelS3);
-						printInfoMessage(semID,message, timeArrival, F4);
+						completeInfoMessage(semID,message, F4);
 						deliverMessage(message, "R3");
 						exit(0);
 					} else if (childS1 == -1) {
@@ -582,12 +573,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					pid_t pidPIPER1_1 = fork();
 					if(pidPIPER1_1==0){
 						initSignalChild(sigHandlerChild);
-						//genero tempo attuale
-						time_t now = time(NULL);
-						struct tm timeArrival = *localtime(&now);
-
+						printInfoMessage(semID,messageIncoming, F6);
 						customPause(messageIncoming.DelS1);
-						printInfoMessage(semID,messageIncoming, timeArrival, F6);
+						completeInfoMessage(semID,messageIncoming, F6);
 						exit(0);
 					} else if (pidPIPER1_1 == -1){
 						ErrExit("Fork");
@@ -626,12 +614,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					pid_t pidPIPER2_1 = fork();
 					if(pidPIPER2_1==0){
 						initSignalChild(sigHandlerChild);
-						//genero tempo attuale
-						time_t now = time(NULL);
-						struct tm timeArrival = *localtime(&now);
-
+						printInfoMessage(semID,messageIncoming, F5);
 						customPause(messageIncoming.DelS2);
-						printInfoMessage(semID,messageIncoming, timeArrival, F5);
+						completeInfoMessage(semID,messageIncoming, F5);
 						deliverMessage(messageIncoming, "R2");
 						exit(0);
 					} else if (pidPIPER2_1 == -1){

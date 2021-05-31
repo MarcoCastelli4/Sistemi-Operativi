@@ -13,9 +13,7 @@ void semOp (int semid, unsigned short sem_num, short sem_op) {
     struct sembuf sop = {.sem_num = sem_num, .sem_op = sem_op, .sem_flg = 0};
     while ((rc = semop(semid,&sop,1) == -1)) {
         if (errno != EINTR) {
-            printf("\nSEMAFORO DEVE USCIRE %d %d pid: %d ppid: %d\n",sem_num,sem_op, getpid(), getppid());
-            perror("");
-            exit(0);
+            ErrExit("semop failed");
             break;
         }     
         // Interrupted system call handler ignore it

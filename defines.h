@@ -148,7 +148,8 @@ char * timestamp();
 char *toString(message_sending message);
 
 int numcifre(int);
-void printInfoMessage(int semID,message_sending message, struct tm timeArrival, char file[]);
+void printInfoMessage(int semID,message_sending message, char file[]);
+void completeInfoMessage(int semID,message_sending message, char file[]);
 void printIntestazione(char FILE[]);
 int stringLenght(message_sending message);
 

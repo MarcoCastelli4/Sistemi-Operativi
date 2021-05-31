@@ -51,7 +51,7 @@ void printIntestazione(char file[])
 	close(fp);
 }
 //Stampa all'interno del file specificato il messaggio che è passato in quel R/S
-void printInfoMessage(int semID, message_sending message, struct tm timeArrival, char file[])
+void printInfoMessage(int semID, message_sending message, char file[])
 {
 
 	semOp(semID, INFOMESSAGEFILE, -1);
@@ -62,14 +62,14 @@ void printInfoMessage(int semID, message_sending message, struct tm timeArrival,
 
 	//genero il tempo attuale --> TimeDeparture
 	time_t now = time(NULL);
-	struct tm TimeDeparture = *localtime(&now);
+	struct tm TimeArrival = *localtime(&now);
 
 	//calcolo la dimensione della riga da scrivere
 	ssize_t bufferLength = (numcifre(message.id) + sizeof(message.message) + sizeof(message.idSender) + sizeof(message.idReceiver) + 20 * sizeof(char));
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;%02d:%02d:%02d\n", message.id, message.message, message.idSender[1], message.idReceiver[1], timeArrival.tm_hour, timeArrival.tm_min, timeArrival.tm_sec, TimeDeparture.tm_hour, TimeDeparture.tm_min, TimeDeparture.tm_sec);
+	sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;00:00:00;\n", message.id, message.message, message.idSender[1], message.idReceiver[1], TimeArrival.tm_hour, TimeArrival.tm_min, TimeArrival.tm_sec);
 
 	//scrivo la stringa nel file
 	if (write(fp, string, strlen(string) * sizeof(char)) != strlen(string) * sizeof(char))
@@ -81,6 +81,96 @@ void printInfoMessage(int semID, message_sending message, struct tm timeArrival,
 	free(string);
 
 	close(fp);
+	semOp(semID, INFOMESSAGEFILE, 1);
+}
+
+//Stampa all'interno del file specificato il messaggio che è passato in quel R/S
+void completeInfoMessage(int semID, message_sending message, char file[])
+{
+
+	semOp(semID, INFOMESSAGEFILE, -1);
+
+	//apro il file 
+	int fp = open(file, O_RDONLY);
+	if (fp == -1)
+		ErrExit("Open failed");
+
+	// utilizzo lseek per calcolarne le dimensioni 
+	int fileSize = lseek(fp, (size_t)0, SEEK_END);
+	if (fileSize == -1) { ErrExit("Lseek failed"); }
+
+	// posiziono l'offset alla prima riga (salto i titoli) 
+	if (lseek(fp, (size_t)TrafficInfoLength * sizeof(char), SEEK_SET) == -1) {
+		ErrExit("Lseek failed");
+	}
+
+	int bufferLength = fileSize / sizeof(char) - TrafficInfoLength;
+	char buf[bufferLength];
+	if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
+		ErrExit("Read failed");
+	}
+	
+	int index = 0;
+	char *end_str;
+
+	// Preparo la stringa del tempo
+	time_t now = time(NULL);
+	struct tm local = *localtime(&now);
+	ssize_t timeLength = (9 * sizeof(char));
+	char *appendString = malloc(timeLength);
+	sprintf(appendString, "%02d:%02d:%02d", local.tm_hour, local.tm_min, local.tm_sec);
+
+	//dimensione campo testo
+	int offsetLength = TrafficInfoLength;
+	int found = 0;
+
+	//prendo la riga che è delimitata dal carattere \n
+	char *row = strtok_r(buf, "\n", &end_str);
+	char *rigaCambiare;
+
+	//scorro finchè la riga non è finita
+	while (row != NULL && found==0)
+	{
+		rigaCambiare=(char*)malloc(strlen(row));
+		strcpy(rigaCambiare,row);
+		char *end_segment;
+		char *segment = strtok_r(row, ";", &end_segment);
+		int campo=0;
+
+		offsetLength+=strlen(rigaCambiare)+1;
+
+		while (segment!=NULL && found==0)
+		{	
+			if(campo==0 && atoi(segment) == message.id){
+				found = 1;
+				break;
+			}
+			campo++;
+			segment = strtok_r(NULL, ";", &end_segment);
+		}
+
+		index++;
+		row = strtok_r(NULL, "\n", &end_str);
+		free(rigaCambiare);
+		if(found ==1)break;
+	}
+	close(fp);
+
+	if(found == 1){
+		offsetLength -= timeLength +1;
+		fp = open(file, O_WRONLY, S_IRUSR | S_IWUSR);
+		if (fp == -1)
+			ErrExit("Open failed");
+		if (lseek(fp, (size_t)(offsetLength) * sizeof(char) , SEEK_SET) == -1)
+			ErrExit("Lseek failed");
+
+		if (write(fp, appendString, strlen(appendString)) != strlen(appendString))
+		{
+			ErrExit("Write failed");
+		}
+		close(fp);
+	}
+	free(appendString);
 	semOp(semID, INFOMESSAGEFILE, 1);
 }
 
@@ -146,11 +236,6 @@ void completeInF10(char * searchBuffer) {
 	if ((read(fp, buf, bufferLength * sizeof(char)) == -1)) {
 		ErrExit("Read failed");
 	}
-	
-
-	//numero di action che inserisco
-	int index = 0;
-	char *end_str;
 
 	// Preparo la stringa del tempo
 	time_t now = time(NULL);
@@ -159,17 +244,14 @@ void completeInF10(char * searchBuffer) {
 	char *appendString = malloc(timeLength);
 	sprintf(appendString, "%02d:%02d:%02d", local.tm_hour, local.tm_min, local.tm_sec);
 
-
 	//dimensione campo testo
 	int offsetLength = F10Header;
 	int found = 0;
 
-	
-
 	//prendo la riga che è delimitata dal carattere \n
+	char *end_str;
 	char *row = strtok_r(buf, "\n", &end_str);
 	char *rigaCambiare;
-	
 
 	//scorro finchè la riga non è finita
 	while (row != NULL && found==0)
@@ -179,30 +261,29 @@ void completeInF10(char * searchBuffer) {
 		char *end_segment;
 		char *segment = strtok_r(row, ";", &end_segment);
 		int campo=0;
-		
+
 		offsetLength+=strlen(rigaCambiare)+1;
-		
+
 		while (segment!=NULL && found==0)
 		{	
 			if(campo==0 && strcmp(segment, searchBuffer)==0){
 				found = 1;
 				offsetLength-=10; //tolgo lo spiazzamento per scrivere la nuova ora
-				
+
 			}
-		
-		campo++;
-		segment = strtok_r(NULL, ";", &end_segment);
-		
+
+			campo++;
+			segment = strtok_r(NULL, ";", &end_segment);
+
 		}
-		
-	
-	index++;
-	row = strtok_r(NULL, "\n", &end_str);
-	
+
+		if(found == 1)break;
+		row = strtok_r(NULL, "\n", &end_str);
+		free(rigaCambiare);
 	}
 	close(fp);
-	
-	
+
+
 
 	fp = open(F10, O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fp == -1)
