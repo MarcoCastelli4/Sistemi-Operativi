@@ -1,19 +1,12 @@
-/// @file client.c
-
-/// @brief Contiene l'implementazione del client.
-
 #include "defines.h"
 
+//variabili
 int semID = -1;
-
 char* F7;
-
 action_group* carica_F7(char*);
 
+//funzioni
 void carica_PIDS(char*,int,int[]);
-
-void writeActionReverse(char *,action_group*);
-
 void increaseDelay(pid_t);
 void sendMsg(pid_t);
 void removeMsg(pid_t);
@@ -21,8 +14,9 @@ void shutDownProcess(pid_t);
 
 int main(int argc, char * argv[]) {
 
-  //creo semaforo, sarà lo stesso del sender
+  //creo semaforo, sarà lo stesso del sender e del receiver
   semID = semget(SKey, SEMNUMBER, IPC_CREAT | S_IRUSR | S_IWUSR);
+  
   //finchè il sender non ha creato le IPC aspetto
   semOp(semID, HACKLERRECEIVER, -1);
   semOp(semID, HACKLERSENDER, -1);
@@ -40,14 +34,14 @@ int main(int argc, char * argv[]) {
   //due array che contengono il pid dei receiver e i pid dei sender
   int senderPids[3];
   int receiverPids[3];
+ 
   //le inizializzo sfruttando le funzioni
-  // TODO: da modificare carica pids perchè length è più grande del dovuto di 1
   carica_PIDS(F8,SenderPIDHeader,senderPids);
   carica_PIDS(F9,ReceiverPIDHeader,receiverPids);
+ 
   //scorro le azioni dell'hackler
-
   for(i=0; i < action_group->length; i++){
-
+    //azione shutdown
     if(strcmp(action_group->actions[i].action,"ShutDown")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
@@ -60,7 +54,9 @@ int main(int argc, char * argv[]) {
         shutDownProcess(receiverPids[2]);
         exit(0);
       }
-    } else if(strcmp(action_group->actions[i].action,"IncreaseDelay")==0){
+    } 
+     //azione IncreaseDelay
+    else if(strcmp(action_group->actions[i].action,"IncreaseDelay")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
         sleep(action_group->actions[i].delay);
@@ -89,7 +85,9 @@ int main(int argc, char * argv[]) {
         } 
         exit(0);
       }
-    } else if(strcmp(action_group->actions[i].action,"SendMsg")==0){
+    } 
+    //azione SendMsg
+    else if(strcmp(action_group->actions[i].action,"SendMsg")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
         sleep(action_group->actions[i].delay);
@@ -118,7 +116,9 @@ int main(int argc, char * argv[]) {
         } 
         exit(0);
       }
-    } else if(strcmp(action_group->actions[i].action,"RemoveMsg")==0){
+    } 
+    //azione RemoveMsg
+    else if(strcmp(action_group->actions[i].action,"RemoveMsg")==0){
       pid_t actionProcess= fork();
       if(actionProcess == 0){
         sleep(action_group->actions[i].delay);
@@ -151,18 +151,18 @@ int main(int argc, char * argv[]) {
   }
 
   // Eliminazione della struttura dei messaggi di hackler
-
   for(i = 0; i < action_group->length; i++){
     free(action_group->actions[i].target);
     free(action_group->actions[i].action);
   }
-
+  //libero spazio allocato con le malloc
   free(action_group->actions);
   free(action_group);
 
   exit(0);
 }
 
+//Carica nell'array pids, i pids che trova all'interno del file F8/F9
 void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
   //apro il file 
   int fp = open(nomeFile, O_RDONLY);
@@ -204,7 +204,7 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
     //prendo il singolo campo/segmento che è delimitato dal ;
     char *segment = strtok_r(row, ";", &end_segment);
     int campo=0; //0->id , 1->delay
-    //scorro finchè non ho aggiunto i 4 campi
+    //scorro 
     while (segment!=NULL)
     {	
       //memorizzo il segmento ne rispettivo campo della struttura
@@ -228,26 +228,24 @@ void carica_PIDS(char nomeFile[], int lunghezzaHeader, int pids[]) {
   }
 }
 
+//invio il segnale SIGURS2 al pid specificato
 void increaseDelay(pid_t pid){
-  /** print_log("HO INVIATO IL SEGNALE DI INCREASE DELAY (sigusr2) A pid %d\n",pid); */
   kill(pid,SIGUSR2);
 }
-
+//invio il segnale SIGURS1 al pid specificato
 void sendMsg(pid_t pid){
-  /** print_log("HO INVIATO IL SEGNALE DI SENDMSG (sigusr1) A pid %d\n",pid); */
   kill(pid,SIGUSR1);
 }
-
+//invio il segnale SIGINT al pid specificato
 void removeMsg(pid_t pid){
-  /** print_log("HO INVIATO IL SEGNALE DI REMOVE MSG (sigint) A pid %d\n",pid); */
   kill(pid,SIGINT);
 }
-
+//invio il segnale SIGTERM al pid specificato
 void shutDownProcess(pid_t pid){
-  /** print_log("HO INVIATO IL SEGNALE DI MORTE (sigterm) A pid %d\n",pid); */
   kill(pid,SIGTERM);
 }
 
+//restituisce l'array di action che ha letto dal file F7.csv
 action_group* carica_F7(char nomeFile[]) {
   //apro il file 
   int fp = open(nomeFile, O_RDONLY);
@@ -309,7 +307,7 @@ action_group* carica_F7(char nomeFile[]) {
     //scorro finchè non ho aggiunto i 4 campi
     while (segment!=NULL)
     {    
-      //se il segmento è vuoto, faccio inserire una stringa vuota
+      
       //memorizzo il segmento ne rispettivo campo della struttura
 
       switch (campo) {

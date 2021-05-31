@@ -8,30 +8,31 @@
 #include "semaphore.h"
 #include <errno.h>
 
+//effettuo l'operazione
 void semOp (int semid, unsigned short sem_num, short sem_op) {
     int rc;
     struct sembuf sop = {.sem_num = sem_num, .sem_op = sem_op, .sem_flg = 0};
+    //ciclo necessario per fare in modo che se arriva un segnale durante che da EINTR esso non si interrompe
     while ((rc = semop(semid,&sop,1) == -1)) {
         if (errno != EINTR) {
             ErrExit("semop failed");
             break;
         }     
-        // Interrupted system call handler ignore it
     }
 }
 
 int create_sem_set(int nSem) {
-    // Create a semaphore set with 2 semaphores
+    //creo un set di nSem semafori
     int semid = semget(SKey, nSem, IPC_CREAT | S_IRUSR | S_IWUSR);
     if (semid == -1)
         ErrExit("semget failed");
 
-    // Initialize the semaphore set with semctl
+    //inizializzo i semafori 
     union semun arg;
     unsigned short values[] = {0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0};
     arg.array = values;
 
-    // inserisci con setALL...
+    //setto l'inizializzazione
     if (semctl(semid,0,SETALL,arg)==-1)
         ErrExit("semctl SETALL failed");
 

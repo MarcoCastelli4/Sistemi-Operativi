@@ -1,6 +1,4 @@
 ID;Message;IDSender;IDReceiver;TimeArrival;TimeDeparture
-3;QCCome vaFIFOVeloce?;3;1;16:15:53;16:15:53;
-6;QCCome vaFIFOVeloce?;3;2;16:15:56;16:15:56;
-7;QCCome vaFIFOVeloce?;3;3;16:15:57;16:15:57;
-8;QCCome vaFIFOVeloce?;3;3;16:15:58;16:15:58;
-9;QCCome vaFIFOVeloce?;3;3;16:15:59;16:15:59;
+3;QCCome vaFIFOVeloce?;3;1;18:21:09;18:21:09;
+6;QCCome vaFIFOVeloce?;3;2;18:21:12;18:21:12;
+9;QCCome vaFIFOVeloce?;3;3;18:21:15;18:21:15;
