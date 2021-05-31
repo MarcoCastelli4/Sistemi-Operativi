@@ -425,7 +425,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					continue;
 				}
 			}
-			//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
 		}
 	} else if (childMQ == -1) {
 		ErrExit("Fork");
@@ -434,6 +433,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 		myChildrenPid->pids[myChildrenPid->length].pid = childMQ;		
 		myChildrenPid->length = myChildrenPid->length +1;
 	}
+	//-------------------------------------------------- FINE BLOCCO MESSAGE QUEUE --------------------------------------------------
 
 	//-------------------------------------------------- BLOCCO SHARED MEMORY --------------------------------------------------
 	pid_t childSM = fork();
@@ -495,7 +495,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 
 				}
 				// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura (se è arrivato all'ultimo messaggio)
-				//if(shMessages->cursorEnd > shMessages->cursorStart && shMessages->cursorStart < 5){
 				if(i <= 9){
 					shMessages->cursorStart = i;
 				} else{

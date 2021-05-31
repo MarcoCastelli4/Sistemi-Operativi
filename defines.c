@@ -143,7 +143,7 @@ void completeInfoMessage(int semID, message_sending message, char file[])
 		{	
 			if(campo==0 && atoi(segment) == message.id){
 				found = 1;
-				break;
+				offsetLength -= 10;
 			}
 			campo++;
 			segment = strtok_r(NULL, ";", &end_segment);
@@ -152,12 +152,10 @@ void completeInfoMessage(int semID, message_sending message, char file[])
 		index++;
 		row = strtok_r(NULL, "\n", &end_str);
 		free(rigaCambiare);
-		if(found ==1)break;
 	}
 	close(fp);
 
 	if(found == 1){
-		offsetLength -= timeLength +1;
 		fp = open(file, O_WRONLY, S_IRUSR | S_IWUSR);
 		if (fp == -1)
 			ErrExit("Open failed");
