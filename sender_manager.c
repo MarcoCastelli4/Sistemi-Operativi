@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 	//Scrivo info creazione semaforo
 	ssize_t bufferLength = (sizeof("S") + numcifre(semID) + sizeof("SM") + 20 * sizeof(char));
 	char *string = malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n", "S", semID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;--:--:--;\n", "S", semID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,1);
 
 	// Creo la message queue
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
 	//Scrivo info creazione Q
 	bufferLength = (sizeof("Q") + numcifre(MSQID) + sizeof("SM") + 20 * sizeof(char));
 	string = (char *)malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n", "Q", MSQID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;--:--:--;\n", "Q", MSQID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,2);
 
 	//Creazione della shared memory
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 	//Scrivo info creazione SH
 	bufferLength = (sizeof("SH") + numcifre(SHMID) + sizeof("SM") + 20 * sizeof(char));
 	string = (char *)malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n", "SH", SHMID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;--:--:--;\n", "SH", SHMID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,3);
 
 	shMessages = (shared_memory_messages*)get_shared_memory(SHMID, 0);
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 	//Scrivo info creazione FIFO
 	bufferLength = (sizeof("FIFO") + numcifre(res) + sizeof("SM") + 20 * sizeof(char));
 	string = (char *)malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n", "FIFO", res, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;--:--:--;\n", "FIFO", res, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,4);
 
 	// checking if PIPE successed
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 	//Scrivo info creazione PIPE1
 	bufferLength = (sizeof("PIPE1") + sizeof(&pipe1[0]) + sizeof(&pipe1[1])+sizeof("SM") + 21 * sizeof(char));
 	string = (char *)malloc(bufferLength);
-	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE1", &pipe1[0], &pipe1[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;--:--:--;\n", "PIPE1", &pipe1[0], &pipe1[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,5);
 
 	// checking if PIPE successed
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 	//Scrivo info creazione PIPE2
 	bufferLength = (sizeof("PIPE2") + sizeof(&pipe2[0]) + sizeof(&pipe2[1])+sizeof("SM") + 21 * sizeof(char));
 	string = (char *)malloc(bufferLength);
-	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE2", &pipe2[0], &pipe2[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;--:--:--;\n", "PIPE2", &pipe2[0], &pipe2[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,6);
 
 	//ho creato puoi usarle

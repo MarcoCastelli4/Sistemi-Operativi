@@ -69,7 +69,7 @@ void printInfoMessage(int semID, message_sending message, char file[])
 	char *string = malloc(bufferLength);
 
 	//mi salvo tutta la stringa
-	sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;00:00:00;\n", message.id, message.message, message.idSender[1], message.idReceiver[1], TimeArrival.tm_hour, TimeArrival.tm_min, TimeArrival.tm_sec);
+	sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;--:--:--;\n", message.id, message.message, message.idSender[1], message.idReceiver[1], TimeArrival.tm_hour, TimeArrival.tm_min, TimeArrival.tm_sec);
 
 	//scrivo la stringa nel file
 	if (write(fp, string, strlen(string) * sizeof(char)) != strlen(string) * sizeof(char))
