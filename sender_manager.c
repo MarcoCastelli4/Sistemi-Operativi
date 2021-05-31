@@ -192,9 +192,9 @@ int main(int argc, char *argv[])
 	timeCreation = *localtime(&now);
 
 	//Scrivo info creazione PIPE1
-	bufferLength = (sizeof("PIPE1") + numcifre(resPipe1) + sizeof("SM") + 20 * sizeof(char));
+	bufferLength = (sizeof("PIPE1") + sizeof(&pipe1[0]) + sizeof(&pipe1[1])+sizeof("SM") + 21 * sizeof(char));
 	string = (char *)malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE1", resPipe1, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE1", &pipe1[0], &pipe1[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,5);
 
 	// checking if PIPE successed
@@ -207,9 +207,9 @@ int main(int argc, char *argv[])
 	timeCreation = *localtime(&now);
 
 	//Scrivo info creazione PIPE2
-	bufferLength = (sizeof("PIPE2") + numcifre(resPipe2) + sizeof("SM") + 20 * sizeof(char));
+	bufferLength = (sizeof("PIPE2") + sizeof(&pipe2[0]) + sizeof(&pipe2[1])+sizeof("SM") + 21 * sizeof(char));
 	string = (char *)malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE2", resPipe2, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE2", &pipe2[0], &pipe2[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,6);
 
 	//ho creato puoi usarle

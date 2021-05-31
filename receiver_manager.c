@@ -161,9 +161,9 @@ int main(int argc, char *argv[]){
 	struct tm timeCreation = *localtime(&now);
 
 	//Scrivo info creazione PIPE3
-	ssize_t bufferLength = (sizeof("PIPE3") +numcifre(resPipe3) +  sizeof("RM") + 20 * sizeof(char));
+	ssize_t bufferLength = (sizeof("PIPE3") + sizeof(&pipe3[0]) + sizeof(&pipe3[1]) + sizeof("RM") + 21 * sizeof(char));
 	char *string = malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE3",resPipe3, "RM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE3", &pipe3[0], &pipe3[1], "RM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,7);
 
 	// checking if PIPE successed
@@ -175,10 +175,10 @@ int main(int argc, char *argv[]){
 	now = time(NULL);
 	timeCreation = *localtime(&now);
 
-	//Scrivo info creazione PIPE2
-	bufferLength = (sizeof("PIPE2") +numcifre(resPipe4) +  sizeof("RM") + 20 * sizeof(char));
+	//Scrivo info creazione PIPE4
+	bufferLength = (sizeof("PIPE4") + sizeof(&pipe4[0]) + sizeof(&pipe4[1])+sizeof("RM") + 21 * sizeof(char));
 	string = (char *) malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;00:00:00;\n",  "PIPE4",resPipe4, "RM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;00:00:00;\n", "PIPE4", &pipe4[0], &pipe4[1], "RM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,8);
 
 	//genero processo R1
