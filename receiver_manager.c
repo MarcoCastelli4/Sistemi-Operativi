@@ -161,7 +161,9 @@ int main(int argc, char *argv[]){
 	struct tm timeCreation = *localtime(&now);
 
 	//Scrivo info creazione PIPE3
-	ssize_t bufferLength = (sizeof("PIPE3") + sizeof(&pipe3[0]) + sizeof(&pipe3[1]) + sizeof("RM") + 21 * sizeof(char));
+	char *addressPipe=malloc(sizeof(&pipe3[0]));
+   	sprintf(addressPipe,"%p",&pipe3[0]);
+	ssize_t bufferLength = (sizeof("PIPE3") + (strlen(addressPipe) * 2) + sizeof("RM") + 21 * sizeof(char));
 	char *string = malloc(bufferLength);
 	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;--:--:--;\n", "PIPE3", &pipe3[0], &pipe3[1], "RM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,7);
@@ -176,10 +178,12 @@ int main(int argc, char *argv[]){
 	timeCreation = *localtime(&now);
 
 	//Scrivo info creazione PIPE4
-	bufferLength = (sizeof("PIPE4") + sizeof(&pipe4[0]) + sizeof(&pipe4[1])+sizeof("RM") + 21 * sizeof(char));
+	bufferLength = (sizeof("PIPE4") + (strlen(addressPipe) * 2) +sizeof("RM") + 21 * sizeof(char));
 	string = (char *) malloc(bufferLength);
 	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;--:--:--;\n", "PIPE4", &pipe4[0], &pipe4[1], "RM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,8);
+
+	free(addressPipe);
 
 	//genero processo R1
 	pidR1 = fork();

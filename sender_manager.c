@@ -177,11 +177,14 @@ int main(int argc, char *argv[])
 	timeCreation = *localtime(&now);
 
 	//Scrivo info creazione FIFO
-	bufferLength = (sizeof("FIFO") + numcifre(res) + sizeof("SM") + 20 * sizeof(char));
+	char *addressFIFO=malloc(sizeof(&FIFO));
+   	sprintf(addressFIFO,"%p",&FIFO);
+	bufferLength = (sizeof("FIFO") + (strlen(addressFIFO)) + sizeof("SM") + 20 * sizeof(char));
 	string = (char *)malloc(bufferLength);
-	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;--:--:--;\n", "FIFO", res, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
+	sprintf(string, "%s;%p;%s;%02d:%02d:%02d;--:--:--;\n", "FIFO", FIFO, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,4);
 
+	free(addressFIFO);
 	// checking if PIPE successed
 	int resPipe1 = pipe(pipe1);
 	if (resPipe1 == -1)
@@ -192,7 +195,9 @@ int main(int argc, char *argv[])
 	timeCreation = *localtime(&now);
 
 	//Scrivo info creazione PIPE1
-	bufferLength = (sizeof("PIPE1") + sizeof(&pipe1[0]) + sizeof(&pipe1[1])+sizeof("SM") + 21 * sizeof(char));
+	char *addressPipe=malloc(sizeof(&pipe1[0]));
+   	sprintf(addressPipe,"%p",&pipe1[0]);
+ 	bufferLength = (sizeof("PIPE1") + (strlen(addressPipe) *2) +sizeof("SM") + 21 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;--:--:--;\n", "PIPE1", &pipe1[0], &pipe1[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,5);
@@ -207,10 +212,12 @@ int main(int argc, char *argv[])
 	timeCreation = *localtime(&now);
 
 	//Scrivo info creazione PIPE2
-	bufferLength = (sizeof("PIPE2") + sizeof(&pipe2[0]) + sizeof(&pipe2[1])+sizeof("SM") + 21 * sizeof(char));
+	bufferLength = (sizeof("PIPE1") + (strlen(addressPipe) *2) +sizeof("SM") + 21 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;--:--:--;\n", "PIPE2", &pipe2[0], &pipe2[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,6);
+
+	free(addressPipe);
 
 	//ho creato puoi usarle
 	semOp(semID, CREATION, 1);
