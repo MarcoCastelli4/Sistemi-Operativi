@@ -1,2 +1,2 @@
 Id;Delay;Target;Action
-3;4;all;ShutDown
+3;30;all;ShutDown

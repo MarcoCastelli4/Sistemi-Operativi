@@ -320,11 +320,8 @@ void initSignalFather(void (*handler)(int)){
 	sigaction(SIGTERM, &sigact, NULL);
 };
 
-//setta le maschere e le funzioni handler per i figli nel 
-//receiver che devono gestire i messsaggi (blocco sh, q, ...)
-/*
-//TODO: Clone esatto del precedente da togliere uno!!
-*/
+//setta le maschere e le funzioni handler per i figli dei processi 
+//R1,R2,R3 (vengono usati per non bloccare l'esecuzione in caso non ci siano messaggi)
 void initSignalMedium(void (*handler)(int)){
 	sigset_t mySet;
 	sigfillset(&mySet);
@@ -345,7 +342,7 @@ void initSignalMedium(void (*handler)(int)){
 };
 
 //setta le maschere e le funzioni handler per i figli nel 
-//receiver che devono gestire i messsaggi (blocco sh, q, ...)
+//receiver e nel sender che devono gestire i messsaggi (blocco sh, q, ...)
 void initSignalChild(void (*handler)(int)){
 	sigset_t mySet;
 	sigfillset(&mySet);
