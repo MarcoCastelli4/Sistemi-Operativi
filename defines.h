@@ -21,7 +21,8 @@
 #include "semaphore.h"
 #include <signal.h>
 #include <string.h>      
-#include <ctype.h>      
+#include <ctype.h> 
+//funzione usata per debugging     
 #define print_log(f_, ...) printf((f_), ##__VA_ARGS__), printf("PID: %d, PARENT_PID: %d\n%s\n%s:%d\n\n",getpid(), getppid(), timestamp(),__FILE__,__LINE__)
 
 //nomi simbolici dei file su cui agisco
@@ -50,41 +51,21 @@
 #define MKey 01101101
 #define FIFO "OutputFiles/my_fifo.txt"
 
-//struttura IPC history
-typedef struct
-{
-  char *ipc;
-  char *idKey;
-  char *creator;
-  char *creationTime;
-  char *destructionTime;
-} IPC_history;
-
-//struttura ..
-typedef struct
-{
-  int length;
-  IPC_history *histories;
-} IPC_history_group;
-
 //struttura PIDS
-typedef struct
-{
+typedef struct{
   int isFather;
   ssize_t pid;
   ssize_t pid_parent;
 } pid_manager;
 
 //struttura che contiene tutti i pid dei figli generati--> nipoti, pronipoti, ecc
-typedef struct
-{
+typedef struct{
   int length;
   pid_manager *pids;
 } pids_manager;
 
 //struttura messaggio di hackler
-typedef struct
-{
+typedef struct{
   int id;
   int delay;
   char *target;
@@ -92,15 +73,13 @@ typedef struct
 } action;
 
 //struttura che contiene l'array dei messaggi di hackler e la rispettiva lunghezza
-typedef struct
-{
+typedef struct{
   int length;
   action *actions;
 } action_group;
 
 //struttura messaggio
-typedef struct
-{
+typedef struct{
   int id;
   char message[50];
   char idSender[3];
@@ -113,20 +92,12 @@ typedef struct
 } message_sending;
 
 //struttura che contiene l'array dei messaggi e la rispettiva lunghezza
-typedef struct
-{
+typedef struct{
   int length;
   message_sending *messages;
 } message_group;
 
-//struttura x messaggio inviato attraverso shared memory
-struct request_shared_memory
-{
-  message_sending message;
-  key_t SHMKey;
-};
-
-//array di messaggi x shared memory
+//array di messaggi per shared memory
 typedef struct
 {
   int cursorEnd;
@@ -135,23 +106,17 @@ typedef struct
 } shared_memory_messages;
 
 //struttura per messaggio inviato attraverso message queue
-struct message_queue
-{
+struct message_queue{
   long mtype;
   message_sending message;
 };
 
 
-
-
-char * timestamp();
-char *toString(message_sending message);
-
+//Commenti in 
 int numcifre(int);
 void printInfoMessage(int semID,message_sending message, char file[]);
 void completeInfoMessage(int semID,message_sending message, char file[]);
 void printIntestazione(char FILE[]);
-int stringLenght(message_sending message);
 
 //funzioni usate per scrivere su F10
 void appendInF10(char * buffer, ssize_t bufferLength,int);

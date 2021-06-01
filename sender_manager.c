@@ -32,50 +32,53 @@ void recursiveKill(pid_t pid){
 			recursiveKill(myChildrenPid->pids[i].pid);
 		}
 	}
-	// Se sei testo ucciditi
+	//se il pid è tuo allora termina 
 	if(pid == getpid()){
 		kill(pid,SIGKILL);
 	} else {
-		// Altrimenti manda un sigterm in modo che uccida tutta la sua catena di figli
+		//altrimenti manda un sigterm in modo che uccida tutta la sua catena di figli
 		kill(pid,SIGTERM);
 	}
 }
 
+//funzione usata per gestire dinamicamente il tempo di attesa dei figli che gestiscono i messaggi,
+//soprattutto per gli increase delay e sendmsg dell'hackler
 void customPause(int startingDelay){
 	if (startingDelay > 0){
-		alarm(startingDelay); //dormi per quanto ti manca
+		//faccio partire un cronometro per il tempo di ritardo da attendere e mi metto in pausa
+		alarm(startingDelay); 
 		pause();
+		//waitTime è il ritardo dato da un segnale dell'hackler
 		while(waitTime != 0){
 			alarm(waitTime);
 			waitTime = 0;
 			pause();
 		}
 	}
-
 }
-
+//Come in receiver, qua ci sono due strati di processi, il primo inoltra i segnali al secondo
 void sigHandlerSender(int sig){
-	// PER PROCESSI PADRI
+	//per i processi S1,S2,S3
 	if(sig == SIGTERM){
-		// SHUTDOWN
+		//terminazione dei figli(i quali si occuperanno di terminare i loro figli)
 		recursiveKill(getpid());
 		exit(0);
 	} else if(sig == SIGUSR2){
-		// PER INCREASE DELAY
+		//per il segnale increase delay, invio a tutti i figli sfruttando l'array di pids
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				kill(myChildrenPid->pids[i].pid, SIGUSR2);
 			}
 		}
 	} else if(sig == SIGUSR1){
-		// PER SEND MESSAGE
+		//per il segnale send message
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				kill(myChildrenPid->pids[i].pid,SIGUSR1);
 			}
 		}
 	} else if(sig == SIGINT){
-		// REMOVE MESSAGE
+		// per il segnale remove message (il figlio che si occupava del messaggio verrà ucciso)
 		for(int i=0; i<myChildrenPid->length; i++){
 			if(myChildrenPid->pids[i].pid_parent == getpid()){
 				recursiveKill(myChildrenPid->pids[i].pid);
@@ -86,20 +89,20 @@ void sigHandlerSender(int sig){
 }
 
 void sigHandlerChild(int sig){
-	// PER PROCESSI PADRI
+	//handler del secondo livello
 	if(sig == SIGTERM){
-		// SHUTDOWN
+		//uccisione del secondo livello ed eventuali figli (se non ci sono uccide il pid inserito e basta)
 		recursiveKill(getpid());
 		exit(0);
 	}else if(sig == SIGUSR2){
-		// INCREASE DELAY NEL MESSAGGIO
+		//aumento il wait time gestito nella funzione custom pause
 		waitTime += 5;
 		pause();
 	} else if(sig == SIGUSR1){
-		// SEND MSG NEL MESSAGGIO
+		//questo farà si che il messaggio termini l'attesa nella quale si trovava e invii immediatamente il messaggio
 		waitTime = 0;
 	} else if(sig ==  SIGALRM){
-		// GENERIC DETECTOR
+		//segnale generico, a disposizione per eventuali modifiche in sede d'esame
 	} 
 	return;
 }
@@ -113,26 +116,25 @@ int main(int argc, char *argv[])
 	myChildrenPid->length = 0;
 	myChildrenPid->pids = pids_list;
 
-	// Creazione header per F10
+	//creazione header per F10
 	writeF10Header();
 
-	//Inizializzo il semaforo e attendo
+	//inizializzo il semaforo e attendo
 	semID = create_sem_set(SEMNUMBER);
 
 	//genero il tempo attuale
 	time_t now = time(NULL);
 	struct tm timeCreation = *localtime(&now);
 
-	//Scrivo info creazione semaforo
+	//scrivo info creazione semaforo
 	ssize_t bufferLength = (sizeof("S") + numcifre(semID) + sizeof("SM") + 20 * sizeof(char));
 	char *string = malloc(bufferLength);
 	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;--:--:--;\n", "S", semID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,1);
 
-	// Creo la message queue
+	//creo la message queue
 	MSQID = msgget(QKey, IPC_CREAT | S_IRUSR | S_IWUSR);
-	if (MSQID == -1)
-	{
+	if (MSQID == -1){
 		ErrExit("Message queue failed");
 	}
 
@@ -140,16 +142,15 @@ int main(int argc, char *argv[])
 	now = time(NULL);
 	timeCreation = *localtime(&now);
 
-	//Scrivo info creazione Q
+	//scrivo info creazione Q
 	bufferLength = (sizeof("Q") + numcifre(MSQID) + sizeof("SM") + 20 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;--:--:--;\n", "Q", MSQID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,2);
 
-	//Creazione della shared memory
+	//creazione della shared memory
 	SHMID = alloc_shared_memory(MKey, sizeof(shared_memory_messages));
-	if (SHMID == -1)
-	{
+	if (SHMID == -1){
 		ErrExit("Shared memory failed");
 	}
 
@@ -157,7 +158,7 @@ int main(int argc, char *argv[])
 	now = time(NULL);
 	timeCreation = *localtime(&now);
 
-	//Scrivo info creazione SH
+	//scrivo info creazione SH
 	bufferLength = (sizeof("SH") + numcifre(SHMID) + sizeof("SM") + 20 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 	sprintf(string, "%s;%d;%s;%02d:%02d:%02d;--:--:--;\n", "SH", SHMID, "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
@@ -167,8 +168,7 @@ int main(int argc, char *argv[])
 
 	unlink(FIFO);
 	int res = mkfifo(FIFO, O_CREAT | O_TRUNC | S_IRUSR | S_IWUSR);
-	if (res == -1)
-	{
+	if (res == -1){
 		ErrExit("Creazione fifo errata");
 	}
 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 	now = time(NULL);
 	timeCreation = *localtime(&now);
 
-	//Scrivo info creazione FIFO
+	//scrivo info creazione FIFO
 	char *addressFIFO=malloc(sizeof(&FIFO));
    	sprintf(addressFIFO,"%p",&FIFO);
 	bufferLength = (sizeof("FIFO") + (strlen(addressFIFO)) + sizeof("SM") + 20 * sizeof(char));
@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
 	appendInF10(string, bufferLength,4);
 
 	free(addressFIFO);
-	// checking if PIPE successed
+	//checking if PIPE successed
 	int resPipe1 = pipe(pipe1);
 	if (resPipe1 == -1)
 		ErrExit("PIPE");
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 	now = time(NULL);
 	timeCreation = *localtime(&now);
 
-	//Scrivo info creazione PIPE1
+	//scrivo info creazione PIPE1
 	char *addressPipe=malloc(sizeof(&pipe1[0]));
    	sprintf(addressPipe,"%p",&pipe1[0]);
  	bufferLength = (sizeof("PIPE1") + (strlen(addressPipe) *2) +sizeof("SM") + 21 * sizeof(char));
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;--:--:--;\n", "PIPE1", &pipe1[0], &pipe1[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
 	appendInF10(string, bufferLength,5);
 
-	// checking if PIPE successed
+	//creo la pipe2
 	int resPipe2 = pipe(pipe2);
 	if (resPipe2 == -1)
 		ErrExit("PIPE");
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
 	now = time(NULL);
 	timeCreation = *localtime(&now);
 
-	//Scrivo info creazione PIPE2
+	//scrivo info creazione PIPE2
 	bufferLength = (sizeof("PIPE1") + (strlen(addressPipe) *2) +sizeof("SM") + 21 * sizeof(char));
 	string = (char *)malloc(bufferLength);
 	sprintf(string, "%s;%p/%p;%s;%02d:%02d:%02d;--:--:--;\n", "PIPE2", &pipe2[0], &pipe2[1], "SM", timeCreation.tm_hour, timeCreation.tm_min, timeCreation.tm_sec);
@@ -219,20 +219,20 @@ int main(int argc, char *argv[])
 
 	free(addressPipe);
 
-	//ho creato puoi usarle
+	//ora che le risorse sono state create il receiver può partire
 	semOp(semID, CREATION, 1);
+	
+	//controllo e assegno 
 	F0 = argv[1];
-
-	if (argc < 1)
-	{
+	if (argc < 1){
 		exit(1);
 	}
 
 	//la struttura messaggi inizialmente è vuota
 	//genero processo S1
 	pidS1 = fork();
-	if (pidS1 == 0)
-	{
+	if (pidS1 == 0){
+		//imposto handler e maschera
 		initSignalFather(sigHandlerSender);
 		//inizializzo la struttura con la dimensione di un messaggio
 
@@ -250,8 +250,7 @@ int main(int argc, char *argv[])
 		exit(0);
 		//termino il processo
 	}
-	else if (pidS1 == -1)
-	{
+	else if (pidS1 == -1){
 		ErrExit("Fork");
 	} else {
 		myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
@@ -261,19 +260,16 @@ int main(int argc, char *argv[])
 
 	//genero processo S2
 	pidS2 = fork();
-	if (pidS2 == 0)
-	{
+	if (pidS2 == 0){
 		initSignalFather(sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F2);
 
-		while (s1EndReading == 0)
-		{
+		while (s1EndReading == 0){
 			message_sending message;
 			semOp(semID, PIPE1READER, -1);
 			ssize_t nBys = read(pipe1[0], &message, sizeof(message));
-			if (nBys < 1)
-			{
+			if (nBys < 1){
 				ErrExit("Errore uscito\n");
 			}
 			message_group *messageGroupS2 = malloc(sizeof(messageGroupS2));
@@ -332,8 +328,7 @@ int main(int argc, char *argv[])
 			sleep(1);
 		exit(0);
 	}
-	else if (pidS3 == -1)
-	{
+	else if (pidS3 == -1){
 		ErrExit("Fork");
 	} else {
 		myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
@@ -343,6 +338,7 @@ int main(int argc, char *argv[])
 
 	//genero file8.csv
 	writeF8(pidS1, pidS2, pidS3);
+	//ora che f8 è stato generato l'hackler può partire
 	semOp(semID, HACKLERSENDER, 1);
 
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
@@ -352,16 +348,14 @@ int main(int argc, char *argv[])
 	//aspetto che il receiver finisca di usare le IPC
 	semOp(semID, ELIMINATION, -1);
 
-	// Eliminazione della struttura dei messaggi di pids
+	//eliminazione della struttura dei messaggi di pids
 	free(myChildrenPid->pids);
 	free(myChildrenPid);
 
-
-
-	//Segna chiuso PIPE1
+	//segna chiuso PIPE1
 	completeInF10("PIPE1");
 
-	///Segna chiuso PIPE2
+	//segna chiuso PIPE2
 	completeInF10("PIPE2");
 
 	//termino il processo padre
@@ -369,8 +363,7 @@ int main(int argc, char *argv[])
 }
 
 //Funzione che mi genera il file F8 e scrive ogni riga
-void writeF8(int pid1, int pid2, int pid3)
-{
+void writeF8(int pid1, int pid2, int pid3){
 
 	//creo il file se è gia presente lo sovrascrivo
 	int fp = open(F8, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
@@ -393,8 +386,7 @@ void writeF8(int pid1, int pid2, int pid3)
 	free(buffer);
 }
 
-message_group *carica_F0(char nomeFile[])
-{
+message_group *carica_F0(char nomeFile[]){
 
 	//apro il file
 	int fp = open(nomeFile, O_RDONLY);
@@ -403,8 +395,7 @@ message_group *carica_F0(char nomeFile[])
 
 	// utilizzo lseek per calcolarne le dimensioni
 	int fileSize = lseek(fp, (size_t)0, SEEK_END);
-	if (fileSize == -1)
-	{
+	if (fileSize == -1){
 		ErrExit("Lseek");
 	}
 
@@ -418,8 +409,7 @@ message_group *carica_F0(char nomeFile[])
 	//inizializzo il buffer
 	char buf[bufferLength];
 	//leggo dal file e salvo ciò che ho letto nel buf
-	if ((read(fp, buf, bufferLength * sizeof(char)) == -1))
-	{
+	if ((read(fp, buf, bufferLength * sizeof(char)) == -1)){
 		ErrExit("Read");
 	}
 	buf[bufferLength] = '\0';
@@ -428,16 +418,13 @@ message_group *carica_F0(char nomeFile[])
 	int rowNumber = 0;
 
 	// Contiamo il numero di righe presenti nel F0 (corrispondono al numero di messaggi presenti)
-	for (int i = 0; i < bufferLength; i++)
-	{
-		if (buf[i] == '\n')
-		{
+	for (int i = 0; i < bufferLength; i++){
+		if (buf[i] == '\n'){
 			rowNumber++;
 		}
 	}
 
 	//allochiamo dinamicamente un array di azioni delle dimensioni opportune
-	// TODO MALLOC DIFETTOSA
 	message_sending *messageList = malloc(sizeof(message_sending) * (rowNumber));
 	//numero di messaggi che inserisco
 	int messageNumber = 0;
@@ -446,32 +433,26 @@ message_group *carica_F0(char nomeFile[])
 	//prendo la riga che è delimitata dal carattere \n
 	char *row = strtok_r(buf, "\n", &end_str);
 	//scorro finchè la riga non è finita
-	while (row != NULL)
-	{
+	while (row != NULL)	{
 
 		char *end_segment;
 		//prendo il singolo campo/segmento che è delimitato dal ;
 		char *segment = strtok_r(row, ";", &end_segment);
 		int campo = 0; //(0..7, id, message..)
 		//scorro finchè il campo non è finito (la casella)
-		while (segment != NULL)
-		{
-
+		while (segment != NULL){
 			//memorizzo il segmento ne rispettivo campo della struttura
-			switch (campo)
-			{
+			switch (campo){
 				case 0:
 					messageList[messageNumber].id = atoi(segment);
 					break;
 				case 1:
-
 					strcpy(messageList[messageNumber].message, segment);
 					break;
 				case 2:
 					strcpy(messageList[messageNumber].idSender, segment);
 					break;
 				case 3:
-
 					strcpy(messageList[messageNumber].idReceiver, segment);
 					break;
 				case 4:
@@ -506,9 +487,8 @@ message_group *carica_F0(char nomeFile[])
 
 	return messageG;
 }
-
-void sendMessage(message_group *messageG, char processo[])
-{
+//funzione che genera i figli per la gestione dell'invio dei messaggi e dei ritardi
+void sendMessage(message_group *messageG, char processo[]){
 	int i;
 	for (i = 0; i < messageG->length; i++)
 	{
@@ -518,17 +498,19 @@ void sendMessage(message_group *messageG, char processo[])
 
 			pid_t childS1 = fork();
 			if(childS1 == 0){
+				//assegno l'handler e genero la maschera per i segnali
 				initSignalChild(sigHandlerChild);
+				//stampo in F1 il messaggio
 				printInfoMessage(semID,messageG->messages[i], F1);
 				customPause(messageG->messages[i].DelS1);
 
-				//stampa su file F1
+				//stampa su file F1 la time departure
 				completeInfoMessage(semID,messageG->messages[i], F1);
+				//Invio effettivo del messaggio
 				messageHandler(messageG->messages[i], "S1");
 				exit(0);
 			}
-			else if (childS1 == -1)
-			{
+			else if (childS1 == -1){
 				ErrExit("Fork");
 			} else {
 				myChildrenPid->pids[myChildrenPid->length].pid_parent = getpid();		
@@ -544,7 +526,6 @@ void sendMessage(message_group *messageG, char processo[])
 				printInfoMessage(semID,messageG->messages[i], F2);
 				customPause(messageG->messages[i].DelS2);
 
-				//stampa su file F2
 				completeInfoMessage(semID,messageG->messages[i], F2);
 				messageHandler(messageG->messages[i], "S2");
 				exit(0);
@@ -563,7 +544,6 @@ void sendMessage(message_group *messageG, char processo[])
 			pid_t childS1 = fork();
 			if(childS1 == 0){
 				initSignalChild(sigHandlerChild);
-				//stampa su file F3
 				printInfoMessage(semID,messageG->messages[i], F3);
 				customPause(messageG->messages[i].DelS3);
 
@@ -582,9 +562,8 @@ void sendMessage(message_group *messageG, char processo[])
 		}
 	}
 }
-
-void messageHandler(message_sending message, char processo[])
-{
+//funzione che si occupa dell'invio del messaggio
+void messageHandler(message_sending message, char processo[]){
 	struct message_queue m;
 	m.mtype = 1;
 
@@ -592,18 +571,17 @@ void messageHandler(message_sending message, char processo[])
 	size_t mSize = sizeof(struct message_queue) - sizeof(long);
 	//se sono nel processo sender corretto
 	//viene inviato tramite message queue
-	if (strcmp(message.Type, "Q") == 0 && strcmp(processo, message.idSender) == 0)
-	{
-		// sending the message in the queue
+	if (strcmp(message.Type, "Q") == 0 && strcmp(processo, message.idSender) == 0){
+		//il receiver potrà accedere alla message queue
 		semOp(semID, ACCESSTOQ, 1);
 		if (msgsnd(MSQID, &m, mSize, 0) == -1)
 			ErrExit("msgsnd failed");
+		//un messaggio è stato scritto, il prossimo sender aspetterà qua
 		semOp(semID, DATAREADY, -1);
 	}
 	//viene inviato tramite shared memory
-	else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0)
-	{
-
+	else if (strcmp(message.Type, "SH") == 0 && strcmp(processo, message.idSender) == 0){
+		//il receiver potrà accedere alla shared memory
 		semOp(semID, ACCESSTOSH, 1);
 		memcpy(&shMessages->messages[shMessages->cursorEnd], &message, sizeof(message));	
 		shMessages->messages[shMessages->cursorEnd] = message;
@@ -635,8 +613,7 @@ void messageHandler(message_sending message, char processo[])
 			if(nBys != sizeof(message))
 				ErrExit("Messaggio inviato male");
 			semOp(semID, PIPE1READER, 1);
-		} else if (strcmp(processo, "S2") == 0)
-		{
+		} else if (strcmp(processo, "S2") == 0){
 			//invia a S3 tramite PIPE
 			semOp(semID, PIPE2WRITER, -1);
 			ssize_t nBys = write(pipe2[1], &message, sizeof(message));

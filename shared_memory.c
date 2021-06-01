@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 
  int alloc_shared_memory(key_t shmKey, size_t size) {
-    // get, or create, a shared memory segment
+    //prendi o crea un segmento di memoria condivisa
     int shmid=shmget(shmKey,size,IPC_CREAT | S_IRUSR | S_IWUSR);
     if(shmid==-1)
     ErrExit("shmget failed");
@@ -18,7 +18,7 @@
 }
 
 void *get_shared_memory(int shmid, int shmflg) {
-    // attach the shared memory
+    //esegue l'attach della memoria condivisa
     void *ptr_sh=shmat(shmid,NULL,shmflg);
     if(ptr_sh==(void*)-1)
     ErrExit("shmat failed");
@@ -27,13 +27,13 @@ void *get_shared_memory(int shmid, int shmflg) {
 }
 
 void free_shared_memory(void *ptr_sh) {
-    // detach the shared memory segments
+    //esegue il detach della memoria condivisa
     if(shmdt(ptr_sh)==-1)
     ErrExit("shmdt failed");
 }
 
 void remove_shared_memory(int shmid) {
-    // delete the shared memory segment
+    //cancella il segmento di memoria condivisa
     if(shmctl(shmid,IPC_RMID,NULL)==-1)
     ErrExit("remove failed");
 }

@@ -12,7 +12,6 @@
 #define ELIMINATION 1
 //mi avvisa quando è arrivato un messaggio per la FIFO
 #define ACCESSTOFIFO 2
-
 //viene abbassato dopo la scrittura di un messaggio sulle IPC, e alzato quando il processo giusto legge
 #define DATAREADY 3
 //servono per fare in modo che hackler parta dopo che il S,R generano i file F8,F9

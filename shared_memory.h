@@ -8,24 +8,18 @@
 
 #include <stdlib.h>
 
-// the Request structure defines a request sent by a client
-
-// The alloc_shared_memory method creates, if it does not exist, a shared
-// memory segment with size bytes and shmKey key.
-// It returns the shmid on success, otherwise it terminates the calling process
+//crea un segmento di shared memory se non esiste;
+//ritorna il shmid se va a buon fine, altrimenti termina il processo
 int alloc_shared_memory(key_t shmKey, size_t size);
 
-// The get_shared_memory attaches a shared memory segment in the logic address space
-// of the calling process.
-// It returns a pointer to the attached shared memory segment,
-// otherwise it terminates the calling process
+//attacca il segmento di shared memory all'indirizzo logico del processo chiamante
+//ritorna un puntatore al segmento di memoria altrimenti termina il processo
 void *get_shared_memory(int shmid, int shmflg);
 
-// The free_shared_memory detaches a shared memory segment from the logic
-// address space of the calling process.
-// If it does not succeed, it terminates the calling process
+//esegue il detach del segmento di shared memory dall'indirizzo logico del processo chiamante
+//se fallisce termina il processo
 void free_shared_memory(void *ptr_sh);
 
-// The remove_shared_memory removes a shared memory segment
-// If it does not succeed, it terminates the calling process
+//rimuove il segmento di shared memory
+//se fallisce termina il processo
 void remove_shared_memory(int shmid);

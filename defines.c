@@ -2,58 +2,39 @@
 #include "shared_memory.h"
 #include "semaphore.h"
 
-//funzione che mi calcola il numero di cifre di un numero intero (serve per sapere quanti caratteri servono per il numero)
-int numcifre(int n)
-{
+//funzione che calcola il numero di cifre di un numero intero (serve per sapere quanti caratteri servono per il numero)
+int numcifre(int n){
 	int i = 0;
 
-	while (n / 10 != 0)
-	{
+	while (n / 10 != 0){
 		i++;
 		n /= 10;
 	}
-
 	return i + 1;
-}
-
-
-char *toString(message_sending message)
-{
-	char *string = malloc(stringLenght(message));
-	sprintf(string, "%d %s %s %s %d %d %d %s\n", message.id, message.message, message.idSender, message.idReceiver, message.DelS1, message.DelS2, message.DelS3, message.Type);
-	return string;
-}
-//usata solo per il toString
-int stringLenght(message_sending message)
-{
-	return numcifre(message.id) + sizeof(message.message) + sizeof(message.idSender) + sizeof(message.idReceiver) + 20 * sizeof(char);
 }
 
 //va chiamata all'inizio quando genero i file
 //stampa l'intestazione del F1..F6
-void printIntestazione(char file[])
-{
-	//creo il file se è gia presente lo sovrascrivo
+void printIntestazione(char file[]){
+	//creo il file, se è gia presente lo sovrascrivo; solo per la scrittura e con diritti di scrittura per il proprietario
 	int fp = open(file, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fp == -1)
 		ErrExit("Open");
 
-	//scrivo intestazione#
-	//calcolo il numero totale di caratteri da scrivere nel buffer
+	//scrivo intestazione
+	//calcolo il numero totale di caratteri da scrivere
 	ssize_t bufferLength = sizeof(char) * TrafficInfoLength;
 	char *header = TrafficInfo;
 
-	if (write(fp, header, bufferLength) != bufferLength)
-	{
+	if (write(fp, header, bufferLength) != bufferLength){
 		ErrExit("Write");
 	}
 
 	close(fp);
 }
 //Stampa all'interno del file specificato il messaggio che è passato in quel R/S
-void printInfoMessage(int semID, message_sending message, char file[])
-{
-
+void printInfoMessage(int semID, message_sending message, char file[]){
+	//semaforo per assicurare la scrittura esclusiva sui file
 	semOp(semID, INFOMESSAGEFILE, -1);
 	//scrivo in append il messaggio al file già presente cosi non perdo i messaggi precedenti
 	int fp = open(file, O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
@@ -68,12 +49,11 @@ void printInfoMessage(int semID, message_sending message, char file[])
 	ssize_t bufferLength = (numcifre(message.id) + sizeof(message.message) + sizeof(message.idSender) + sizeof(message.idReceiver) + 20 * sizeof(char));
 	char *string = malloc(bufferLength);
 
-	//mi salvo tutta la stringa
+	//mi salvo tutta la stringa formattata in modo corretto
 	sprintf(string, "%d;%s;%c;%c;%02d:%02d:%02d;--:--:--;\n", message.id, message.message, message.idSender[1], message.idReceiver[1], TimeArrival.tm_hour, TimeArrival.tm_min, TimeArrival.tm_sec);
 
 	//scrivo la stringa nel file
-	if (write(fp, string, strlen(string) * sizeof(char)) != strlen(string) * sizeof(char))
-	{
+	if (write(fp, string, strlen(string) * sizeof(char)) != strlen(string) * sizeof(char)){
 		ErrExit("Write");
 	}
 
@@ -85,17 +65,17 @@ void printInfoMessage(int semID, message_sending message, char file[])
 }
 
 //Stampa all'interno del file specificato il messaggio che è passato in quel R/S
-void completeInfoMessage(int semID, message_sending message, char file[])
-{
+void completeInfoMessage(int semID, message_sending message, char file[]){
 
+	//come printInfoMessage
 	semOp(semID, INFOMESSAGEFILE, -1);
 
-	//apro il file 
+	//apro il file in modalità lettura
 	int fp = open(file, O_RDONLY);
 	if (fp == -1)
 		ErrExit("Open failed");
 
-	// utilizzo lseek per calcolarne le dimensioni 
+	//utilizzo lseek per calcolarne le dimensioni, posizionando l'offset alla fine(SEEK_END) fino a 0
 	int fileSize = lseek(fp, (size_t)0, SEEK_END);
 	if (fileSize == -1) { ErrExit("Lseek failed"); }
 
@@ -129,46 +109,54 @@ void completeInfoMessage(int semID, message_sending message, char file[])
 	char *rigaCambiare;
 
 	//scorro finchè la riga non è finita
-	while (row != NULL && found==0)
-	{
+	while (row != NULL && found==0){
 		rigaCambiare=(char*)malloc(strlen(row));
 		strcpy(rigaCambiare,row);
+		//stringa usata internamente dalla funzione strtok_r 
+		//per mantenere la consistenza dei dati tra le varie esecuzioni della stessa (senza dover usare semafori)
 		char *end_segment;
 		char *segment = strtok_r(row, ";", &end_segment);
 		int campo=0;
 
 		offsetLength+=strlen(rigaCambiare)+1;
 
-		while (segment!=NULL && found==0)
-		{	
+		while (segment!=NULL && found==0){	
+			//se l'id letto dal file corrisponde con l'id del messaggio passato alla funzione
+			//allora ho trovato il messaggio da modificare(settando il cursore offsetLength)
 			if(campo==0 && atoi(segment) == message.id){
 				found = 1;
+				//devo sostituire timeDeparture (9 caratteri + andare a capo)
 				offsetLength -= 10;
 			}
 			campo++;
+			//sposto segment sul campo successivo
 			segment = strtok_r(NULL, ";", &end_segment);
 		}
 
 		index++;
+		//strtok_r verifica se è arrivata alla fine della riga, la riga da parsare è nulla e l'end string deve essere vuoto
 		row = strtok_r(NULL, "\n", &end_str);
 		free(rigaCambiare);
 	}
 	close(fp);
 
+	//se c'è una riga da modificare
 	if(found == 1){
+		//apro il file
 		fp = open(file, O_WRONLY, S_IRUSR | S_IWUSR);
 		if (fp == -1)
 			ErrExit("Open failed");
+		//mi posiziono nel punto calcolato
 		if (lseek(fp, (size_t)(offsetLength) * sizeof(char) , SEEK_SET) == -1)
 			ErrExit("Lseek failed");
 
-		if (write(fp, appendString, strlen(appendString)) != strlen(appendString))
-		{
+		if (write(fp, appendString, strlen(appendString)) != strlen(appendString)){
 			ErrExit("Write failed");
 		}
 		close(fp);
 	}
 	free(appendString);
+	//un altro processo ora può accedere ad un file
 	semOp(semID, INFOMESSAGEFILE, 1);
 }
 
@@ -252,36 +240,29 @@ void completeInF10(char * searchBuffer) {
 	char *rigaCambiare;
 
 	//scorro finchè la riga non è finita
-	while (row != NULL && found==0)
-	{
+	while (row != NULL && found==0){
 		rigaCambiare=(char*)malloc(strlen(row));
-		strcpy(rigaCambiare,row);
+		strcpy(rigaCambiare,row);		
 		char *end_segment;
 		char *segment = strtok_r(row, ";", &end_segment);
 		int campo=0;
 
 		offsetLength+=strlen(rigaCambiare)+1;
 
-		while (segment!=NULL && found==0)
-		{	
+		while (segment!=NULL && found==0){	
 			if(campo==0 && strcmp(segment, searchBuffer)==0){
 				found = 1;
 				offsetLength-=10; //tolgo lo spiazzamento per scrivere la nuova ora
 
 			}
-
 			campo++;
 			segment = strtok_r(NULL, ";", &end_segment);
-
 		}
-
 		if(found == 1)break;
 		row = strtok_r(NULL, "\n", &end_str);
 		free(rigaCambiare);
 	}
 	close(fp);
-
-
 
 	fp = open(F10, O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fp == -1)
@@ -289,15 +270,14 @@ void completeInF10(char * searchBuffer) {
 	if (lseek(fp, (size_t)(offsetLength) * sizeof(char) , SEEK_SET) == -1)
 		ErrExit("Lseek failed");
 
-	if (write(fp, appendString, strlen(appendString)) != strlen(appendString))
-	{
+	if (write(fp, appendString, strlen(appendString)) != strlen(appendString)){
 		ErrExit("Write failed");
 	}
 	close(fp);
 	free(appendString);
 }
 
-//Boh
+//funzione per la funzione print
 char * timestamp(){
 	time_t now = time(NULL); 
 	char * time = asctime(gmtime(&now));
@@ -320,6 +300,7 @@ char * timestamp(){
 	return time;
 }
 
+//setta le maschere e le funzioni handler per i processi R1,R2,R3,S1,S2,S3
 void initSignalFather(void (*handler)(int)){
 	sigset_t mySet;
 	sigfillset(&mySet);
@@ -339,6 +320,11 @@ void initSignalFather(void (*handler)(int)){
 	sigaction(SIGTERM, &sigact, NULL);
 };
 
+//setta le maschere e le funzioni handler per i figli nel 
+//receiver che devono gestire i messsaggi (blocco sh, q, ...)
+/*
+//TODO: Clone esatto del precedente da togliere uno!!
+*/
 void initSignalMedium(void (*handler)(int)){
 	sigset_t mySet;
 	sigfillset(&mySet);
@@ -358,6 +344,8 @@ void initSignalMedium(void (*handler)(int)){
 	sigaction(SIGTERM, &sigact, NULL);
 };
 
+//setta le maschere e le funzioni handler per i figli nel 
+//receiver che devono gestire i messsaggi (blocco sh, q, ...)
 void initSignalChild(void (*handler)(int)){
 	sigset_t mySet;
 	sigfillset(&mySet);
