@@ -11,6 +11,7 @@
 //effettuo l'operazione
 void semOp (int semid, unsigned short sem_num, short sem_op) {
     int rc;
+    //printf("Semaforo: %d, opreazione: %d\n", sem_num, sem_op);
     struct sembuf sop = {.sem_num = sem_num, .sem_op = sem_op, .sem_flg = 0};
     //ciclo necessario per fare in modo che se arriva un segnale durante che da EINTR esso non si interrompe
     while ((rc = semop(semid,&sop,1) == -1)) {

@@ -157,55 +157,26 @@ int main(int argc, char *argv[]){
 		myChildrenPid->pids[myChildrenPid->length].pid = pidR3;		
 		myChildrenPid->length = myChildrenPid->length +1;
 	}
-
 	//genero file F9
+	printf("Ciao000\n");
 	writeF9(pidR1, pidR2, pidR3);
 	semOp(semID, HACKLERRECEIVER, 1);
-
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
 	int stato = 0;
 	while ((waitPID = wait(&stato)) > 0);
 
 	//dico al sender che può eliminare le IPC
 	semOp(semID, ELIMINATION, 1);
-
-	//Chiusura della msgQueue
-	if (MSQID != -1 && msgctl(MSQID, IPC_RMID, NULL) == -1)
-	{
-		ErrExit("msgrmv failed");
-	}
-
+	
+	close(pipe3[0]);
+	close(pipe3[1]);
 	//Segna chiuso PIPE3 in F10
 	completeInF10("PIPE3");
 
+	close(pipe4[0]);
+	close(pipe4[1]);
 	//Segna chiuso PIPE4 in F10
 	completeInF10("PIPE4");
-
-	//Segna chiuso Q in F10
-	completeInF10("Q");
-
-	//Eliminazione memoria condivisa
-	if(SHMID != -1){
-		free_shared_memory(shMessages);
-		remove_shared_memory(SHMID);
-	}
-
-	//Segna chiuso SH in F10
-	completeInF10("SH");
-
-	unlink(FIFO);
-
-	// Segna chiuso S in F10
-	completeInF10("FIFO");
-
-	//Eliminazione semafori
-	if (semID != -1 && semctl(semID, 0, IPC_RMID, 0) == -1)
-	{
-		ErrExit("semrmv failed");
-	}
-
-	//Segna chiuso S in F10
-	completeInF10("S");
 
 	// Eliminazione della struttura dei messaggi di pids
 	free(myChildrenPid->pids);
@@ -361,9 +332,9 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 			semOp(semID, ACCESSTOSH, -1);
 			//se il messaggio è per me
 			if (strcmp(processo, shMessages->messages[shMessages->cursorStart].idReceiver) == 0){
-				//parto a leggere dalla posizione corretta
+				//parto a leggere dalla posizione dell'ultimo messaggio letto
 				int i = shMessages->cursorStart;
-				//scorro tutti i messaggi fino alla fine
+				//scorro tutti i messaggi fino a dove è stato scritto l'ultimo messaggio o alla fine della SH(se il cursorEnd è stato resettato a 0)
 				for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 9) ; i++){
 					//messaggio per processo R1
 					if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
@@ -425,7 +396,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 					}
 
 				}
-				// Se il cursore di scrittura è stato rimesso a 0, resetto anche il cursore di lettura (se è arrivato all'ultimo messaggio)
+				// Se il cursore di lettura è arrivato alla fine della SH, lo resetto a zero altrimenti lo aggiorno con l'indice del for
 				if(i <= 9){
 					shMessages->cursorStart = i;
 				} else{

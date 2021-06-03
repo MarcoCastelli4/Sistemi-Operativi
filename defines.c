@@ -202,7 +202,9 @@ void appendInF10(char * buffer, ssize_t bufferLength, int iteration)
 
 //Serve per aggiornare l'ora in cui la IPC è stata distrutta
 void completeInF10(char * searchBuffer) {
-
+	//if(strcmp("PIPE3", searchBuffer)==0 || strcmp("PIPE4", searchBuffer)==0){
+	//	printf("Inizio\n");
+	//}
 	//apro il file 
 	int fp = open(F10, O_RDONLY);
 	if (fp == -1)
@@ -238,14 +240,20 @@ void completeInF10(char * searchBuffer) {
 	char *end_str;
 	char *row = strtok_r(buf, "\n", &end_str);
 	char *rigaCambiare;
-
+	
 	//scorro finchè la riga non è finita
 	while (row != NULL && found==0){
-		rigaCambiare=(char*)malloc(strlen(row));
-		strcpy(rigaCambiare,row);		
+		//if(strcmp("PIPE3", searchBuffer)==0 || strcmp("PIPE4", searchBuffer)==0){
+		//	printf("Row %s\n",row);
+		//}
+		// TODO Malloc che da problemi per pid < 10 000
+		rigaCambiare = (char *)malloc(strlen(row));
+		strcpy(rigaCambiare,row);
 		char *end_segment;
 		char *segment = strtok_r(row, ";", &end_segment);
-		int campo=0;
+		int campo = 0;
+
+		//printf("segment: %s, SearchBuffer: %s;\n",segment, searchBuffer);
 
 		offsetLength+=strlen(rigaCambiare)+1;
 

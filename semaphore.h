@@ -8,7 +8,7 @@
 #pragma once
 //creation viene messo alzato da sender quando ha creto le IPC, di conseguenza il receiver aspetta fino a che non si alza
 #define CREATION 0
-//non ha molto senso...
+//il receiver ha finito di usare le IPC, il sender può cancellarle
 #define ELIMINATION 1
 //mi avvisa quando è arrivato un messaggio per la FIFO
 #define ACCESSTOFIFO 2

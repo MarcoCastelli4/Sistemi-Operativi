@@ -352,12 +352,46 @@ int main(int argc, char *argv[])
 	free(myChildrenPid->pids);
 	free(myChildrenPid);
 
+	//Chiusura della msgQueue
+	if (MSQID != -1 && msgctl(MSQID, IPC_RMID, NULL) == -1){
+		ErrExit("msgrmv failed");
+	}
+
+	//Segna chiuso Q in F10
+	completeInF10("Q");
+
+	//Eliminazione memoria condivisa
+	if(SHMID != -1){
+		free_shared_memory(shMessages);
+		remove_shared_memory(SHMID);
+	}
+
+	//Segna chiuso SH in F10
+	completeInF10("SH");
+
+	unlink(FIFO);
+
+	// Segna chiuso S in F10
+	completeInF10("FIFO");
+
+	//Eliminazione semafori
+	if (semID != -1 && semctl(semID, 0, IPC_RMID, 0) == -1){
+		ErrExit("semrmv failed");
+	}
+
+	//Segna chiuso S in F10
+	completeInF10("S");
+
+	close(pipe1[0]);
+	close(pipe1[1]);
 	//segna chiuso PIPE1
 	completeInF10("PIPE1");
 
+	close(pipe2[0]);
+	close(pipe2[1]);
 	//segna chiuso PIPE2
 	completeInF10("PIPE2");
-
+	
 	//termino il processo padre
 	exit(0);
 }
