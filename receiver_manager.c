@@ -158,7 +158,6 @@ int main(int argc, char *argv[]){
 		myChildrenPid->length = myChildrenPid->length +1;
 	}
 	//genero file F9
-	printf("Ciao000\n");
 	writeF9(pidR1, pidR2, pidR3);
 	semOp(semID, HACKLERRECEIVER, 1);
 	/** attendo la terminazione dei sottoprocessi prima di continuare */
@@ -234,8 +233,7 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 
 			//sei nel processo receiver corretto? 
 			if(strcmp(processo, messaggio.message.idReceiver) == 0){
-				if (strcmp(messaggio.message.idReceiver, "R1") == 0)
-				{
+				if (strcmp(messaggio.message.idReceiver, "R1") == 0){
 					pid_t childS1 = fork();
 					if(childS1 == 0){
 						//inizializzo i segnali che devo gestire
@@ -337,13 +335,14 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 				//scorro tutti i messaggi fino a dove è stato scritto l'ultimo messaggio o alla fine della SH(se il cursorEnd è stato resettato a 0)
 				for(; i < shMessages->cursorEnd  || (i > shMessages->cursorEnd && i <= 9) ; i++){
 					//messaggio per processo R1
-					if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0){
+					if (strcmp(shMessages->messages[i].idReceiver, "R1") == 0 && strcmp(processo, "R1")==0){
 						pid_t childS1 = fork();
 						if(childS1 == 0){
 							//inizializzo i segnali che devo gestire
 							initSignalChild(sigHandlerChild);
 							//stampo su file
 							printInfoMessage(semID,shMessages->messages[i], F6);
+							printf("Sono %s e messaggio: %s;\n",processo, shMessages->messages->idReceiver);
 							//dormo
 							customPause(shMessages->messages[i].DelS1);
 							//completo timeDept
@@ -359,11 +358,12 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 						}
 					} 
 					//messaggio per processo R2
-					else if (strcmp(shMessages->messages[i].idReceiver, "R2") == 0){
+					else if (strcmp(shMessages->messages[i].idReceiver, "R2") == 0 && strcmp(processo, "R2")==0){
 						pid_t childS1 = fork();
 						if(childS1 == 0){
 							initSignalChild(sigHandlerChild);
 							printInfoMessage(semID,shMessages->messages[i], F5);
+							printf("Sono %s e messaggio: %s;\n",processo, shMessages->messages->idReceiver);
 							customPause(shMessages->messages[i].DelS2);
 							completeInfoMessage(semID,shMessages->messages[i], F5);
 							deliverMessage(shMessages->messages[i], processo);
@@ -377,11 +377,12 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 						}
 					} 
 					//messaggio per processo R3
-					else if (strcmp(shMessages->messages[i].idReceiver, "R3") == 0){
+					else if (strcmp(shMessages->messages[i].idReceiver, "R3") == 0 && strcmp(processo, "R3")==0){
 						pid_t childS1 = fork();
 						if(childS1 == 0){
 							initSignalChild(sigHandlerChild);
 							printInfoMessage(semID,shMessages->messages[i], F4);
+							printf("Sono %s e messaggio: %s;\n",processo, shMessages->messages->idReceiver);
 							customPause(shMessages->messages[i].DelS3);
 							completeInfoMessage(semID,shMessages->messages[i], F4);
 							deliverMessage(shMessages->messages[i], processo);

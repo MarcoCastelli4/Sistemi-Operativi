@@ -1,3 +1,7 @@
 Id;Message;IdSender;IdReceiver;DelS1;DelS2;DelS3;Type
-1;QCCome vaFIFOVeloce?;S3;R1;1;0;0;Q
-2;QCCome vaFIFOVeloce?;S3;R1;2;0;0;SH
+1;SH;S2;R1;1;1;0;SH
+2;SH;S2;R1;1;1;0;SH
+3;SH;S2;R2;1;1;0;SH
+4;SH;S2;R2;1;1;0;SH
+5;SH;S2;R3;1;1;0;SH
+6;SH;S2;R3;1;1;0;SH
