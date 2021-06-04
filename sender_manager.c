@@ -5,8 +5,6 @@
 
 int pipe1[2];
 int pipe2[2];
-int s1EndReading = 0;
-int s2EndReading = 0;
 int waitTime = 0;
 char *F0;
 int MSQID = -1;
@@ -232,23 +230,21 @@ int main(int argc, char *argv[])
 	//genero processo S1
 	pidS1 = fork();
 	if (pidS1 == 0){
+		
 		//imposto handler e maschera
 		initSignalFather(sigHandlerSender);
-		//inizializzo la struttura con la dimensione di un messaggio
 
+		//inizializzo la struttura con la dimensione di un messaggio
 		messages = carica_F0(F0);
 
 		//scrivo intestazione
 		printIntestazione(F1);
 		//mando tutti i messaggi
 		sendMessage(messages, "S1");
-		s1EndReading = 1;
 
 		while(1)
 			sleep(1);
 
-		exit(0);
-		//termino il processo
 	}
 	else if (pidS1 == -1){
 		ErrExit("Fork");
@@ -265,7 +261,7 @@ int main(int argc, char *argv[])
 		//scrivo intestazione
 		printIntestazione(F2);
 
-		while (s1EndReading == 0){
+		while (1){
 			message_sending message;
 			semOp(semID, PIPE1READER, -1);
 			ssize_t nBys = read(pipe1[0], &message, sizeof(message));
@@ -281,12 +277,7 @@ int main(int argc, char *argv[])
 			free(messageGroupS2);
 			semOp(semID, PIPE1WRITER, 1);
 		}
-		s2EndReading = 1;
-
-		//termino il processo
-		while(1)
-			sleep(1);
-		exit(0);
+		
 	}
 	else if (pidS2 == -1)
 	{
@@ -299,19 +290,16 @@ int main(int argc, char *argv[])
 
 	//genero processo S3
 	pidS3 = fork();
-	if (pidS3 == 0)
-	{
+	if (pidS3 == 0){
 		initSignalFather(sigHandlerSender);
 		//scrivo intestazione
 		printIntestazione(F3);
 
-		while (s2EndReading == 0)
-		{
+		while (1){
 			message_sending message;
 			semOp(semID, PIPE2READER, -1);
 			ssize_t nBys = read(pipe2[0], &message, sizeof(message));
-			if (nBys < 1)
-			{
+			if (nBys < 1){
 				ErrExit("Errore uscito\n");
 			}
 			message_group *messageGroupS3 = malloc(sizeof(messageGroupS3));
@@ -323,9 +311,6 @@ int main(int argc, char *argv[])
 			free(messageGroupS3);
 			semOp(semID, PIPE2WRITER, 1);
 		}
-
-		while(1)
-			sleep(1);
 		exit(0);
 	}
 	else if (pidS3 == -1){

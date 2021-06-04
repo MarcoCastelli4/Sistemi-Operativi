@@ -169,12 +169,12 @@ int main(int argc, char *argv[]){
 	close(pipe3[0]);
 	close(pipe3[1]);
 	//Segna chiuso PIPE3 in F10
-	completeInF10("PIPE3");
+	//completeInF10("PIPE3");
 
 	close(pipe4[0]);
 	close(pipe4[1]);
 	//Segna chiuso PIPE4 in F10
-	completeInF10("PIPE4");
+	//completeInF10("PIPE4");
 
 	// Eliminazione della struttura dei messaggi di pids
 	free(myChildrenPid->pids);
