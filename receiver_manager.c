@@ -15,10 +15,9 @@ shared_memory_messages *shMessages = NULL;
 void deliverMessage(message_sending, char []);
 void writeF9(int, int, int);
 void listen(int, int, int, char[]);
-void sigHandlerChild(int);
 void sigHandlerReceiver(int);
-void sigHandlerChild(int sig);
-void sigHandlerMedium(int sig);
+void sigHandlerChild(int);
+void sigHandlerMedium(int);
 void customPause(int startingDelay);
 void recursiveKill(pid_t pid);
 

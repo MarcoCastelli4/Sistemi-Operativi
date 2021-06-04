@@ -1,10 +1,8 @@
 ID;Message;IDSender;IDReceiver;TimeArrival;TimeDeparture
-1;QCCome vaFIFOVeloce?;S2;R1;1;0;0;Q
-2;QCCome vaFIFOVeloce?;S2;R1;2;0;0;SH
-3;QCCome vaFIFOVeloce?;S2;R1;3;0;0;FIFO
-4;QCCome vaFIFOVeloce?;S2;R2;4;0;0;Q
-5;QCCome vaFIFOVeloce?;S2;R2;5;0;0;SH
-6;QCCome vaFIFOVeloce?;S2;R2;6;0;0;FIFO
-7;QCCome vaFIFOVeloce?;S2;R3;7;0;0;Q
-8;QCCome vaFIFOVeloce?;S2;R3;8;0;0;SH
-9;QCCome vaFIFOVeloce?;S2;R3;9;0;0;FIFO
+3;QCCome vaFIFOVeloce?;2;1;14:34:54;14:34:57;
+1;QCCome vaFIFOVeloce?;2;1;14:34:55;14:34:56;
+2;QCCome vaFIFOVeloce?;2;1;14:34:56;14:34:58;
+6;QCCome vaFIFOVeloce?;2;2;14:34:57;14:35:03;
+4;QCCome vaFIFOVeloce?;2;2;14:34:58;14:35:02;
+5;QCCome vaFIFOVeloce?;2;2;14:34:59;14:35:04;
+9;QCCome vaFIFOVeloce?;2;3;14:35:00;14:35:09;
