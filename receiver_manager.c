@@ -342,7 +342,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 							initSignalChild(sigHandlerChild);
 							//stampo su file
 							printInfoMessage(semID,shMessages->messages[i], F6);
-							printf("Sono %s e messaggio: %s;\n",processo, shMessages->messages[i].idReceiver);
 							//dormo
 							customPause(shMessages->messages[i].DelS1);
 							//completo timeDept
@@ -363,7 +362,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 						if(childS1 == 0){
 							initSignalChild(sigHandlerChild);
 							printInfoMessage(semID,shMessages->messages[i], F5);
-							printf("Sono %s e messaggio: %s;\n",processo, shMessages->messages[i].idReceiver);
 							customPause(shMessages->messages[i].DelS2);
 							completeInfoMessage(semID,shMessages->messages[i], F5);
 							deliverMessage(shMessages->messages[i], processo);
@@ -382,7 +380,6 @@ void listen(int MSQID, int SHMID, int semID, char processo[]){
 						if(childS1 == 0){
 							initSignalChild(sigHandlerChild);
 							printInfoMessage(semID,shMessages->messages[i], F4);
-							printf("Sono %s e messaggio: %s;\n",processo, shMessages->messages[i].idReceiver);
 							customPause(shMessages->messages[i].DelS3);
 							completeInfoMessage(semID,shMessages->messages[i], F4);
 							deliverMessage(shMessages->messages[i], processo);
