@@ -1,31 +1,3 @@
-///                MentOS, The Mentoring Operating system project
-/// @file deadlock_prevention.c
-/// @brief Deadlock prevention algorithms source code.
-/// @copyright (c) 2019 This file is distributed under the MIT License.
-/// See LICENSE.md for details.
-///
-/// Complete request() and state_safe() functions, according to what you learnt
-/// in deadlock lectures.
-///
-/// In order to complete the functions I prepared for you a library to manage
-/// easily arrays. The library is arr_math.h and you can find the documentation
-/// in include/util/arr_math.h header file.
-///
-/// In addition you will find the same data structures that you have seen in
-/// class:
-/// - available: number of resources instances currently available;
-/// - max: matrix of the maximum number of resources instances that each task
-/// may require;
-/// - alloc: matrix of current resources instances allocation of each task.
-/// - need: matrix of current resources instances needs of each task.
-/// Assume that these data structure are already filled with the
-/// information described, in other words, you need to use these data structures
-/// in read-only.
-///
-/// Suggestion!
-/// From arr_math.h you may need only: arr_g_any(), arr_add(), arr_sub(),
-/// all() and arr_ne();
-
 #include "deadlock_prevention.h"
 
 #include "arr_math.h"
@@ -44,7 +16,11 @@ uint32_t ** need;
 /// in a safe state.
 /// @param n Number of tasks currently in the system.
 /// @param m Number of resource types in the system (length of req_vec).
-static bool_t state_safe(size_t n, size_t m)
+
+//static bool_t state_safe(size_t n, size_t m)
+//{
+static bool_t state_safe(uint32_t *arr_available, uint32_t **mat_alloc,
+        uint32_t **mat_need, size_t n, size_t m)
 {
     // Alloco work come copia available.
     uint32_t *work = memcpy(kmalloc(sizeof(uint32_t) * m), available,
@@ -87,10 +63,16 @@ static bool_t state_safe(size_t n, size_t m)
     return true;
 }
 
-deadlock_status_t request(uint32_t *req_vec, size_t task_i, size_t n, size_t m)
+//deadlock_status_t request(uint32_t *req_vec, size_t task_i, size_t n, size_t m)
+deadlock_status_t request(uint32_t *req_vec, size_t task_i,
+        uint32_t *arr_available, uint32_t ** mat_alloc, uint32_t **mat_need,
+        size_t n, size_t m)
 {
+    available = arr_available;
+    alloc = mat_alloc;
+    need = mat_need;
     // Controlla che le risorse richieste non superino il valore dichiarato dal processo inizialmente
-    // arr_g_any: confronto tra array, verifica che ogni valore dell'array di sx sia minore o uguale a di quello di dx
+    // arr_g_any: confronto matriciale, verifica che ogni valore della matrice di sx sia minore o uguale a di quello di dx
     if (arr_g_any(req_vec,need[task_i],m))
     {
         return ERROR;
@@ -107,7 +89,7 @@ deadlock_status_t request(uint32_t *req_vec, size_t task_i, size_t n, size_t m)
     arr_sub(need[task_i],req_vec,m);
 
     // Controlla se accontentando la richiesta si resta in stato safe o meno
-    if (!state_safe(n,m))
+    if (!state_safe(available, alloc, need, n, m))
     {   
         // Non è safe quindi annullo la simulazione fatta in precedenza
         // ripristinando i valori precedenti delle strutture
