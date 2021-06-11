@@ -14,8 +14,9 @@
 int sem_create()
 {
 	int retval = 0;
-
+	// carico i valori della system call nei registri (affinchè venga gestito dal kernel con assembly)
 	DEFN_SYSCALL0(retval,__NR_sem_creat);
+	// verifico che sia andata a buon fine
 	if(retval<0){
 		errno=-retval;
 		retval=-1;
@@ -29,16 +30,13 @@ int sem_create()
 int sem_destroy(int id)
 {
 	int retval = 0;
-	
+	// carico i valori della system call nei registri (affinchè venga gestito dal kernel con assembly)
 	DEFN_SYSCALL1(retval,__NR_sem_destroy,id);
 	if(retval<0){
 		errno=-retval;
 		retval=-1;
 	}
-
-	
     	dbg_print("sem_destroy(%d)\n", id);
-
 	
 	return retval;
 }
@@ -66,6 +64,7 @@ int sem_acquire(int id)
     dbg_print("sem_acquire(%d)\n", id);
 
 	do {
+	// provo ad acquisire il semaforo e se non ci riesco mi fermo
 	DEFN_SYSCALL1(retval,__NR_sem_try_acquire,id);
 	if(retval<0){
 		errno=-retval;

@@ -64,6 +64,7 @@ void syscall_init()
 	sys_call_table[__NR_brk] = (SystemCall)umalloc; // TODO: sys_brk
 	sys_call_table[__NR_free] = (SystemCall)ufree; // TODO: sys_brk
 
+	// Mappo la system call lato utente alla funzione lato kernel nella tabella
 	sys_call_table[__NR_sem_creat] = (SystemCall)sys_sem_create;
 	sys_call_table[__NR_sem_destroy] = (SystemCall)sys_sem_destroy;
 	sys_call_table[__NR_sem_init] = (SystemCall)sys_sem_init;

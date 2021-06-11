@@ -221,11 +221,11 @@
 #define __NR_vfork 188
 #define __NR_free 189 // TODO: remove me!
 
+// Definiamo il codice associato alla system call
 #define __NR_sem_creat 190
 #define __NR_sem_destroy 191
 #define __NR_sem_init 192
 #define __NR_sem_try_acquire 193
 #define __NR_sem_release 194
-
 
 #define SYSCALL_NUMBER 195
