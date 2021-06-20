@@ -93,7 +93,6 @@ task_struct *pick_next_task(runqueue_t *runqueue, time_t delta_exec)
 	// Get the first element of the list
 	next = list_entry(&runqueue->queue, task_struct, run_list);
 
-
 	// Get its virtual runtime.
 	// vruntime: tempo di attesa accumulato 
 	time_t min = next->se.vruntime;

@@ -20,8 +20,7 @@ uint32_t ** need;
 //static bool_t state_safe(size_t n, size_t m)
 //{
 static bool_t state_safe(uint32_t *arr_available, uint32_t **mat_alloc,
-        uint32_t **mat_need, size_t n, size_t m)
-{
+        uint32_t **mat_need, size_t n, size_t m){
     // Alloco work come copia available.
     uint32_t *work = memcpy(kmalloc(sizeof(uint32_t) * m), available,
                             sizeof(uint32_t) * m);
@@ -72,7 +71,7 @@ deadlock_status_t request(uint32_t *req_vec, size_t task_i,
     alloc = mat_alloc;
     need = mat_need;
     // Controlla che le risorse richieste non superino il valore dichiarato dal processo inizialmente
-    // arr_g_any: confronto matriciale, verifica che ogni valore della matrice di sx sia minore o uguale a di quello di dx
+    // arr_g_any: confronto array, verifica che ogni valore dell'array di sx sia minore o uguale a di quello di dx
     if (arr_g_any(req_vec,need[task_i],m))
     {
         return ERROR;
